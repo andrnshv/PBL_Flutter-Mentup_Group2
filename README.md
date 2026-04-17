@@ -11,7 +11,7 @@ Platform yang mempertemukan mentor dengan pengguna yang membutuhkan layanan pemb
 * **Muchammad Nabil Haykal Widarto** - 2341660152
 
 ## Deskripsi Proyek
-MentUp adalah aplikasi mobile berbasis Flutter yang dirancang untuk mempermudah koneksi antara pengajar (mentor) dan pelajar (mentee). Melalui aplikasi ini, mentor dapat mendaftar dan menampilkan:
+MentUp adalah aplikasi mobile berbasis Flutter yang dirancang untuk mempermudah koneksi antara mentor dan klien. Melalui aplikasi ini, mentor dapat mendaftar dan menampilkan:
 - Profil dan Pengalaman
 - Curriculum Vitae (CV)
 - Tarif layanan bimbingan
