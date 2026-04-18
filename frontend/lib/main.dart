@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mentup/pages/landing.dart';
+
 import 'pages/login.dart';
 import 'pages/map_page.dart';
+import 'pages/search_page.dart';
+import 'pages/network_page.dart';
+import 'pages/profile_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,8 +26,11 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginPage(),
-        '/landing' : (context) => const LandingPage(),
+        '/landing': (context) => const LandingPage(),
         '/map': (context) => const MapPage(),
+        '/search': (context) => const SearchPage(),
+        '/network': (context) => const NetworkPage(),
+        '/profile': (context) => const ProfilePage(),
       },
     );
   }
