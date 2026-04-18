@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mentup/pages/landing.dart';
 import 'pages/login.dart';
 import 'pages/map_page.dart';
 
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginPage(),
+        '/landing' : (context) => const LandingPage(),
         '/map': (context) => const MapPage(),
       },
     );

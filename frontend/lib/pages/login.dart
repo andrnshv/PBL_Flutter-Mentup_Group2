@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.pushNamed(context, '/map'),
+        onPressed: () => Navigator.pushNamed(context, '/landing'),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
