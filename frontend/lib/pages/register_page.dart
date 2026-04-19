@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  bool _rememberMe = false;
-
+class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,8 +27,9 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           children: [
             const SizedBox(height: 60),
+            // Tombol Back ke Welcome Page
             _buildBackButton(),
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -46,7 +45,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: Column(
                     children: [
                       const Text(
-                        "Welcome Back",
+                        "Create Account",
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -54,25 +53,29 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 10),
                       const Text(
-                        "Log in to your registered account.",
+                        "Fill in your details to get started.",
                         style: TextStyle(color: Colors.grey),
                       ),
-                      const SizedBox(height: 40),
-                      _buildTextField(
-                        "Username or Email",
-                        Icons.person_outline,
-                      ),
+                      const SizedBox(height: 30),
+                      _buildTextField("Full Name", Icons.person_outline),
+                      const SizedBox(height: 20),
+                      _buildTextField("Email Address", Icons.email_outlined),
                       const SizedBox(height: 20),
                       _buildTextField(
                         "Password",
                         Icons.lock_outline,
                         isPassword: true,
                       ),
-                      _buildForgotSection(),
-                      const SizedBox(height: 30),
-                      _buildLoginButton(),
                       const SizedBox(height: 20),
-                      _buildSignUpLink(),
+                      _buildTextField(
+                        "Confirm Password",
+                        Icons.lock_reset_outlined,
+                        isPassword: true,
+                      ),
+                      const SizedBox(height: 40),
+                      _buildRegisterButton(),
+                      const SizedBox(height: 20),
+                      _buildLoginLink(),
                     ],
                   ),
                 ),
@@ -93,9 +96,7 @@ class _LoginPageState extends State<LoginPage> {
           backgroundColor: Colors.white24,
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),
@@ -120,32 +121,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildForgotSection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Checkbox(
-              value: _rememberMe,
-              shape: const CircleBorder(),
-              onChanged: (val) => setState(() => _rememberMe = val!),
-            ),
-            const Text("Remember me", style: TextStyle(color: Colors.blue)),
-          ],
-        ),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            "Forgot password?",
-            style: TextStyle(color: Colors.blue),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLoginButton() {
+  Widget _buildRegisterButton() {
     return Container(
       width: double.infinity,
       height: 55,
@@ -156,7 +132,10 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.pushNamed(context, '/landing'),
+        onPressed: () {
+          // Setelah daftar, biasanya balik ke Login
+          Navigator.pushNamed(context, '/login');
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -165,7 +144,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         child: const Text(
-          "Log In",
+          "Sign Up",
           style: TextStyle(
             color: Colors.white,
             fontSize: 18,
@@ -176,18 +155,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildSignUpLink() {
+  Widget _buildLoginLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Don't have an account? "),
+        const Text("Already have an account? "),
         GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/register');
-          },
+          onTap: () => Navigator.pushNamed(context, '/login'),
           child: const Text(
-            "Sign Up",
-            style: TextStyle(fontWeight: FontWeight.bold),
+            "Log In",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
           ),
         ),
       ],
