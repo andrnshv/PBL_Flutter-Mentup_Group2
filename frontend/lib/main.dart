@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mentup/pages/landing.dart';
 
+import 'pages/welcome_page.dart';
 import 'pages/login.dart';
+import 'pages/register_page.dart';
 import 'pages/map_page.dart';
 import 'pages/search_page.dart';
 import 'pages/network_page.dart';
@@ -25,7 +27,12 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const LoginPage(),
+        // Ubah rute '/' agar membuka WelcomePage pertama kali
+        '/': (context) => const WelcomePage(),
+
+        // Pindahkan LoginPage ke rute spesifik '/login'
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
         '/landing': (context) => const LandingPage(),
         '/map': (context) => const MapPage(),
         '/search': (context) => const SearchPage(),
