@@ -56,14 +56,6 @@ class _ProfilePageState extends State<ProfilePage>
           ),
         ),
         Positioned(
-          top: 40,
-          left: 10,
-          child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {},
-          ),
-        ),
-        Positioned(
           bottom: -50,
           left: 20,
           child: Stack(
@@ -104,9 +96,17 @@ class _ProfilePageState extends State<ProfilePage>
                       fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.edit),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                child: IconButton(
+                  onPressed: () {
+                    // aksi edit
+                  },
+                  icon: const Icon(Icons.edit, color: Colors.deepPurple),
+                ),
               )
             ],
           ),
@@ -118,7 +118,6 @@ class _ProfilePageState extends State<ProfilePage>
           const SizedBox(height: 15),
           _buildStats(),
           const SizedBox(height: 10),
-          _buildActionButtons()
         ],
       ),
     );
@@ -131,37 +130,6 @@ class _ProfilePageState extends State<ProfilePage>
         _StatItem(title: "Sessions", value: "24"),
         _StatItem(title: "Mentors", value: "5"),
         _StatItem(title: "Progress", value: "80%"),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {},
-            child: const Text("Book Session"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: () {},
-            child: const Text("Message"),
-            style: OutlinedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }

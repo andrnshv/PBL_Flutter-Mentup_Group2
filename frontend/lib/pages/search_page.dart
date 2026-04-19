@@ -14,20 +14,110 @@ class _SearchPageState extends State<SearchPage> {
 
   final List<String> categories = [
     "All",
-    "Matematika",
-    "Programming",
-    "Design",
+    "Balet",
+    "Produk designer",
+    "UX Designer",
   ];
+
+  void _openFilter() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// TITLE
+                  const Text(
+                    "Filter",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  /// PRICE
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Max Price: \$${maxPrice.toInt()}"),
+                  ),
+                  Slider(
+                    value: maxPrice,
+                    min: 0,
+                    max: 200,
+                    divisions: 20,
+                    onChanged: (value) {
+                      setModalState(() {
+                        maxPrice = value;
+                      });
+                    },
+                  ),
+
+                  /// DISTANCE
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Distance: ${maxDistance.toInt()} km"),
+                  ),
+                  Slider(
+                    value: maxDistance,
+                    min: 1,
+                    max: 50,
+                    divisions: 10,
+                    onChanged: (value) {
+                      setModalState(() {
+                        maxDistance = value;
+                      });
+                    },
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  /// BUTTON
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {}); // apply filter
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 45),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: const Text("Apply Filter"),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
+
+      /// APPBAR
       appBar: AppBar(
-        title: const Text("Search Mentors"),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        foregroundColor: Colors.black,
+        automaticallyImplyLeading: false,
+        title: const Text("Search Mentors"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            onPressed: _openFilter, //buka filter model
+          )
+        ],
       ),
 
       body: Padding(
@@ -38,93 +128,66 @@ class _SearchPageState extends State<SearchPage> {
             /// 🔍 SEARCH BAR
             TextField(
               decoration: InputDecoration(
-                hintText: "Search mentor...",
+                hintText: "Search Mentors",
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: const Icon(Icons.close),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
                 ),
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 15),
 
-            /// 🎯 FILTER KATEGORI
-            Align(
-              alignment: Alignment.centerLeft,
-              child: const Text("Category", style: TextStyle(fontWeight: FontWeight.bold)),
+            /// 🎯 CATEGORY CHIP
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: categories.map((cat) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(cat),
+                      selected: selectedCategory == cat,
+                      selectedColor: Colors.purple.shade100,
+                      onSelected: (_) {
+                        setState(() {
+                          selectedCategory = cat;
+                        });
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
 
-            Wrap(
-              spacing: 8,
-              children: categories.map((cat) {
-                return ChoiceChip(
-                  label: Text(cat),
-                  selected: selectedCategory == cat,
-                  onSelected: (_) {
-                    setState(() {
-                      selectedCategory = cat;
-                    });
-                  },
-                );
-              }).toList(),
+            const SizedBox(height: 15),
+
+            /// RESULT COUNT + ICON FILTER KECIL
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("100+ Results"),
+              ],
             ),
 
-            const SizedBox(height: 20),
-
-            /// 💰 FILTER HARGA
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Max Price: \$${maxPrice.toInt()}"),
-            ),
-
-            Slider(
-              value: maxPrice,
-              min: 0,
-              max: 200,
-              divisions: 20,
-              onChanged: (value) {
-                setState(() {
-                  maxPrice = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 10),
-
-            /// 📍 FILTER LOKASI
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Distance: ${maxDistance.toInt()} km"),
-            ),
-
-            Slider(
-              value: maxDistance,
-              min: 1,
-              max: 50,
-              divisions: 10,
-              onChanged: (value) {
-                setState(() {
-                  maxDistance = value;
-                });
-              },
-            ),
-
-            const SizedBox(height: 20),
-
-            /// 📋 RESULT (DUMMY)
+            /// 📋 LIST RESULT
             Expanded(
               child: ListView.builder(
                 itemCount: 5,
                 itemBuilder: (context, index) {
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                  return ListTile(
+                    leading: const CircleAvatar(
+                      backgroundImage: AssetImage('assets/profile.jpg'),
                     ),
-                    child: ListTile(
-                      leading: const CircleAvatar(),
-                      title: Text("Mentor $index"),
-                      subtitle: const Text("Category • Rating 4.8"),
-                    ),
+                    title: const Text("Aiska Oca ID"),
+                    subtitle: const Text(
+                        "Designer Manager, Amazon Prime | Tech industry"),
                   );
                 },
               ),
