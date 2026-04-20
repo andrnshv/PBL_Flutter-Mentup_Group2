@@ -9,7 +9,7 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage> {
-  static const LatLng _center = LatLng(-7.9425, 112.6131);
+  static const LatLng _center = LatLng(-7.946731804993239, 112.61600287893961);
   @override
   Widget build(BuildContext context) {
     return Scaffold(
