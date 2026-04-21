@@ -10,6 +10,8 @@ class UserModel {
   final int price;
   final double distance;
 
+  final String? phone;
+
   UserModel({
     required this.username,
     required this.token,
@@ -20,6 +22,8 @@ class UserModel {
     required this.category,
     required this.price,
     required this.distance,
+
+    this.phone,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +37,8 @@ class UserModel {
       category: json['category'] ?? '',
       price: json['price'] ?? 0,
       distance: (json['distance'] ?? 0).toDouble(),
+      
+      phone: json['phone'],
     );
   }
 
@@ -47,6 +53,7 @@ class UserModel {
       'category': category,
       'price': price,
       'distance': distance,
+      'phone': phone,
     };
   }
 }
