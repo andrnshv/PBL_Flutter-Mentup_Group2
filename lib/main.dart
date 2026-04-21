@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mentup/pages/landing.dart';
 
-import 'pages/welcome_page.dart';
-import 'pages/login.dart';
-import 'pages/register_page.dart';
-import 'pages/map_page.dart';
-import 'pages/search_page.dart';
-import 'pages/network_page.dart';
-import 'pages/profile_page.dart';
+// AUTH (GLOBAL)
+import 'views/auth/welcome_page.dart';
+import 'views/auth/login_page.dart';
+import 'views/auth/register_page.dart';
+
+// CLIENT
+import 'views/client/home/landing_page.dart';
+import 'views/client/map/map_page.dart';
+import 'views/client/search/search_page.dart';
+import 'views/client/network/network_page.dart';
+import 'views/client/profile/profile_page.dart';
+
+// ROUTES
+import 'routes/app_routes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -25,19 +31,24 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFFD4B2F7),
       ),
-      initialRoute: '/',
-      routes: {
-        // Ubah rute '/' agar membuka WelcomePage pertama kali
-        '/': (context) => const WelcomePage(),
 
-        // Pindahkan LoginPage ke rute spesifik '/login'
-        '/login': (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(),
-        '/landing': (context) => const LandingPage(),
-        '/map': (context) => const MapPage(),
-        '/search': (context) => const SearchPage(),
-        '/network': (context) => const NetworkPage(),
-        '/profile': (context) => const ProfilePage(),
+      initialRoute: AppRoutes.welcome,
+
+      routes: {
+        AppRoutes.welcome: (_) => const WelcomePage(),
+        AppRoutes.login: (_) => const LoginPage(),
+        AppRoutes.register: (_) => const RegisterPage(),
+
+        AppRoutes.landing: (_) => const LandingPage(),
+        AppRoutes.map: (_) => const MapPage(),
+        AppRoutes.search: (_) => const SearchPage(),
+        AppRoutes.network: (_) => const NetworkPage(),
+        AppRoutes.profile: (_) => const ProfilePage(),
+      },
+
+      // 🔥 IMPORTANT: fallback jika route tidak ditemukan
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (_) => const WelcomePage());
       },
     );
   }

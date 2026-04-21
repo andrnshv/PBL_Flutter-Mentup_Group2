@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../models/user_model.dart';
-import '../pages/explore_page.dart';
-import '../pages/calendar_page.dart';
-import '../pages/search_page.dart';
-import '../pages/network_page.dart';
-import '../pages/profile_page.dart';
-import '../pages/notification_page.dart';
+import '../../../models/user_model.dart';
+import 'explore_page.dart';
+import '../calendar/calendar_page.dart';
+import '../search/search_page.dart';
+import '../network/network_page.dart';
+import '../profile/profile_page.dart';
+import '../notification/notification_page.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -17,7 +17,6 @@ class LandingPage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<LandingPage> {
-
   int _selectedIndex = 0;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
@@ -43,10 +42,7 @@ class _LandingPageState extends State<LandingPage> {
       backgroundColor: const Color(0xFFF8F9FB),
 
       /// BODY
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _pages),
 
       /// BOTTOM NAV
       bottomNavigationBar: Container(
@@ -56,10 +52,7 @@ class _LandingPageState extends State<LandingPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-            )
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
           ],
         ),
         child: Row(
@@ -77,7 +70,6 @@ class _LandingPageState extends State<LandingPage> {
 
   /// ================= HOME CONTENT =================
   Widget _homeContent() {
-
     List<UserModel> mentors = [
       UserModel(
         username: "jerome123",
@@ -121,7 +113,6 @@ class _LandingPageState extends State<LandingPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// HEADER
               Row(
                 children: [
@@ -135,8 +126,10 @@ class _LandingPageState extends State<LandingPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Hello 👋",
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          "Hello 👋",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
                         Text(
                           "Chanyeol",
                           style: TextStyle(
@@ -152,9 +145,7 @@ class _LandingPageState extends State<LandingPage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const CalendarPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const CalendarPage()),
                       );
                     },
                     child: _circleIcon(Icons.calendar_today),
@@ -226,7 +217,7 @@ class _LandingPageState extends State<LandingPage> {
                         );
                       },
                       child: const Text("Explore"),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -243,7 +234,7 @@ class _LandingPageState extends State<LandingPage> {
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                    )
+                    ),
                   ],
                 ),
                 child: Row(
@@ -283,8 +274,10 @@ class _LandingPageState extends State<LandingPage> {
               const SizedBox(height: 25),
 
               /// MAP
-              const Text("Nearby Mentors",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Nearby Mentors",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
 
               const SizedBox(height: 10),
 
@@ -308,7 +301,9 @@ class _LandingPageState extends State<LandingPage> {
                       left: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(20),
@@ -318,7 +313,7 @@ class _LandingPageState extends State<LandingPage> {
                           style: TextStyle(color: Colors.white, fontSize: 12),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -329,8 +324,10 @@ class _LandingPageState extends State<LandingPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: const [
-                  Text("Top Mentors",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(
+                    "Top Mentors",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
 
@@ -355,14 +352,13 @@ class _LandingPageState extends State<LandingPage> {
                       ),
                       child: Stack(
                         children: [
-
                           Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(20),
                               gradient: LinearGradient(
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.7)
+                                  Colors.black.withOpacity(0.7),
                                 ],
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
@@ -379,8 +375,10 @@ class _LandingPageState extends State<LandingPage> {
                           const Positioned(
                             top: 10,
                             right: 10,
-                            child: Icon(Icons.favorite_border,
-                                color: Colors.white),
+                            child: Icon(
+                              Icons.favorite_border,
+                              color: Colors.white,
+                            ),
                           ),
 
                           Positioned(
@@ -406,7 +404,7 @@ class _LandingPageState extends State<LandingPage> {
                                 ),
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     );

@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'login.dart'; // Pastikan ini sesuai dengan nama file login kamu
+import 'login_page.dart'; // Pastikan ini sesuai dengan nama file login kamu
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});

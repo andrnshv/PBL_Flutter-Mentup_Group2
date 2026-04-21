@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/user_model.dart';
+import '../../../models/user_model.dart';
 
 class ExplorePage extends StatefulWidget {
   const ExplorePage({super.key});
@@ -58,8 +58,9 @@ class _ExplorePageState extends State<ExplorePage> {
       final matchCategory =
           selectedCategory == "All" || mentor.category == selectedCategory;
 
-      final matchSearch =
-          mentor.name.toLowerCase().contains(searchQuery.toLowerCase());
+      final matchSearch = mentor.name.toLowerCase().contains(
+        searchQuery.toLowerCase(),
+      );
 
       return matchCategory && matchSearch;
     }).toList();
@@ -69,8 +70,10 @@ class _ExplorePageState extends State<ExplorePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("Explore Mentors",
-            style: TextStyle(color: Colors.black)),
+        title: const Text(
+          "Explore Mentors",
+          style: TextStyle(color: Colors.black),
+        ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
 
@@ -78,7 +81,6 @@ class _ExplorePageState extends State<ExplorePage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
             /// 🔍 SEARCH BAR
             TextField(
               onChanged: (value) {
@@ -127,8 +129,7 @@ class _ExplorePageState extends State<ExplorePage> {
                         child: Text(
                           cat,
                           style: TextStyle(
-                            color:
-                                isSelected ? Colors.white : Colors.black,
+                            color: isSelected ? Colors.white : Colors.black,
                           ),
                         ),
                       ),
@@ -156,7 +157,6 @@ class _ExplorePageState extends State<ExplorePage> {
                     ),
                     child: Row(
                       children: [
-
                         /// IMAGE
                         ClipRRect(
                           borderRadius: BorderRadius.circular(15),
@@ -175,7 +175,6 @@ class _ExplorePageState extends State<ExplorePage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-
                               /// NAME
                               Text(
                                 mentor.name,
@@ -197,12 +196,18 @@ class _ExplorePageState extends State<ExplorePage> {
                               /// RATING & DISTANCE
                               Row(
                                 children: [
-                                  const Icon(Icons.star,
-                                      size: 16, color: Colors.amber),
+                                  const Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: Colors.amber,
+                                  ),
                                   Text("${mentor.rating}"),
                                   const SizedBox(width: 10),
-                                  const Icon(Icons.location_on,
-                                      size: 16, color: Colors.grey),
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 16,
+                                    color: Colors.grey,
+                                  ),
                                   Text("${mentor.distance} km"),
                                 ],
                               ),
@@ -222,13 +227,13 @@ class _ExplorePageState extends State<ExplorePage> {
                         ),
 
                         /// ❤️ FAVORITE
-                        const Icon(Icons.favorite_border)
+                        const Icon(Icons.favorite_border),
                       ],
                     ),
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ),
