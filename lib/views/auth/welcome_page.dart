@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'login_page.dart'; // Pastikan ini sesuai dengan nama file login kamu
+import 'login_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -31,7 +31,7 @@ class WelcomePage extends StatelessWidget {
 
               // Teks Welcome =)
               const Text(
-                'Welcome =)',
+                'Welcome',
                 style: TextStyle(
                   fontFamily: 'Jost',
                   fontWeight: FontWeight.w700,

@@ -8,81 +8,157 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  String selectedRole = 'Client';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Mengatur agar konten tidak terdorong saat keyboard muncul
+      resizeToAvoidBottomInset: true,
       body: Container(
         width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFCDB4DB), // Lavender
-              Color(0xFFF5B3CE), // Pink
-              Color(0xFFA7C7E7), // Biru Muda
-            ],
+            colors: [Color(0xFFCDB4DB), Color(0xFFF5B3CE), Color(0xFFA7C7E7)],
           ),
         ),
         child: Column(
           children: [
             const SizedBox(height: 60),
-            // Tombol Back ke Welcome Page
             _buildBackButton(),
-            const SizedBox(height: 40),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(50),
-                    topRight: Radius.circular(50),
-                  ),
+
+            // Mendorong konten di bawahnya ke paling dasar
+            const Spacer(),
+
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(50),
+                  topRight: Radius.circular(50),
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(30),
-                  child: Column(
-                    children: [
-                      const Text(
-                        "Create Account",
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: 30,
+                  left: 30,
+                  right: 30,
+                  bottom: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Create Account",
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "Fill the form and select your role",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 25),
+
+                    // --- FORM INPUT ---
+                    // Menggunakan Container agar SingleChildScrollView tidak bentrok dengan Column utama
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight:
+                            MediaQuery.of(context).size.height *
+                            0.4, // Batasi tinggi form
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildTextField("Full Name", Icons.person_outline),
+                            const SizedBox(height: 15),
+                            _buildTextField(
+                              "Email Address",
+                              Icons.email_outlined,
+                            ),
+                            const SizedBox(height: 15),
+                            _buildTextField(
+                              "Username",
+                              Icons.lock_outline,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: 15),
+                            _buildTextField(
+                              "Password",
+                              Icons.lock_outline,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: 15),
+                            _buildTextField(
+                              "Confirm Password",
+                              Icons.lock_reset_outlined,
+                              isPassword: true,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Fill in your details to get started.",
-                        style: TextStyle(color: Colors.grey),
+                    ),
+
+                    const SizedBox(height: 20),
+                    // --- PILIHAN ROLE DENGAN JARAK DI MASING-MASING SISI ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                      ), // Memberi jarak di sisi kiri & kanan
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment
+                            .spaceBetween, // Mendorong item ke ujung kiri & kanan padding
+                        children: [
+                          _buildRoleRadio("Client"),
+                          _buildRoleRadio("Mentor"),
+                        ],
                       ),
-                      const SizedBox(height: 30),
-                      _buildTextField("Full Name", Icons.person_outline),
-                      const SizedBox(height: 20),
-                      _buildTextField("Email Address", Icons.email_outlined),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        "Password",
-                        Icons.lock_outline,
-                        isPassword: true,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                        "Confirm Password",
-                        Icons.lock_reset_outlined,
-                        isPassword: true,
-                      ),
-                      const SizedBox(height: 40),
-                      _buildRegisterButton(),
-                      const SizedBox(height: 20),
-                      _buildLoginLink(),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 30),
+                    _buildRegisterButton(),
+                    const SizedBox(height: 15),
+                    _buildLoginLink(),
+                  ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Fungsi baru untuk membuat Radio Button Lingkaran Biru
+  Widget _buildRoleRadio(String role) {
+    return GestureDetector(
+      // Biar kalau teksnya diklik, lingkarannya juga ikut terpilih
+      onTap: () => setState(() => selectedRole = role),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Radio<String>(
+            value: role,
+            groupValue:
+                selectedRole, // Variabel state yang menyimpan pilihan saat ini
+            activeColor: Colors.blue, // Warna titik lingkaran saat dipilih
+            onChanged: (String? value) {
+              setState(() {
+                selectedRole = value!;
+              });
+            },
+          ),
+          Text(
+            role,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }
@@ -113,6 +189,8 @@ class _RegisterPageState extends State<RegisterPage> {
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon),
+        // TAMBAHKAN BARIS INI:
+        contentPadding: const EdgeInsets.symmetric(vertical: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
           borderSide: const BorderSide(color: Colors.black12),
@@ -133,8 +211,12 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       child: ElevatedButton(
         onPressed: () {
-          // Setelah daftar, biasanya balik ke Login
-          Navigator.pushNamed(context, '/login');
+          // LOGIKA NAVIGASI BERDASARKAN ROLE
+          if (selectedRole == 'Client') {
+            Navigator.pushNamed(context, '/landing');
+          } else {
+            Navigator.pushNamed(context, '/mentor_landing');
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
