@@ -12,6 +12,9 @@ import 'views/client/search/search_page.dart';
 import 'views/client/network/network_page.dart';
 import 'views/client/profile/profile_page.dart';
 
+// MENTOR
+import 'views/mentor/home/landing_page.dart';
+
 // ROUTES
 import 'routes/app_routes.dart';
 
@@ -40,6 +43,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.register: (_) => const RegisterPage(),
 
         AppRoutes.landing: (_) => const LandingPage(),
+        AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
+        
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const NetworkPage(),
