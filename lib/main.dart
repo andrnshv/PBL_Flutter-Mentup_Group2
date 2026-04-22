@@ -51,7 +51,6 @@ class MyApp extends StatelessWidget {
         AppRoutes.profile: (_) => const ProfilePage(),
       },
 
-      // 🔥 IMPORTANT: fallback jika route tidak ditemukan
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (_) => const WelcomePage());
       },

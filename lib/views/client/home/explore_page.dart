@@ -226,7 +226,7 @@ class _ExplorePageState extends State<ExplorePage> {
                           ),
                         ),
 
-                        /// ❤️ FAVORITE
+                        /// FAVORITE
                         const Icon(Icons.favorite_border),
                       ],
                     ),

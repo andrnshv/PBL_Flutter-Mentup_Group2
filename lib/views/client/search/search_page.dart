@@ -1,4 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+/// MODEL MENTOR
+class Mentor {
+  final String name;
+  final String category;
+  final double price;
+  final double distance;
+
+  Mentor({
+    required this.name,
+    required this.category,
+    required this.price,
+    required this.distance,
+  });
+}
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -9,7 +25,7 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   String selectedCategory = "All";
-  double maxPrice = 100;
+  double maxPrice = 100000;
   double maxDistance = 10;
 
   final List<String> categories = [
@@ -17,8 +33,49 @@ class _SearchPageState extends State<SearchPage> {
     "Balet",
     "Produk designer",
     "UX Designer",
+    "dance",
   ];
 
+  /// FORMAT RUPIAH
+  final currencyFormat = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
+
+  /// DATA MENTOR (SUDAH RUPIAH)
+  List<Mentor> allMentors = [
+    Mentor(name: "Lovie", category: "UX Designer", price: 80000, distance: 5),
+    Mentor(name: "Aiska", category: "Balet", price: 50000, distance: 8),
+    Mentor(name: "Nabil", category: "Produk designer", price: 120000, distance: 3),
+    Mentor(name: "Andrian", category: "UX Designer", price: 60000, distance: 12),
+    Mentor(name: "Chanyeol", category: "dance", price: 30000, distance: 2),
+  ];
+
+  List<Mentor> filteredMentors = [];
+
+  @override
+  void initState() {
+    super.initState();
+    filteredMentors = allMentors;
+  }
+
+  /// FUNCTION FILTER
+  void applyFilter() {
+    setState(() {
+      filteredMentors = allMentors.where((mentor) {
+        final matchCategory =
+            selectedCategory == "All" || mentor.category == selectedCategory;
+
+        final matchPrice = mentor.price <= maxPrice;
+        final matchDistance = mentor.distance <= maxDistance;
+
+        return matchCategory && matchPrice && matchDistance;
+      }).toList();
+    });
+  }
+
+  /// MODAL FILTER
   void _openFilter() {
     showModalBottomSheet(
       context: context,
@@ -33,23 +90,25 @@ class _SearchPageState extends State<SearchPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  /// TITLE
                   const Text(
                     "Filter",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
 
                   const SizedBox(height: 20),
 
-                  /// PRICE
+                  /// PRICE (RUPIAH)
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text("Max Price: \$${maxPrice.toInt()}"),
+                    child: Text(
+                      "Max Price: ${currencyFormat.format(maxPrice)}",
+                    ),
                   ),
                   Slider(
                     value: maxPrice,
                     min: 0,
-                    max: 200,
+                    max: 200000,
                     divisions: 20,
                     onChanged: (value) {
                       setModalState(() {
@@ -77,10 +136,10 @@ class _SearchPageState extends State<SearchPage> {
 
                   const SizedBox(height: 10),
 
-                  /// BUTTON
+                  /// APPLY BUTTON
                   ElevatedButton(
                     onPressed: () {
-                      setState(() {}); // apply filter
+                      applyFilter();
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
@@ -115,7 +174,7 @@ class _SearchPageState extends State<SearchPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.tune),
-            onPressed: _openFilter, //buka filter model
+            onPressed: _openFilter,
           )
         ],
       ),
@@ -125,15 +184,13 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           children: [
 
-            /// 🔍 SEARCH BAR
+            /// SEARCH BAR
             TextField(
               decoration: InputDecoration(
                 hintText: "Search Mentors",
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: const Icon(Icons.close),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
                   borderSide: BorderSide.none,
@@ -143,7 +200,7 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 15),
 
-            /// 🎯 CATEGORY CHIP
+            /// CATEGORY
             SizedBox(
               height: 40,
               child: ListView(
@@ -159,6 +216,7 @@ class _SearchPageState extends State<SearchPage> {
                         setState(() {
                           selectedCategory = cat;
                         });
+                        applyFilter();
                       },
                     ),
                   );
@@ -168,29 +226,43 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 15),
 
-            /// RESULT COUNT + ICON FILTER KECIL
+            /// RESULT COUNT
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("100+ Results"),
+                Text("${filteredMentors.length} Results"),
               ],
             ),
 
-            /// 📋 LIST RESULT
+            const SizedBox(height: 10),
+
+            /// LIST RESULT
             Expanded(
-              child: ListView.builder(
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: const CircleAvatar(
-                      backgroundImage: AssetImage('assets/profile.jpg'),
+              child: filteredMentors.isEmpty
+                  ? const Center(child: Text("No mentor found."))
+                  : ListView.builder(
+                      itemCount: filteredMentors.length,
+                      itemBuilder: (context, index) {
+                        final mentor = filteredMentors[index];
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundImage:
+                                  AssetImage('assets/profile.jpg'),
+                            ),
+                            title: Text(mentor.name),
+                            subtitle: Text(
+                              "${mentor.category} • ${currencyFormat.format(mentor.price)} • ${mentor.distance} km",
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    title: const Text("Aiska Oca ID"),
-                    subtitle: const Text(
-                        "Designer Manager, Amazon Prime | Tech industry"),
-                  );
-                },
-              ),
             ),
           ],
         ),

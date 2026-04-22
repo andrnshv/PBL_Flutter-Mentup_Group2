@@ -8,6 +8,7 @@ import '../search/search_page.dart';
 import '../network/network_page.dart';
 import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
+import '../profile/mentor_profile_page.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -340,72 +341,75 @@ class _LandingPageState extends State<LandingPage> {
                   scrollDirection: Axis.horizontal,
                   itemCount: mentors.length,
                   itemBuilder: (context, index) {
-                    return Container(
-                      width: 200,
-                      margin: const EdgeInsets.only(right: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        image: DecorationImage(
-                          image: AssetImage(mentors[index].image),
-                          fit: BoxFit.cover,
+                    return GestureDetector(
+                      onTap : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MentorProfilePage(
+                              mentor: mentors[index],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 200,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          image: DecorationImage(
+                            image: AssetImage(mentors[index].image),
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.7),
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
+                        child: Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                gradient: LinearGradient(
+                                  colors: [
+                                   Colors.transparent,
+                                   Colors.black.withOpacity(0.7),
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
                               ),
                             ),
-                          ),
 
-                          Positioned(
-                            top: 10,
-                            left: 10,
-                            child: _ratingBox(mentors[index].rating),
-                          ),
-
-                          const Positioned(
-                            top: 10,
-                            right: 10,
-                            child: Icon(
-                              Icons.favorite_border,
-                              color: Colors.white,
+                            Positioned(
+                              top: 10,
+                              left: 10,
+                              child: _ratingBox(mentors[index].rating),
                             ),
-                          ),
 
-                          Positioned(
-                            bottom: 12,
-                            left: 12,
-                            right: 12,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  mentors[index].name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
+                            Positioned(
+                              bottom: 12,
+                              left: 12,
+                              right: 12,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    mentors[index].name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  mentors[index].role,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
+                                  Text(
+                                    mentors[index].role,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   },

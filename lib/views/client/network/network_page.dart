@@ -12,20 +12,20 @@ class _NetworkPageState extends State<NetworkPage> {
 
   List<Map<String, dynamic>> mentors = [
     {
-      "name": "Dummy",
-      "role": "UX Designer",
-      "image": "assets/profile.jpg",
+      "name": "Jerome",
+      "role": "Matematika",
+      "image": "assets/mentor1.jpg",
       "isSaved": false,
     },
     {
-      "name": "Dummy",
+      "name": "Belva",
       "role": "UX Designer",
-      "image": "assets/profile.jpg",
+      "image": "assets/mentor2.jpg",
       "isSaved": false,
     },
     {
-      "name": "Dummy",
-      "role": "UX Designer",
+      "name": "Loey",
+      "role": "Music",
       "image": "assets/profile.jpg",
       "isSaved": false,
     },
@@ -33,8 +33,7 @@ class _NetworkPageState extends State<NetworkPage> {
 
   @override
   Widget build(BuildContext context) {
-    List savedMentors =
-        mentors.where((m) => m["isSaved"] == true).toList();
+    List savedMentors = mentors.where((m) => m["isSaved"] == true).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
