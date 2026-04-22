@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../models/mentor_model.dart';
+import '../profile/mentor_profile_page.dart';
 
 /// MODEL MENTOR
 class Mentor {
@@ -7,12 +9,16 @@ class Mentor {
   final String category;
   final double price;
   final double distance;
+  final String image;
+  final double rating;
 
   Mentor({
     required this.name,
     required this.category,
     required this.price,
     required this.distance,
+    required this.image,
+    required this.rating,
   });
 }
 
@@ -36,20 +42,38 @@ class _SearchPageState extends State<SearchPage> {
     "dance",
   ];
 
-  /// FORMAT RUPIAH
   final currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
     symbol: 'Rp ',
     decimalDigits: 0,
   );
 
-  /// DATA MENTOR (SUDAH RUPIAH)
+  ///DATA MENTOR (DISAMAIN)
   List<Mentor> allMentors = [
-    Mentor(name: "Lovie", category: "UX Designer", price: 80000, distance: 5),
-    Mentor(name: "Aiska", category: "Balet", price: 50000, distance: 8),
-    Mentor(name: "Nabil", category: "Produk designer", price: 120000, distance: 3),
-    Mentor(name: "Andrian", category: "UX Designer", price: 60000, distance: 12),
-    Mentor(name: "Chanyeol", category: "dance", price: 30000, distance: 2),
+    Mentor(
+      name: "Jerome",
+      category: "Matematika",
+      price: 80000,
+      distance: 5,
+      image: "assets/mentor1.jpg",
+      rating: 4.8,
+    ),
+    Mentor(
+      name: "Belva",
+      category: "UX Designer",
+      price: 100000,
+      distance: 3,
+      image: "assets/mentor2.jpg",
+      rating: 4.7,
+    ),
+    Mentor(
+      name: "Loey",
+      category: "Music",
+      price: 60000,
+      distance: 7,
+      image: "assets/profile.jpg",
+      rating: 4.5,
+    ),
   ];
 
   List<Mentor> filteredMentors = [];
@@ -60,7 +84,7 @@ class _SearchPageState extends State<SearchPage> {
     filteredMentors = allMentors;
   }
 
-  /// FUNCTION FILTER
+  /// FILTER
   void applyFilter() {
     setState(() {
       filteredMentors = allMentors.where((mentor) {
@@ -75,7 +99,26 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  /// MODAL FILTER
+  ///NAVIGATE KE PROFILE
+  void openProfile(Mentor mentor) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MentorProfilePage(
+          mentor: MentorModel(
+            name: mentor.name,
+            category: mentor.category,
+            image: mentor.image,
+            rating: mentor.rating,
+            price: mentor.price.toInt(),
+            distance: mentor.distance,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// FILTER MODAL (TETAP)
   void _openFilter() {
     showModalBottomSheet(
       context: context,
@@ -90,64 +133,39 @@ class _SearchPageState extends State<SearchPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    "Filter",
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  const Text("Filter",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
 
                   const SizedBox(height: 20),
 
-                  /// PRICE (RUPIAH)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Max Price: ${currencyFormat.format(maxPrice)}",
-                    ),
-                  ),
+                  Text("Max Price: ${currencyFormat.format(maxPrice)}"),
                   Slider(
                     value: maxPrice,
                     min: 0,
                     max: 200000,
                     divisions: 20,
                     onChanged: (value) {
-                      setModalState(() {
-                        maxPrice = value;
-                      });
+                      setModalState(() => maxPrice = value);
                     },
                   ),
 
-                  /// DISTANCE
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text("Distance: ${maxDistance.toInt()} km"),
-                  ),
+                  Text("Distance: ${maxDistance.toInt()} km"),
                   Slider(
                     value: maxDistance,
                     min: 1,
                     max: 50,
                     divisions: 10,
                     onChanged: (value) {
-                      setModalState(() {
-                        maxDistance = value;
-                      });
+                      setModalState(() => maxDistance = value);
                     },
                   ),
 
-                  const SizedBox(height: 10),
-
-                  /// APPLY BUTTON
                   ElevatedButton(
                     onPressed: () {
                       applyFilter();
                       Navigator.pop(context);
                     },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 45),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
                     child: const Text("Apply Filter"),
                   ),
                 ],
@@ -164,12 +182,7 @@ class _SearchPageState extends State<SearchPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
 
-      /// APPBAR
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        automaticallyImplyLeading: false,
         title: const Text("Search Mentors"),
         actions: [
           IconButton(
@@ -183,8 +196,7 @@ class _SearchPageState extends State<SearchPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-
-            /// SEARCH BAR
+            /// SEARCH BAR (optional nanti bisa ditambah logic)
             TextField(
               decoration: InputDecoration(
                 hintText: "Search Mentors",
@@ -211,11 +223,8 @@ class _SearchPageState extends State<SearchPage> {
                     child: ChoiceChip(
                       label: Text(cat),
                       selected: selectedCategory == cat,
-                      selectedColor: Colors.purple.shade100,
                       onSelected: (_) {
-                        setState(() {
-                          selectedCategory = cat;
-                        });
+                        setState(() => selectedCategory = cat);
                         applyFilter();
                       },
                     ),
@@ -226,43 +235,66 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 15),
 
-            /// RESULT COUNT
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("${filteredMentors.length} Results"),
-              ],
-            ),
+            Text("${filteredMentors.length} Results"),
 
             const SizedBox(height: 10),
 
-            /// LIST RESULT
+            ///LIST + CLICK
             Expanded(
-              child: filteredMentors.isEmpty
-                  ? const Center(child: Text("No mentor found."))
-                  : ListView.builder(
-                      itemCount: filteredMentors.length,
-                      itemBuilder: (context, index) {
-                        final mentor = filteredMentors[index];
+              child: ListView.builder(
+                itemCount: filteredMentors.length,
+                itemBuilder: (context, index) {
+                  final mentor = filteredMentors[index];
 
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  return GestureDetector(
+                    onTap: () => openProfile(mentor),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 25,
+                            backgroundImage: AssetImage(mentor.image),
                           ),
-                          child: ListTile(
-                            leading: const CircleAvatar(
-                              backgroundImage:
-                                  AssetImage('assets/profile.jpg'),
-                            ),
-                            title: Text(mentor.name),
-                            subtitle: Text(
-                              "${mentor.category} • ${currencyFormat.format(mentor.price)} • ${mentor.distance} km",
+
+                          const SizedBox(width: 12),
+
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(mentor.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold)),
+                                Text(mentor.category,
+                                    style:
+                                        const TextStyle(color: Colors.grey)),
+                                Text(
+                                  "${currencyFormat.format(mentor.price)} • ${mentor.distance} km",
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      },
+
+                          Column(
+                            children: [
+                              const Icon(Icons.star,
+                                  color: Colors.amber, size: 18),
+                              Text(mentor.rating.toString()),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
+                  );
+                },
+              ),
             ),
           ],
         ),
