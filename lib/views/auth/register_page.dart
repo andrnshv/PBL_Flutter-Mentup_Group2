@@ -215,7 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
           if (selectedRole == 'Client') {
             Navigator.pushNamed(context, '/landing');
           } else {
-            Navigator.pushNamed(context, '/mentor_landing');
+            Navigator.pushNamed(context, '/mentor_cv');
           }
         },
         style: ElevatedButton.styleFrom(
