@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mentup/views/mentor/home/article_page.dart';
 
 // AUTH (GLOBAL)
 import 'views/auth/welcome_page.dart';
 import 'views/auth/login_page.dart';
 import 'views/auth/register_page.dart';
+import 'views/auth/cv_upload.dart';
 
 // CLIENT
 import 'views/client/home/landing_page.dart';
@@ -43,7 +45,9 @@ class MyApp extends StatelessWidget {
         AppRoutes.register: (_) => const RegisterPage(),
 
         AppRoutes.landing: (_) => const LandingPage(),
+        AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
         AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
+        AppRoutes.mentorTips: (_) => const ArticlePage(),
         
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
