@@ -326,7 +326,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
               ),
             ),
             const Text(
-              "Mentor Lovie ✨",
+              "Welcome Lovie ✨",
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 25,
@@ -846,10 +846,19 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: (index) {
-            // LOGIKA NAVIGASI BARU DITAMBAHKAN DI SINI
-            if (index == 1) {
-              // Jika menu "Request" (index 1) diklik, pindah halaman
+            if (index == 0) {
+              // Jika klik Home, tetap di sini atau pushNamed ke landing
+              // Biasanya jika sudah di home, tidak perlu pindah
+              setState(() => _selectedIndex = index);
+            } else if (index == 1) {
+              // Navigasi ke Request Page sesuai gaya kamu
               Navigator.pushNamed(context, '/booking_request');
+            } else if (index == 2) {
+              // Navigasi ke History (jika rutenya sudah ada)
+              // Navigator.pushNamed(context, '/history_session');
+            } else if (index == 3) {
+              // Navigasi ke Profile Page yang baru kita buat
+              Navigator.pushNamed(context, '/mentor_profile');
             } else {
               // Jika menu lain diklik, cukup ubah indikator warna saja
               setState(() => _selectedIndex = index);

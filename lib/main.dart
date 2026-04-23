@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mentup/views/client/profile/mentor_profile_page.dart';
 import 'package:flutter_mentup/views/mentor/booking/booking_detail_page.dart';
 import 'package:flutter_mentup/views/mentor/booking/booking_request_page.dart';
 import 'package:flutter_mentup/views/mentor/home/article_page.dart';
@@ -18,6 +19,7 @@ import 'views/client/profile/profile_page.dart';
 
 // MENTOR
 import 'views/mentor/home/landing_page.dart';
+import 'views/mentor/profile/profile_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -42,22 +44,40 @@ class MyApp extends StatelessWidget {
       initialRoute: AppRoutes.welcome,
 
       routes: {
+        // AUTH
         AppRoutes.welcome: (_) => const WelcomePage(),
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
-
-        AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
         AppRoutes.landing: (_) => const HomePage(),
-        AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
-        AppRoutes.mentorTips: (_) => const ArticlePage(),
-        AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
-        AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
-        
+
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
+
+        // MENTOR
+        AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
+        AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
+        AppRoutes.mentorTips: (_) => const ArticlePage(),
+        AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
+        AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
+
+        AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
+        AppRoutes.editProfile: (_) =>
+            const Scaffold(body: Center(child: Text("Edit Profile Page"))),
+        AppRoutes.editRates: (_) =>
+            const Scaffold(body: Center(child: Text("Edit My Fee"))),
+        AppRoutes.mySchedule: (_) =>
+            const Scaffold(body: Center(child: Text("My Schedule"))),
+        AppRoutes.historySession: (_) =>
+            const Scaffold(body: Center(child: Text("History Session"))),
+        AppRoutes.transactions: (_) =>
+            const Scaffold(body: Center(child: Text("Transactions"))),
+        AppRoutes.teachingForm: (_) =>
+            const Scaffold(body: Center(child: Text("Form Teaching Approval"))),
+        AppRoutes.settingsAccount: (_) =>
+            const Scaffold(body: Center(child: Text("Settings"))),
       },
 
       onUnknownRoute: (settings) {
