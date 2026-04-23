@@ -68,6 +68,7 @@ flutter:
     - assets/mentor1.jpg
     - assets/mentor2.jpg
     - assets/profile.jpg
+    - assets/mentor.png
 
 
   # To add assets to your application, add an assets section, like this:
