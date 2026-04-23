@@ -50,54 +50,77 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(
-                        0xFFF5B3CE,
-                      ).withOpacity(0.5), // Pink 50%
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      "3 New",
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/booking_request'),
+                        child: const Text(
+                          "See All",
+                          style: TextStyle(
+                            color: Color(0xFF5B62CC),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5B3CE).withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          "3 New",
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 15),
 
-              _buildBookingRequestCard(
-                clientName: "Aiska",
-                category: "Statistics",
-                date: "21 Apr",
-                time: "09:00 - 13:00",
-                color: const Color(0xFFF5B3CE),
-              ),
-              const SizedBox(height: 15),
-              _buildBookingRequestCard(
-                clientName: "Andrian",
-                category: "Web Development",
-                date: "22 Apr",
-                time: "10:00 - 12:00",
-                color: const Color(0xFFA7C7E7),
-              ),
-              const SizedBox(height: 15),
-              _buildBookingRequestCard(
-                clientName: "Nabil",
-                category: "UI/UX Design",
-                date: "23 Apr",
-                time: "15:00 - 16:30",
-                color: const Color(0xFFCDB4DB),
-              ),
+              // Memanggil data dan menampilkannya satu per satu
+              ...([
+                {
+                  "name": "Aiska",
+                  "cat": "Statistics",
+                  "date": "21 Apr",
+                  "time": "09:00",
+                  "color": const Color(0xFFF5B3CE),
+                },
+                {
+                  "name": "Bima",
+                  "cat": "Web Dev",
+                  "date": "22 Apr",
+                  "time": "13:00",
+                  "color": const Color(0xFFA7C7E7),
+                },
+                {
+                  "name": "Citra",
+                  "cat": "UI/UX Design",
+                  "date": "23 Apr",
+                  "time": "15:00",
+                  "color": const Color(0xFFCDB4DB),
+                },
+              ].map((item) {
+                return _buildBookingRequestCard(
+                  clientName: item['name'] as String,
+                  category: item['cat'] as String,
+                  date: item['date'] as String,
+                  time: item['time'] as String,
+                  color: item['color'] as Color,
+                );
+              }).toList()),
 
               const SizedBox(height: 35),
 
@@ -431,133 +454,123 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     required String time,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        // Border card opacity 50%
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  // Background icon opacity 50%
-                  color: color.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Icon(
-                  Icons.person,
+    return GestureDetector(
+      onTap: () {
+        // Navigasi ke detail dengan data lengkap
+        Navigator.pushNamed(
+          context,
+          '/booking_detail',
+          arguments: {
+            'name': clientName,
+            'cat': category,
+            'date': date,
+            'time': time,
+            'color': color,
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar dengan Initial
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: color.withOpacity(0.2),
+              child: Text(
+                clientName[0],
+                style: TextStyle(
                   color: color,
-                  size: 30,
-                ), // Icon solid 100%
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      clientName,
-                      style: const TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    clientName,
+                    style: const TextStyle(
+                      fontFamily: 'Nunito',
+                      fontWeight: FontWeight.w800,
+                      fontSize: 17,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      "Category: $category",
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 12,
-                        color: Colors.grey[700],
+                  ),
+                  const SizedBox(height: 6),
+                  // Baris Tanggal & Jam
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 12,
+                        color: Colors.grey[500],
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 14,
+                      const SizedBox(width: 4),
+                      Text(
+                        date,
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
                           color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          "$date • $time",
-                          style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[800],
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 12,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Chip Kategori di pojok kanan
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                category,
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {},
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    "Reject",
-                    style: TextStyle(
-                      color: Colors.redAccent,
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1BACFF),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    "Accept",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -822,7 +835,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -832,7 +845,16 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
+          onTap: (index) {
+            // LOGIKA NAVIGASI BARU DITAMBAHKAN DI SINI
+            if (index == 1) {
+              // Jika menu "Request" (index 1) diklik, pindah halaman
+              Navigator.pushNamed(context, '/booking_request');
+            } else {
+              // Jika menu lain diklik, cukup ubah indikator warna saja
+              setState(() => _selectedIndex = index);
+            }
+          },
           backgroundColor: Colors.white,
           selectedItemColor: const Color(0xFF5B62CC),
           unselectedItemColor: Colors.grey[400],
@@ -856,7 +878,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.description_outlined),
-              label: "Request",
+              label: "Request", // Ini adalah Index ke-1
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
