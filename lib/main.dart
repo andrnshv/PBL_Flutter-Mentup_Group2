@@ -10,10 +10,10 @@ import 'views/auth/register_page.dart';
 import 'views/auth/cv_upload.dart';
 
 // CLIENT
-import 'views/client/home/landing_page.dart';
+import 'views/client/home/home_page.dart';
 import 'views/client/map/map_page.dart';
 import 'views/client/search/search_page.dart';
-import 'views/client/network/network_page.dart';
+import 'views/client/History/History_page.dart';
 import 'views/client/profile/profile_page.dart';
 
 // MENTOR
@@ -46,8 +46,9 @@ class MyApp extends StatelessWidget {
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
-        AppRoutes.landing: (_) => const LandingPage(),
+
         AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
+        AppRoutes.landing: (_) => const HomePage(),
         AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
         AppRoutes.mentorTips: (_) => const ArticlePage(),
         AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
@@ -55,7 +56,7 @@ class MyApp extends StatelessWidget {
         
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
-        AppRoutes.network: (_) => const NetworkPage(),
+        AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
       },
 

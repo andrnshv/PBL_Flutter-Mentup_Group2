@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mentup/models/mentor_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../models/user_model.dart';
-import 'explore_page.dart';
+import '../../../models/mentor_model.dart';
+import 'session_page.dart';
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
-import '../network/network_page.dart';
+import '../History/History_page.dart';
 import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
 import '../profile/mentor_profile_page.dart';
 
-class LandingPage extends StatefulWidget {
-  const LandingPage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<LandingPage> createState() => _LandingPageState();
+  State<HomePage> createState() => _LandingPageState();
 }
 
-class _LandingPageState extends State<LandingPage> {
+class _LandingPageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
@@ -32,7 +34,7 @@ class _LandingPageState extends State<LandingPage> {
     _pages = [
       _homeContent(),
       const SearchPage(),
-      const NetworkPage(),
+      const HistoryPage(),
       const ProfilePage(),
     ];
   }
@@ -61,7 +63,7 @@ class _LandingPageState extends State<LandingPage> {
           children: [
             _navItem(Icons.home, "Home", 0),
             _navItem(Icons.search, "Search", 1),
-            _navItem(Icons.people, "Network", 2),
+            _navItem(Icons.people, "History", 2),
             _navItem(Icons.person, "Profile", 3),
           ],
         ),
@@ -71,36 +73,27 @@ class _LandingPageState extends State<LandingPage> {
 
   /// ================= HOME CONTENT =================
   Widget _homeContent() {
-    List<UserModel> mentors = [
-      UserModel(
-        username: "jerome123",
-        token: "dummy_token",
+    List<MentorModel> mentors = [
+      MentorModel(
         name: "Jerome",
         image: "assets/mentor1.jpg",
         rating: 4.8,
-        role: "Matematika",
         category: "Education",
         price: 50000,
         distance: 1.2,
       ),
-      UserModel(
-        username: "belva123",
-        token: "dummy_token",
+      MentorModel(
         name: "Belva",
         image: "assets/mentor2.jpg",
         rating: 4.9,
-        role: "Mobile Developer",
         category: "Technology",
         price: 75000,
         distance: 2.5,
       ),
-      UserModel(
-        username: "PCY",
-        token: "dummy_token",
+      MentorModel(
         name: "Loey",
         image: "assets/profile.jpg",
         rating: 4.9,
-        role: "Dance",
         category: "Dance",
         price: 90000,
         distance: 2.2,
@@ -146,7 +139,9 @@ class _LandingPageState extends State<LandingPage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CalendarPage()),
+                        MaterialPageRoute(
+                          builder: (_) => const CalendarPage(),
+                        ),
                       );
                     },
                     child: _circleIcon(Icons.calendar_today),
@@ -170,7 +165,7 @@ class _LandingPageState extends State<LandingPage> {
 
               const SizedBox(height: 20),
 
-              /// EXPLORE CARD
+              /// SESSION CARD
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -186,7 +181,7 @@ class _LandingPageState extends State<LandingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Find your mentor 🔥",
+                            "Time for a session review ✨",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,
@@ -195,7 +190,7 @@ class _LandingPageState extends State<LandingPage> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            "Grow your skills with experts",
+                            "Rate and review your learning experience",
                             style: TextStyle(color: Colors.white70),
                           ),
                         ],
@@ -213,11 +208,11 @@ class _LandingPageState extends State<LandingPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ExplorePage(),
+                            builder: (_) => const SessionPage(),
                           ),
                         );
                       },
-                      child: const Text("Explore"),
+                      child: const Text("Finish Session"),
                     ),
                   ],
                 ),
@@ -225,7 +220,124 @@ class _LandingPageState extends State<LandingPage> {
 
               const SizedBox(height: 20),
 
-              /// SESSION CARD
+              /// MOTIVATION CARD
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 45,
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.lightbulb, color: primary),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Level Up Your Skills 🚀",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Keep learning today to unlock better opportunities tomorrow.",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// UPCOMING SESSION
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 45,
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.event_available, color: primary),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Upcoming Session 🚀",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Jerome will come to your location",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Today • 11:00 - 12:30",
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        "Confirmed",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 25),
+
+              /// TODAY SESSION
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -250,7 +362,6 @@ class _LandingPageState extends State<LandingPage> {
                       child: Icon(Icons.schedule, color: primary),
                     ),
                     const SizedBox(width: 12),
-
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -296,7 +407,6 @@ class _LandingPageState extends State<LandingPage> {
                         zoomControlsEnabled: false,
                       ),
                     ),
-
                     Positioned(
                       bottom: 10,
                       left: 10,
@@ -321,20 +431,13 @@ class _LandingPageState extends State<LandingPage> {
 
               const SizedBox(height: 25),
 
-              /// TITLE
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Top Mentors",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
+              const Text(
+                "Top Mentors",
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 12),
 
-              /// MENTOR LIST
               SizedBox(
                 height: 250,
                 child: ListView.builder(
@@ -342,7 +445,7 @@ class _LandingPageState extends State<LandingPage> {
                   itemCount: mentors.length,
                   itemBuilder: (context, index) {
                     return GestureDetector(
-                      onTap : () {
+                      onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -369,21 +472,19 @@ class _LandingPageState extends State<LandingPage> {
                                 borderRadius: BorderRadius.circular(20),
                                 gradient: LinearGradient(
                                   colors: [
-                                   Colors.transparent,
-                                   Colors.black.withOpacity(0.7),
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.7),
                                   ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),
                               ),
                             ),
-
                             Positioned(
                               top: 10,
                               left: 10,
                               child: _ratingBox(mentors[index].rating),
                             ),
-
                             Positioned(
                               bottom: 12,
                               left: 12,
@@ -399,7 +500,7 @@ class _LandingPageState extends State<LandingPage> {
                                     ),
                                   ),
                                   Text(
-                                    mentors[index].role,
+                                    mentors[index].category,
                                     style: const TextStyle(
                                       color: Colors.white70,
                                       fontSize: 12,

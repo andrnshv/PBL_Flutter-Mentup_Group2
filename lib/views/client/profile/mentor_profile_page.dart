@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../models/user_model.dart';
+import '../../../models/mentor_model.dart';
 
 class MentorProfilePage extends StatelessWidget {
-  final UserModel mentor;
+  final MentorModel mentor;
 
   const MentorProfilePage({super.key, required this.mentor});
 
@@ -11,11 +11,11 @@ class MentorProfilePage extends StatelessWidget {
     switch (status) {
       case "Pending":
         return Colors.orange;
-      case "Diterima":
+      case "Accepted":
         return Colors.green;
-      case "Ditolak":
+      case "Rejected":
         return Colors.red;
-      case "Selesai":
+      case "Done":
         return Colors.blue;
       default:
         return Colors.grey;
@@ -33,27 +33,39 @@ class MentorProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = const Color(0xFF6C63FF);
 
-    final sessionList = [
-      {"title": "UI/UX Mentoring", "status": "Pending"},
-      {"title": "Flutter Session", "status": "Diterima"},
-      {"title": "Backend API", "status": "Ditolak"},
-      {"title": "Career Talk", "status": "Selesai"},
+    ///STATUS MENTOR
+    final bool isAvailable = true;
+
+    /// DATA JADWAL
+    final schedules = [
+      {
+        "date": "20 April 2026",
+        "time": "13:00",
+        "method": "Offline",
+        "status": "Accepted"
+      },
+      {
+        "date": "25 April 2026",
+        "time": "10:00",
+        "method": "Offline",
+        "status": "Pending"
+      },
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: const Color(0xFFF4F6FA),
       body: SingleChildScrollView(
         child: Column(
           children: [
             /// ================= HEADER =================
             Stack(
-              alignment: Alignment.center,
+              clipBehavior: Clip.none,
               children: [
                 Container(
-                  height: 200,
+                  height: 220,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primary, primary.withOpacity(0.6)],
+                      colors: [primary, primary.withOpacity(0.7)],
                     ),
                     borderRadius: const BorderRadius.vertical(
                       bottom: Radius.circular(30),
@@ -62,10 +74,59 @@ class MentorProfilePage extends StatelessWidget {
                 ),
 
                 Positioned(
-                  top: 60,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundImage: AssetImage(mentor.image),
+                  top: 40,
+                  left: 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                  ),
+                ),
+
+                /// AVATAR + STATUS
+                Positioned(
+                  bottom: -50,
+                  left: 0,
+                  right: 0,
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 55,
+                            backgroundColor: Colors.white,
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundImage: AssetImage(mentor.image),
+                            ),
+                          ),
+
+                          Positioned(
+                            bottom: 5,
+                            right: 5,
+                            child: Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                color: isAvailable
+                                    ? Colors.green
+                                    : Colors.grey,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: Colors.white, width: 2),
+                              ),
+                            ),
+                          )
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -73,23 +134,45 @@ class MentorProfilePage extends StatelessWidget {
 
             const SizedBox(height: 60),
 
+            /// ================= NAME =================
             Text(
               mentor.name,
               style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+                  fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
-            Text(mentor.role, style: const TextStyle(color: Colors.grey)),
+            Text(mentor.category, style: const TextStyle(color: Colors.grey)),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
 
+            /// ⭐ RATING + AVAILABILITY
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.star, color: Colors.amber),
+                const Icon(Icons.star, color: Colors.amber, size: 18),
+                const SizedBox(width: 4),
                 Text(mentor.rating.toString()),
+
+                const SizedBox(width: 10),
+
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isAvailable
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isAvailable ? "Available" : "Unavailable",
+                    style: TextStyle(
+                      color: isAvailable ? Colors.green : Colors.grey,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
               ],
             ),
 
@@ -107,23 +190,55 @@ class MentorProfilePage extends StatelessWidget {
                       },
                       icon: const Icon(Icons.chat),
                       label: const Text("Message"),
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
+                      onPressed: isAvailable ? () {} : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primary,
+                        backgroundColor: isAvailable
+                          ? const Color(0xFF6C63FF) : const Color(0xFFE0E0E0),
+                        foregroundColor: 
+                            isAvailable ? Colors.white : Colors.grey.shade600,
+                        elevation: isAvailable ? 3 : 0,
+                        shadowColor: Colors.black.withOpacity(0.2),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
-                      onPressed: () {},
-                      child: const Text("Book Session"),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isAvailable ? Icons.calendar_month : Icons.block,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            isAvailable ? "Book Session" : "Not Available",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      )
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 25),
 
             /// ================= QUICK INFO =================
             Padding(
@@ -144,63 +259,107 @@ class MentorProfilePage extends StatelessWidget {
             _section(
               title: "About",
               content:
-                  "Mentor profesional di bidang ${mentor.role}. Siap membantu kamu berkembang 🚀",
+                  "Mentor profesional di bidang ${mentor.category}. Siap membantu kamu berkembang 🚀",
             ),
 
-            /// ================= REVIEW =================
+            /// ================= REVIEWS =================
             _section(
               title: "Reviews",
-              content: "Belum ada review.",
+              content:
+                  "⭐ 4.8 (120 reviews)\n\nMentor sangat membantu dan komunikatif!",
             ),
 
-            /// ================= SESSION STATUS =================
+            /// ================= JADWAL =================
             Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Session Status",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Mentoring Schedule",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 10),
 
-                  ...sessionList.map((session) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Row(
-                        mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(session["title"]!),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: getStatusColor(session["status"]!)
-                                  .withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              session["status"]!,
-                              style: TextStyle(
-                                color:
-                                    getStatusColor(session["status"]!),
-                                fontWeight: FontWeight.bold,
+                    if (schedules.isEmpty)
+                      const Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.event_busy,
+                                size: 40, color: Colors.grey),
+                            SizedBox(height: 10),
+                            Text("No schedule yet",
+                                style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      )
+                    else
+                      ...schedules.map((item) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_month,
+                                  color: Colors.purple),
+                              const SizedBox(width: 10),
+
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        "${item["date"]} • ${item["time"]}"),
+                                    Text(
+                                      item["method"]!,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          )
-                        ],
-                      ),
-                    );
-                  }).toList()
-                ],
+
+                              Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: getStatusColor(
+                                          item["status"]!)
+                                      .withOpacity(0.1),
+                                  borderRadius:
+                                      BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  item["status"]!,
+                                  style: TextStyle(
+                                    color: getStatusColor(
+                                        item["status"]!),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            ],
+                          ),
+                        );
+                      })
+                  ],
+                ),
               ),
             ),
           ],
@@ -209,7 +368,6 @@ class MentorProfilePage extends StatelessWidget {
     );
   }
 
-  /// INFO ITEM
   Widget _infoItem(String title, String value) {
     return Column(
       children: [
@@ -222,22 +380,23 @@ class MentorProfilePage extends StatelessWidget {
     );
   }
 
-  /// SECTION
   Widget _section({required String title, required String content}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
             Text(content),
           ],
