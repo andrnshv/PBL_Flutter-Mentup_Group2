@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mentup/views/mentor/booking/booking_detail_page.dart';
+import 'package:flutter_mentup/views/mentor/booking/booking_request_page.dart';
 import 'package:flutter_mentup/views/mentor/home/article_page.dart';
 
 // AUTH (GLOBAL)
@@ -49,6 +51,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.landing: (_) => const HomePage(),
         AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
         AppRoutes.mentorTips: (_) => const ArticlePage(),
+        AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
+        AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
         
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
