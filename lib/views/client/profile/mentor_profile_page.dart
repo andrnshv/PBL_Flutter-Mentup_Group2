@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/mentor_model.dart';
+import 'booking_page.dart';
 
 class MentorProfilePage extends StatelessWidget {
   final MentorModel mentor;
@@ -145,7 +146,7 @@ class MentorProfilePage extends StatelessWidget {
 
             const SizedBox(height: 6),
 
-            /// ⭐ RATING + AVAILABILITY
+            /// RATING + AVAILABILITY
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -202,7 +203,16 @@ class MentorProfilePage extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: isAvailable ? () {} : null,
+                      onPressed: isAvailable 
+                        ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BookingPage(mentor: mentor),
+                            ),
+                          );
+                        } 
+                      : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isAvailable
                           ? const Color(0xFF6C63FF) : const Color(0xFFE0E0E0),

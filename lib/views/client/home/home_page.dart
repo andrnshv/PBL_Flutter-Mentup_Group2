@@ -265,76 +265,6 @@ class _LandingPageState extends State<HomePage> {
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              /// UPCOMING SESSION
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 45,
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.event_available, color: primary),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Upcoming Session 🚀",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            "Jerome will come to your location",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            "Today • 11:00 - 12:30",
-                            style: TextStyle(color: Colors.grey, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        "Confirmed",
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               const SizedBox(height: 25),
 
               /// TODAY SESSION
@@ -516,6 +446,42 @@ class _LandingPageState extends State<HomePage> {
                   },
                 ),
               ),
+
+              const SizedBox(height: 25),
+
+              const Text(
+                "What They Say 💬",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 12),
+
+              SizedBox(
+                height: 140,
+                child:  ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _testimonialCard(
+                      name: "Alya",
+                      review: "Mentornya sabar banget! Aku jadi lebih paham matematika 😭✨",
+                      rating: 5.0,
+                      image: "assets/profile.jpg",
+                    ),
+                    _testimonialCard(
+                      name: "Raka",
+                      review: "Belajar coding jadi lebih fun, langsung praktek!",
+                      rating: 4.8,
+                      image: "assets/mentor1.jpg",
+                    ),
+                    _testimonialCard(
+                      name: "Mira",
+                      review: "Mentor datang tepat waktu & ngajarnya enak 👍",
+                      rating: 4.9,
+                      image: "assets/mentor2.jpg",
+                    ),
+                  ]
+                ),
+              )
             ],
           ),
         ),
@@ -575,6 +541,70 @@ class _LandingPageState extends State<HomePage> {
               fontSize: 12,
               color: _selectedIndex == index ? primary : Colors.grey,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _testimonialCard({
+    required String name,
+    required String review,
+    required double rating,
+    required String image,
+  }) {
+    return Container(
+      width: 260,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// USER INFO
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: AssetImage(image),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.star, size: 14, color: Colors.amber),
+                  const SizedBox(width: 2),
+                  Text(
+                    rating.toString(),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          /// REVIEW TEXT
+          Text(
+            review,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.grey),
           ),
         ],
       ),
