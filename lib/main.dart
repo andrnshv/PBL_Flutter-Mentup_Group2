@@ -20,9 +20,11 @@ import 'views/client/profile/profile_page.dart';
 // MENTOR
 import 'views/mentor/home/landing_page.dart';
 import 'views/mentor/profile/profile_page.dart';
+import 'views/mentor/profile/edit_profile_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -64,8 +66,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
 
         AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
-        AppRoutes.editProfile: (_) =>
-            const Scaffold(body: Center(child: Text("Edit Profile Page"))),
+        AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.editRates: (_) =>
             const Scaffold(body: Center(child: Text("Edit My Fee"))),
         AppRoutes.mySchedule: (_) =>
