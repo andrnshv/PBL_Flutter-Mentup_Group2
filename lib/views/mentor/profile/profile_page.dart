@@ -1,8 +1,30 @@
 import 'package:flutter/material.dart';
 import '../../../routes/app_routes.dart';
+import 'dart:typed_data';
 
-class MentorMainProfilePage extends StatelessWidget {
+class MentorMainProfilePage extends StatefulWidget {
   const MentorMainProfilePage({super.key});
+
+  @override
+  State<MentorMainProfilePage> createState() => _MentorMainProfilePageState();
+}
+
+class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
+  // Tambahkan 3 variabel ini (isi dengan teks bawaan kamu)
+  String name = "Lovie Jechonia";
+  String username = "@loviejechonia";
+  String headline = "Data Analyst";
+  String bio =
+      "\"Just a data analyst who loves making statistics easier to understand and helping others improve their English skills.";
+  // TAMBAHKAN 2 VARIABEL INI:
+  String phone = "08123456789";
+  String address = "Kota Malang";
+
+  // VARIABEL BARU UNTUK NAMPUNG FOTO BARU
+  Uint8List? profileImageBytes;
+
+  String? cvFileName;
+  Uint8List? cvDocumentBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +126,46 @@ class MentorMainProfilePage extends StatelessWidget {
                         "Update photo & CV",
                         const Color(0xFF5B62CC),
                         AppRoutes.editProfile,
+                        // TAMBAHKAN ONTAP INI:
+                        onTap: () async {
+                          final result = await Navigator.pushNamed(
+                            context,
+                            AppRoutes.editProfile,
+                            arguments: {
+                              'name': name,
+                              'username': username,
+                              'headline': headline,
+                              'bio': bio,
+                              'phone': phone,
+                              'address': address,
+                              'imageBytes': profileImageBytes,
+                              'cvFileName':
+                                  cvFileName, // Kirim CV yang ada sekarang
+                              'cvDocumentBytes': cvDocumentBytes,
+                            },
+                          );
+
+                          // Cek di DEBUG CONSOLE VS Code saat kamu klik Save!
+                          print("Data dari halaman Edit: $result");
+
+                          if (result != null &&
+                              result is Map<String, dynamic>) {
+                            setState(() {
+                              name = result['name'] ?? name;
+                              username = result['username'] ?? username;
+                              headline = result['headline'] ?? headline;
+                              bio = result['bio'] ?? bio;
+                              phone =
+                                  result['phone'] ??
+                                  phone; // <--- Tambahkan ini
+                              address = result['address'] ?? address;
+                              profileImageBytes = result['imageBytes'];
+                              cvFileName =
+                                  result['cvFileName']; // Terima CV baru
+                              cvDocumentBytes = result['cvDocumentBytes'];
+                            });
+                          }
+                        },
                       ),
                       _buildMenuItem(
                         context,
@@ -168,15 +230,20 @@ class MentorMainProfilePage extends StatelessWidget {
             alignment: Alignment.bottomRight,
             children: [
               Container(
-                width: 90,
-                height: 90,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 3),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/mentor.png'),
-                    fit: BoxFit.cover,
-                  ),
+                  image: profileImageBytes != null
+                      ? DecorationImage(
+                          image: MemoryImage(profileImageBytes!),
+                          fit: BoxFit.cover,
+                        )
+                      : const DecorationImage(
+                          image: AssetImage('assets/mentor.png'),
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
               Container(
@@ -194,27 +261,28 @@ class MentorMainProfilePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            "Lovie Jechonia T",
-            style: TextStyle(
+          // UBAH JADI INI:
+          Text(
+            name,
+            style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const Text(
-            "@lovjch_",
-            style: TextStyle(
+          Text(
+            username,
+            style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 13,
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const Text(
-            "Senior UI/UX & Flutter",
-            style: TextStyle(
+          Text(
+            headline,
+            style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 13,
               color: Colors.white70,
@@ -226,13 +294,13 @@ class MentorMainProfilePage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.grey.withOpacity(0.15),
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Text(
-              "\"Just a data analyst who loves making statistics easier to understand and helping others improve their English skills.\"",
+            child: Text(
+              bio,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 12,
                 color: Colors.white,
@@ -283,8 +351,9 @@ class MentorMainProfilePage extends StatelessWidget {
     String title,
     String subTitle,
     Color color,
-    String route,
-  ) {
+    String route, {
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -311,9 +380,7 @@ class MentorMainProfilePage extends StatelessWidget {
         ),
       ),
       trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
-      onTap: () {
-        Navigator.pushNamed(context, route);
-      },
+      onTap: onTap ?? () => Navigator.pushNamed(context, route),
     );
   }
 }
