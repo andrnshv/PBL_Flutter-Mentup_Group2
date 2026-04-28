@@ -171,7 +171,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                         context,
                         Icons.settings_outlined,
                         "Security",
-                        "Username & Password",
+                        "Account & Password",
                         Colors.grey,
                         AppRoutes.settingsAccount,
                       ),

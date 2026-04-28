@@ -21,6 +21,7 @@ import 'views/client/profile/profile_page.dart';
 import 'views/mentor/home/landing_page.dart';
 import 'views/mentor/profile/profile_page.dart';
 import 'views/mentor/profile/edit_profile_page.dart';
+import 'views/mentor/settings/settings_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -77,8 +78,7 @@ class MyApp extends StatelessWidget {
             const Scaffold(body: Center(child: Text("Transactions"))),
         AppRoutes.teachingForm: (_) =>
             const Scaffold(body: Center(child: Text("Form Teaching Approval"))),
-        AppRoutes.settingsAccount: (_) =>
-            const Scaffold(body: Center(child: Text("Settings"))),
+        AppRoutes.settingsAccount: (_) => const SettingsPage(),
       },
 
       onUnknownRoute: (settings) {
