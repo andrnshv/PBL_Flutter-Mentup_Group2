@@ -23,4 +23,5 @@ class AppRoutes {
   static const transactions = '/transactions';
   static const teachingForm = '/teaching_form';
   static const settingsAccount = '/settings_account';
+  static const faq = '/faq';
 }

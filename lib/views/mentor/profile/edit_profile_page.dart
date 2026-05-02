@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mentup/controller/mentor/edit_profile_controller.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart'; // Wajib ditambahin buat format input
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -142,6 +143,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         "Headline",
                         _controller.headlineController,
                         Icons.work_outline,
+                      ),
+                      _buildCustomField(
+                        "Teaching Experience (Years)",
+                        _controller.experienceController,
+                        Icons.history_edu_rounded,
+                        isNumber: true,
+                        // Jika kamu ingin keyboardnya hanya angka, tambahkan parameter TextInputType di _buildCustomField asli kamu
                       ),
                       _buildCustomField(
                         "Bimble Location",
@@ -297,6 +305,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
+        inputFormatters: isNumber
+            ? [FilteringTextInputFormatter.digitsOnly]
+            : [],
         style: TextStyle(
           fontFamily: 'Nunito',
           fontSize: 14,
@@ -425,6 +436,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'imageBytes': _controller.profileImageBytes,
             'cvFileName': _controller.cvFileName, // Bawa pulang nama file
             'cvDocumentBytes': _controller.cvDocumentBytes,
+            'experience': _controller.experienceController.text,
           });
         },
         child: const Text(

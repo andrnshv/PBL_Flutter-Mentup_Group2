@@ -12,6 +12,7 @@ class EditProfileController {
   late TextEditingController headlineController;
   late TextEditingController addressController;
   late TextEditingController bioController;
+  late TextEditingController experienceController;
 
   // Variabel penampung File (Foto & CV)
   File? profileImage;
@@ -35,8 +36,11 @@ class EditProfileController {
       addressController = TextEditingController(text: args['address']);
       bioController = TextEditingController(text: args['bio']);
       profileImageBytes = args['imageBytes'];
-      cvFileName = args['cvFileName'];      // Tangkap nama file CV
+      cvFileName = args['cvFileName']; // Tangkap nama file CV
       cvDocumentBytes = args['cvDocumentBytes'];
+      experienceController = TextEditingController(
+        text: args['experience']?.toString(),
+      );
     } else {
       // Jika kosong, inisiasi controller kosong
       nameController = TextEditingController();
@@ -80,10 +84,10 @@ class EditProfileController {
       if (result != null) {
         // Ambil nama file-nya untuk ditampilkan di UI
         cvFileName = result.files.single.name;
-        
+
         // Simpan datanya sebagai Bytes (Aman untuk Web & Mobile)
         cvDocumentBytes = result.files.single.bytes;
-        
+
         // Kalau jalan di Mobile, kita tetap bisa simpan format File-nya
         if (result.files.single.path != null) {
           cvDocument = File(result.files.single.path!);
@@ -112,5 +116,6 @@ class EditProfileController {
     headlineController.dispose();
     addressController.dispose();
     bioController.dispose();
+    experienceController.dispose();
   }
 }
