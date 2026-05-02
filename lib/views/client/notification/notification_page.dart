@@ -21,7 +21,7 @@ class NotificationPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         children: [
 
-          /// NOTIFICATION ITEM
+          /// ================= NOTIFICATION ITEM =================
           _notifItem(
             icon: Icons.calendar_today,
             title: "Upcoming Session",
@@ -63,7 +63,6 @@ class NotificationPage extends StatelessWidget {
       child: Row(
         children: [
 
-          /// ICON
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -75,7 +74,6 @@ class NotificationPage extends StatelessWidget {
 
           const SizedBox(width: 12),
 
-          /// TEXT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +91,6 @@ class NotificationPage extends StatelessWidget {
             ),
           ),
 
-          /// TIME
           Text(
             time,
             style: const TextStyle(fontSize: 11, color: Colors.grey),

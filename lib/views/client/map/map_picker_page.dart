@@ -43,7 +43,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
                   },
           ),
 
-          /// INFO TEXT
+          /// ================= INFO TEXT =================
           Positioned(
             top: 16,
             left: 16,
@@ -69,7 +69,7 @@ class _MapPickerPageState extends State<MapPickerPage> {
             ),
           ),
 
-          /// BUTTON BAWAH (SATU-SATUNYA KONFIRMASI)
+          /// ================= BUTTON BAWAH (=================
           Positioned(
             bottom: 20,
             left: 20,

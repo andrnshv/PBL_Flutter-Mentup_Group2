@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'edit_profile_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -9,204 +8,282 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    _tabController = TabController(length: 3, vsync: this);
-    super.initState();
-  }
+class _ProfilePageState extends State<ProfilePage> {
+  String name = "Park Chanyeol";
+  String username = "@chanyeol";
+  String role = "Client • Music Enthusiast";
+  String bio =
+      "Loves learning music and improving vocal skills. Actively books sessions with mentors.";
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildProfileInfo(),
-          _buildTabs(),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _aboutTab(),
-                _activityTab(),
-                _goalsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+      backgroundColor: const Color(0xFFF8F9FB),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildStats(),
+            const SizedBox(height: 20),
 
-  Widget _buildHeader() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          height: 180,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFFB993D6), Color(0xFF8CA6DB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: -50,
-          left: 20,
-          child: Stack(
-            children: [
-              const CircleAvatar(
-                radius: 55,
-                backgroundImage: AssetImage("assets/profile.jpg"),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.black,
-                  child: const Icon(Icons.camera_alt,
-                      size: 16, color: Colors.white),
-                ),
-              )
-            ],
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildProfileInfo() {
-    return Padding(
-      padding: const EdgeInsets.only(top: 60, left: 20, right: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  "Park Chanyeol",
-                  style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                child: IconButton(
-                  onPressed: () {
+            /// SECTION ACCOUNT
+            _buildMenuSection(
+              title: "Account",
+              items: [
+                _buildMenuItem(
+                  Icons.person,
+                  "Edit Profile",
+                  "Update your personal info",
+                  Colors.deepPurple,
+                  () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const  EditProfilePage(),
+                        builder: (_) => const EditProfilePage(),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.edit, color: Colors.deepPurple),
+                ),
+                _buildMenuItem(
+                  Icons.lock,
+                  "Security",
+                  "Password & privacy",
+                  Colors.grey,
+                  () {},
+                ),
+              ],
+            ),
+
+            /// SECTION ACTIVITY
+            _buildMenuSection(
+              title: "Activity",
+              items: [
+                _buildMenuItem(
+                  Icons.calendar_today,
+                  "Sessions",
+                  "View your bookings",
+                  const Color(0xFFA7C7E7),
+                  () {},
+                ),
+                _buildMenuItem(
+                  Icons.music_note,
+                  "Practice History",
+                  "Your learning progress",
+                  const Color(0xFFF5B3CE),
+                  () {},
+                ),
+              ],
+            ),
+
+            /// SECTION REPUTATION
+            _buildMenuSection(
+              title: "Reputation",
+              items: [
+                _buildMenuItem(
+                  Icons.star_rounded,
+                  "Mentor Reviews",
+                  "View your review history for your mentor",
+                  const Color(0xFFE9C46A),
+                  () {
+                    Navigator.pushNamed(context, "/reviews_page");
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ================= HEADER =================
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 50, 24, 30),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFB993D6), Color(0xFF8CA6DB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(35),
+          bottomRight: Radius.circular(35),
+        ),
+      ),
+      child: Column(
+        children: [
+          /// PROFILE IMAGE
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              const CircleAvatar(
+                radius: 50,
+                backgroundImage: AssetImage("assets/profile.jpg"),
+              ),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(
+                  color: Colors.deepPurple,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.camera_alt,
+                  size: 16,
+                  color: Colors.white,
                 ),
               )
             ],
           ),
-          const SizedBox(height: 5),
-          const Text(
-            "Client • Music Enthusiast",
-            style: TextStyle(color: Colors.grey),
+
+          const SizedBox(height: 12),
+
+          /// NAME
+          Text(
+            name,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-          const SizedBox(height: 15),
-          _buildStats(),
-          const SizedBox(height: 10),
+
+          const SizedBox(height: 2),
+
+          /// USERNAME (BARU)
+          Text(
+            username,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          /// ROLE
+          Text(
+            role,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          /// BIO
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Text(
+              bio,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+                height: 1.4,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  /// ================= STATS =================
   Widget _buildStats() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: const [
-        _StatItem(title: "Sessions", value: "24"),
-        _StatItem(title: "Mentors", value: "5"),
-        _StatItem(title: "Progress", value: "80%"),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+            )
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _StatItem(title: "Sessions", value: "24"),
+            _StatItem(title: "Mentors", value: "5"),
+            _StatItem(title: "Progress", value: "80%"),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildTabs() {
-    return TabBar(
-      controller: _tabController,
-      indicatorColor: Colors.deepPurple,
-      labelColor: Colors.deepPurple,
-      unselectedLabelColor: Colors.grey,
-      tabs: const [
-        Tab(text: "About"),
-        Tab(text: "Activity"),
-        Tab(text: "Goals"),
-      ],
+  /// ================= MENU SECTION =================
+  Widget _buildMenuSection({
+    required String title,
+    required List<Widget> items,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(children: items),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _aboutTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: const [
-        Text(
-          "About Client",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  /// ================= MENU ITEM =================
+  Widget _buildMenuItem(
+    IconData icon,
+    String title,
+    String subTitle,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
         ),
-        SizedBox(height: 10),
-        Text(
-          "Loves learning music and improving vocal skills. Actively books sessions with mentors.",
-          style: TextStyle(color: Colors.grey),
-        ),
-      ],
-    );
-  }
-
-  Widget _activityTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: const [
-        ListTile(
-          leading: Icon(Icons.calendar_today),
-          title: Text("Session with Vocal Coach"),
-          subtitle: Text("12 March 2026"),
-        ),
-        ListTile(
-          leading: Icon(Icons.music_note),
-          title: Text("Practice Completed"),
-          subtitle: Text("2 hours session"),
-        ),
-      ],
-    );
-  }
-
-  Widget _goalsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: const [
-        ListTile(
-          leading: Icon(Icons.flag),
-          title: Text("Improve vocal range"),
-        ),
-        ListTile(
-          leading: Icon(Icons.flag),
-          title: Text("Release first single"),
-        ),
-      ],
+        child: Icon(icon, color: color),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(subTitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
     );
   }
 }
 
+/// ================= STAT ITEM =================
 class _StatItem extends StatelessWidget {
   final String title;
   final String value;

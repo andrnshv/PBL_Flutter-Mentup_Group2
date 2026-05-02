@@ -48,7 +48,6 @@ class _SearchPageState extends State<SearchPage> {
     decimalDigits: 0,
   );
 
-  ///DATA MENTOR (DISAMAIN)
   List<Mentor> allMentors = [
     Mentor(
       name: "Jerome",
@@ -84,7 +83,7 @@ class _SearchPageState extends State<SearchPage> {
     filteredMentors = allMentors;
   }
 
-  /// FILTER
+  /// ================= FILTER =================
   void applyFilter() {
     setState(() {
       filteredMentors = allMentors.where((mentor) {
@@ -99,7 +98,6 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  ///NAVIGATE KE PROFILE
   void openProfile(Mentor mentor) {
     Navigator.push(
       context,
@@ -118,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  /// FILTER MODAL (TETAP)
+  /// ================= FILTER MODAL =================
   void _openFilter() {
     showModalBottomSheet(
       context: context,
@@ -196,7 +194,6 @@ class _SearchPageState extends State<SearchPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// SEARCH BAR (optional nanti bisa ditambah logic)
             TextField(
               decoration: InputDecoration(
                 hintText: "Search Mentors",
@@ -212,7 +209,7 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 15),
 
-            /// CATEGORY
+            /// ================= CATEGORY =================
             SizedBox(
               height: 40,
               child: ListView(
@@ -239,7 +236,6 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 10),
 
-            ///LIST + CLICK
             Expanded(
               child: ListView.builder(
                 itemCount: filteredMentors.length,

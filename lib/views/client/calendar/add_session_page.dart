@@ -33,7 +33,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            /// HEADER
+            /// ================= HEADER =================
             const Text(
               "Create New Session",
               style: TextStyle(
@@ -49,7 +49,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
 
             const SizedBox(height: 20),
 
-            /// CARD FORM
+            /// ================= CARD FORM =================
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -66,7 +66,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
               child: Column(
                 children: [
 
-                  /// NAME
+                  /// ================= NAME =================
                   TextField(
                     controller: nameController,
                     decoration: InputDecoration(
@@ -80,7 +80,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
 
                   const SizedBox(height: 16),
 
-                  /// DATE
+                  /// ================= DATE =================
                   TextField(
                     controller: dateController,
                     decoration: InputDecoration(
@@ -95,7 +95,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
 
                   const SizedBox(height: 16),
 
-                  /// TIME
+                  /// ================= TIME =================
                   TextField(
                     controller: timeController,
                     decoration: InputDecoration(
@@ -113,7 +113,7 @@ class _AddSessionPageState extends State<AddSessionPage> {
 
             const SizedBox(height: 30),
 
-            /// SAVE BUTTON
+            /// ================= SAVE BUTTON =================
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

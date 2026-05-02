@@ -34,10 +34,8 @@ class MentorProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final primary = const Color(0xFF6C63FF);
 
-    ///STATUS MENTOR
     final bool isAvailable = true;
 
-    /// DATA JADWAL
     final schedules = [
       {
         "date": "20 April 2026",
@@ -91,7 +89,7 @@ class MentorProfilePage extends StatelessWidget {
                   ),
                 ),
 
-                /// AVATAR + STATUS
+                /// ================= AVATAR + STATUS =================
                 Positioned(
                   bottom: -50,
                   left: 0,
@@ -146,7 +144,7 @@ class MentorProfilePage extends StatelessWidget {
 
             const SizedBox(height: 6),
 
-            /// RATING + AVAILABILITY
+            /// ================= RATING + AVAILABILITY =================
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -13,7 +13,7 @@ class _SessionPageState extends State<SessionPage> {
   int rating = 0;
   final TextEditingController reviewController = TextEditingController();
 
-  /// SESSION DATA
+  /// ================= SESSION DATA =================
   final Map<String, dynamic> session = {
     "name": "Jerome",
     "category": "Mathematics",
@@ -25,7 +25,7 @@ class _SessionPageState extends State<SessionPage> {
 
   bool isFinished = false;
 
-  /// ⭐ FIXED STAR WIDGET (pakai parameter)
+  /// ================= FIXED STAR WIDGET =================
   Widget buildStars(void Function(void Function()) modalSetState) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -46,7 +46,7 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  /// ⭐ RATING MODAL (FIXED)
+  /// ================= RATING MODAL (=================
   void openRating() {
     showModalBottomSheet(
       context: context,
@@ -77,7 +77,6 @@ class _SessionPageState extends State<SessionPage> {
 
                   const SizedBox(height: 15),
 
-                  /// ⭐ STAR (pakai modalSetState)
                   buildStars(modalSetState),
 
                   const SizedBox(height: 10),
@@ -153,7 +152,7 @@ class _SessionPageState extends State<SessionPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// SESSION CARD
+            /// ================= SESSION CARD =================
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -221,7 +220,6 @@ class _SessionPageState extends State<SessionPage> {
 
             const SizedBox(height: 30),
 
-            /// BUTTON
             if (!isFinished)
               GestureDetector(
                 onTap: openRating,
@@ -246,7 +244,6 @@ class _SessionPageState extends State<SessionPage> {
                 ),
               ),
 
-            /// AFTER FINISH
             if (isFinished) ...[
               const SizedBox(height: 25),
               const Icon(Icons.check_circle, color: Colors.green, size: 70),

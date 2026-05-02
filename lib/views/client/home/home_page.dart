@@ -44,10 +44,8 @@ class _LandingPageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
 
-      /// BODY
       body: IndexedStack(index: _selectedIndex, children: _pages),
 
-      /// BOTTOM NAV
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -165,7 +163,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// SESSION CARD
+              /// ================= SESSION CARD =================
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -220,7 +218,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// MOTIVATION CARD
+              /// ================= MOTIVATION CARD =================
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -267,7 +265,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              /// TODAY SESSION
+              /// ================= TODAY SESSION =================
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -315,7 +313,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              /// MAP
+              /// ================= MAP =================
               const Text(
                 "Nearby Mentors",
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -489,7 +487,7 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// ICON BULAT
+  /// ================= ICON BULAT =================
   Widget _circleIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -501,7 +499,7 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// RATING
+  /// ================= RATING =================
   Widget _ratingBox(double rating) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -522,7 +520,7 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// NAV ITEM
+  /// ================= NAV ITEM =================
   Widget _navItem(IconData icon, String label, int index) {
     return GestureDetector(
       onTap: () {
@@ -599,7 +597,7 @@ class _LandingPageState extends State<HomePage> {
 
           const SizedBox(height: 10),
 
-          /// REVIEW TEXT
+          /// ================= REVIEW TEXT =================
           Text(
             review,
             maxLines: 3,

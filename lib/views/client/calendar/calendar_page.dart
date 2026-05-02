@@ -27,7 +27,7 @@ class _CalendarPageState extends State<CalendarPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              ///BACK + TITLE
+              /// ================= BACK + TITLE =================
               Row(
                 children: [
                   GestureDetector(
@@ -51,7 +51,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
               const SizedBox(height: 20),
 
-              ///ADD BUTTON
+              /// ================= ADD BUTTON =================
               GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -83,7 +83,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
               const SizedBox(height: 20),
 
-              ///CALENDAR
+              /// ================= CALENDAR =================
               TableCalendar(
                 focusedDay: today,
                 firstDay: DateTime(2020),
@@ -108,7 +108,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
               const SizedBox(height: 20),
 
-              ///SESSION TITLE
+              /// ================= SESSION TITLE =================
               Container(
                 height: 3,
                 color: primary,
@@ -125,7 +125,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
               const SizedBox(height: 10),
 
-              ///SESSION LIST
+              /// ================= SESSION LIST =================
               Expanded(
                 child: ListView(
                   children: const [
@@ -158,7 +158,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 }
 
-///COMPONENT SESSION ITEM
+/// ================= COMPONENT SESSION ITEM =================
 class _SessionItem extends StatelessWidget {
   final String name;
   final String date;

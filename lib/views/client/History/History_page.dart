@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../profile/mentor_profile_page.dart';
 import '../../../models/mentor_model.dart';
+import '../profile/booking_page.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -18,15 +19,29 @@ class _HistoryPageState extends State<HistoryPage> {
       "role": "Matematika",
       "image": "assets/mentor1.jpg",
       "date": "12 April 2026",
+
+      "dateObject": DateTime(2026, 4, 12),
+      "days": ["Mon", "Wed"],
+      "hours": 2,
+      "months": 1,
+      "note": "Belajar integral",
+
       "status": "Done",
       "rating": 4,
-      "review": "Mentor sangat membantu dan penjelasannya mudah dipahami",
+      "review": "Mentor sangat membantu",
     },
     {
       "name": "Belva",
       "role": "UX Designer",
       "image": "assets/mentor2.jpg",
       "date": "10 April 2026",
+
+      "dateObject": DateTime(2026, 4, 10),
+      "days": ["Tue"],
+      "hours": 1,
+      "months": 1,
+      "note": "",
+
       "status": "Done",
       "rating": 0,
       "review": null,
@@ -36,29 +51,33 @@ class _HistoryPageState extends State<HistoryPage> {
       "role": "Music",
       "image": "assets/profile.jpg",
       "date": "5 April 2026",
+
+      "dateObject": DateTime(2026, 4, 5),
+      "days": ["Fri"],
+      "hours": 1,
+      "months": 1,
+      "note": "",
+
       "status": "Cancelled",
       "rating": 0,
       "review": null,
     },
   ];
 
-  /// STAR
+  /// ================= STAR =================
   Widget _buildStars(int rating) {
     return Row(
       children: List.generate(5, (index) {
-        return Padding(
-          padding: const EdgeInsets.only(right: 2),
-          child: Icon(
-            index < rating ? Icons.star : Icons.star_border,
-            color: Colors.amber,
-            size: 16,
-          ),
+        return Icon(
+          index < rating ? Icons.star : Icons.star_border,
+          color: Colors.amber,
+          size: 16,
         );
       }),
     );
   }
 
-  /// OPEN PROFILE
+  /// ================= OPEN PROFILE =================
   void _openProfile(Map<String, dynamic> data) {
     Navigator.push(
       context,
@@ -78,84 +97,18 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  /// REVIEW MODAL
-  void _openReview(Map<String, dynamic> data) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Wrap(
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text(
-                "Review Mentor",
-                style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-
-              const SizedBox(height: 15),
-
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: AssetImage(data["image"]),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    data["name"],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              if (data["review"] != null) ...[
-                _buildStars(data["rating"]),
-                const SizedBox(height: 10),
-                Text(data["review"]),
-              ] else ...[
-                const Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.rate_review,
-                          size: 50, color: Colors.grey),
-                      SizedBox(height: 10),
-                      Text("No reviews yet"),
-                    ],
-                  ),
-                )
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
+  /// ================= BUILD =================
   @override
   Widget build(BuildContext context) {
     List done =
         historyMentors.where((e) => e["status"] == "Done").toList();
-    List cancelled =
-        historyMentors.where((e) => e["status"] == "Cancelled").toList();
+
+    // 🔥 FIX: Rescheduled tetap muncul di tab ini
+    List cancelled = historyMentors.where(
+      (e) =>
+          e["status"] == "Cancelled" ||
+          e["status"] == "Rescheduled",
+    ).toList();
 
     List currentList = selectedTab == 0 ? done : cancelled;
 
@@ -184,26 +137,13 @@ class _HistoryPageState extends State<HistoryPage> {
                         fontWeight: FontWeight.bold,
                         color: Colors.white),
                   ),
-                  const SizedBox(height: 5),
-                  const Text(
-                    "Pantau aktivitas mentoring kamu",
-                    style: TextStyle(color: Colors.white70),
-                  ),
                   const SizedBox(height: 20),
 
-                  /// TAB
-                  Container(
-                    padding: const EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      children: [
-                        _tabItem("Done", 0),
-                        _tabItem("Cancelled", 1),
-                      ],
-                    ),
+                  Row(
+                    children: [
+                      _tabItem("Done", 0),
+                      _tabItem("Cancelled", 1),
+                    ],
                   ),
                 ],
               ),
@@ -211,16 +151,12 @@ class _HistoryPageState extends State<HistoryPage> {
 
             /// LIST
             Expanded(
-              child: Padding(
+              child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                child: currentList.isEmpty
-                    ? const Center(child: Text("No history yet"))
-                    : ListView.builder(
-                        itemCount: currentList.length,
-                        itemBuilder: (context, index) {
-                          return _historyCard(currentList[index]);
-                        },
-                      ),
+                itemCount: currentList.length,
+                itemBuilder: (context, index) {
+                  return _historyCard(currentList[index]);
+                },
               ),
             )
           ],
@@ -229,15 +165,14 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  /// TAB
+  /// ================= TAB =================
   Widget _tabItem(String title, int index) {
     final isActive = selectedTab == index;
 
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => selectedTab = index),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
+        child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
@@ -257,98 +192,99 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  /// CARD 
+  /// ================= CARD =================
   Widget _historyCard(Map<String, dynamic> data) {
     bool isDone = data["status"] == "Done";
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        onTap: () => _openProfile(data),
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
-              )
-            ],
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 26,
+            backgroundImage: AssetImage(data["image"]),
           ),
-          child: Row(
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(data["name"],
+                    style:
+                        const TextStyle(fontWeight: FontWeight.bold)),
+                Text(data["role"],
+                    style: const TextStyle(color: Colors.grey)),
+                Text(data["date"],
+                    style: const TextStyle(
+                        fontSize: 11, color: Colors.grey)),
+              ],
+            ),
+          ),
+
+          Column(
             children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundImage: AssetImage(data["image"]),
-              ),
-
-              const SizedBox(width: 12),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(data["name"],
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold)),
-                    Text(data["role"],
-                        style: const TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 4),
-                    Text(data["date"],
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey)),
-
-                    if (data["rating"] > 0) ...[
-                      const SizedBox(height: 6),
-                      _buildStars(data["rating"]),
-                    ]
-                  ],
+              Text(
+                data["status"],
+                style: TextStyle(
+                  color: isDone ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDone
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      data["status"],
-                      style: TextStyle(
-                        color: isDone ? Colors.green : Colors.red,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 8),
 
-                  const SizedBox(height: 8),
+              isDone
+                  ? TextButton(
+                      onPressed: () {},
+                      child: const Text("See Reviews"),
+                    )
+                  : OutlinedButton(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => BookingPage(
+                              mentor: MentorModel(
+                                name: data["name"],
+                                category: data["role"],
+                                image: data["image"],
+                                rating: (data["rating"] ?? 0)
+                                    .toDouble(),
+                                price: 0,
+                                distance: 0,
+                                phone: null,
+                              ),
+                              isReschedule: true,
+                              oldData: data,
+                            ),
+                          ),
+                        );
 
-                  isDone
-                      ? TextButton(
-                          onPressed: () => _openReview(data),
-                          child: const Text("See Reviews"),
-                        )
-                      : OutlinedButton(
-                          onPressed: () {},
-                          child: const Text("Reschedule"),
-                        )
-                ],
-              )
+                        if (result != null &&
+                            result["updated"] == true) {
+                          setState(() {
+                            data["status"] = "Rescheduled";
+
+                            data["dateObject"] = result["newDate"];
+                            data["days"] = result["newDays"];
+
+                            data["date"] =
+                                "${result["newDate"].day}/${result["newDate"].month}/${result["newDate"].year}";
+                          });
+                        }
+                      },
+                      child: const Text("Reschedule"),
+                    )
             ],
-          ),
-        ),
+          )
+        ],
       ),
     );
   }
