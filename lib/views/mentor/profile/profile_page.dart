@@ -26,6 +26,8 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
   String? cvFileName;
   Uint8List? cvDocumentBytes;
 
+  String experience = "0";
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,6 +144,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                               'cvFileName':
                                   cvFileName, // Kirim CV yang ada sekarang
                               'cvDocumentBytes': cvDocumentBytes,
+                              'experience': experience,
                             },
                           );
 
@@ -163,6 +166,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                               cvFileName =
                                   result['cvFileName']; // Terima CV baru
                               cvDocumentBytes = result['cvDocumentBytes'];
+                              experience = result['experience'] ?? experience;
                             });
                           }
                         },

@@ -103,7 +103,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               iconColor: const Color(0xFFF39C12),
                               title: "FAQ & Support",
                               desc: "Find answers or contact us",
-                              onTap: () {},
+                              onTap: () =>
+                                  Navigator.pushNamed(context, AppRoutes.faq),
                             ),
                           ]),
 

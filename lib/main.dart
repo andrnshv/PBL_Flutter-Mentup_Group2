@@ -22,10 +22,10 @@ import 'views/mentor/home/landing_page.dart';
 import 'views/mentor/profile/profile_page.dart';
 import 'views/mentor/profile/edit_profile_page.dart';
 import 'views/mentor/settings/settings_page.dart';
+import 'views/mentor/settings/faq_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
-
 
 void main() {
   runApp(const MyApp());
@@ -79,6 +79,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.teachingForm: (_) =>
             const Scaffold(body: Center(child: Text("Form Teaching Approval"))),
         AppRoutes.settingsAccount: (_) => const SettingsPage(),
+        AppRoutes.faq: (_) => const FaqPage(),
       },
 
       onUnknownRoute: (settings) {
