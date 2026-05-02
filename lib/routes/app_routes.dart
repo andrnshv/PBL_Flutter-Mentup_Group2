@@ -24,4 +24,6 @@ class AppRoutes {
   static const teachingForm = '/teaching_form';
   static const settingsAccount = '/settings_account';
   static const faq = '/faq';
+  static const changePassword = '/change_password';
+  static const changeEmail = '/change_email';
 }

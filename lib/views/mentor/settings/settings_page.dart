@@ -74,7 +74,10 @@ class _SettingsPageState extends State<SettingsPage> {
                               iconColor: primaryPurple,
                               title: "Change Password",
                               desc: "Update your security regularly",
-                              onTap: () {},
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.changePassword,
+                              ),
                             ),
                             _buildDivider(),
                             _buildMenuTile(
@@ -82,7 +85,10 @@ class _SettingsPageState extends State<SettingsPage> {
                               iconColor: primaryBlue,
                               title: "Update Email",
                               desc: "lovie@mentup.app",
-                              onTap: () {},
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.changeEmail,
+                              ),
                             ),
                           ]),
 
