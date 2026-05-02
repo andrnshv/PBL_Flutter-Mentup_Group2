@@ -27,10 +27,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           text:
               "Loves learning music and improving vocal skills. Actively books sessions with mentors.");
 
-  final TextEditingController goalsController =
-      TextEditingController(
-          text: "Improve vocal range, Release first single");
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -160,15 +156,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                   const SizedBox(height: 15),
 
-                  _buildInput(
-                    label: "Goals",
-                    controller: goalsController,
-                    icon: Icons.flag_outlined,
-                    maxLines: 3,
-                  ),
-
-                  const SizedBox(height: 35),
-
                   /// ================= BUTTON SAVE =================
                   SizedBox(
                     width: double.infinity,
@@ -187,7 +174,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           "phone": phoneController.text,
                           "address": addressController.text,
                           "about": aboutController.text,
-                          "goals": goalsController.text,
                         });
                       },
                       child: Ink(

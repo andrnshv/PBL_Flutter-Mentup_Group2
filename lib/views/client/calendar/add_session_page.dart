@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AddSessionPage extends StatefulWidget {
   const AddSessionPage({super.key});
@@ -21,7 +22,12 @@ class _AddSessionPageState extends State<AddSessionPage> {
 
       appBar: AppBar(
         elevation: 0,
-        title: const Text("Add Session"),
+        title: Text(
+          "Add Session",
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: primary,
         foregroundColor: Colors.white,
@@ -34,17 +40,20 @@ class _AddSessionPageState extends State<AddSessionPage> {
           children: [
 
             /// ================= HEADER =================
-            const Text(
+            Text(
               "Create New Session",
-              style: TextStyle(
+              style: GoogleFonts.nunito(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+
+            Text(
               "Fill in the details below",
-              style: TextStyle(color: Colors.grey),
+              style: GoogleFonts.nunito(
+                color: Colors.grey,
+              ),
             ),
 
             const SizedBox(height: 20),
@@ -69,8 +78,10 @@ class _AddSessionPageState extends State<AddSessionPage> {
                   /// ================= NAME =================
                   TextField(
                     controller: nameController,
+                    style: GoogleFonts.nunito(),
                     decoration: InputDecoration(
                       labelText: "Mentor Name",
+                      labelStyle: GoogleFonts.nunito(),
                       prefixIcon: const Icon(Icons.person),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -83,9 +94,12 @@ class _AddSessionPageState extends State<AddSessionPage> {
                   /// ================= DATE =================
                   TextField(
                     controller: dateController,
+                    style: GoogleFonts.nunito(),
                     decoration: InputDecoration(
                       labelText: "Date",
                       hintText: "12 May 2026",
+                      labelStyle: GoogleFonts.nunito(),
+                      hintStyle: GoogleFonts.nunito(),
                       prefixIcon: const Icon(Icons.calendar_today),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -98,9 +112,12 @@ class _AddSessionPageState extends State<AddSessionPage> {
                   /// ================= TIME =================
                   TextField(
                     controller: timeController,
+                    style: GoogleFonts.nunito(),
                     decoration: InputDecoration(
                       labelText: "Time",
                       hintText: "10:00 - 11:00",
+                      labelStyle: GoogleFonts.nunito(),
+                      hintStyle: GoogleFonts.nunito(),
                       prefixIcon: const Icon(Icons.access_time),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -129,9 +146,9 @@ class _AddSessionPageState extends State<AddSessionPage> {
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                child: const Text(
+                child: Text(
                   "Save Session",
-                  style: TextStyle(
+                  style: GoogleFonts.nunito(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,

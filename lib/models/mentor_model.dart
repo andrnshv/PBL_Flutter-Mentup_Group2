@@ -17,6 +17,26 @@ class MentorModel {
     this.phone,
   });
 
+  MentorModel copyWith({
+    String? name,
+    String? category,
+    String? image,
+    double? rating,
+    int? price,
+    double? distance,
+    String? phone,
+  }) {
+    return MentorModel(
+      name: name ?? this.name,
+      category: category ?? this.category,
+      image: image ?? this.image,
+      rating: rating ?? this.rating,
+      price: price ?? this.price,
+      distance: distance ?? this.distance,
+      phone: phone ?? this.phone,
+    );
+  }
+
   factory MentorModel.fromJson(Map<String, dynamic> json) {
     return MentorModel(
       name: json['name'] ?? '',

@@ -26,4 +26,10 @@ class AppRoutes {
   static const faq = '/faq';
   static const changePassword = '/change_password';
   static const changeEmail = '/change_email';
+
+  // CLIEN
+  static const changePasswordClien = '/settings';
+  static const changeEmailClien = '/edit_security';
+  static const faqSupport = '/faq-support';
+
 }
