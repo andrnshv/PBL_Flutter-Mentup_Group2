@@ -25,6 +25,7 @@ import 'views/mentor/settings/settings_page.dart';
 import 'views/mentor/settings/faq_page.dart';
 import 'views/mentor/settings/change_password_page.dart';
 import 'views/mentor/settings/change_email_page.dart';
+import 'views/mentor/profile/service_rates_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -70,8 +71,7 @@ class MyApp extends StatelessWidget {
 
         AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
-        AppRoutes.editRates: (_) =>
-            const Scaffold(body: Center(child: Text("Edit My Fee"))),
+        AppRoutes.editRates: (_) => const ServiceRatesPage(),
         AppRoutes.mySchedule: (_) =>
             const Scaffold(body: Center(child: Text("My Schedule"))),
         AppRoutes.historySession: (_) =>
