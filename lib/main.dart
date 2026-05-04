@@ -22,6 +22,10 @@ import 'views/mentor/home/landing_page.dart';
 import 'views/mentor/profile/profile_page.dart';
 import 'views/mentor/profile/edit_profile_page.dart';
 import 'views/mentor/settings/settings_page.dart';
+import 'views/mentor/settings/faq_page.dart';
+import 'views/mentor/settings/change_password_page.dart';
+import 'views/mentor/settings/change_email_page.dart';
+import 'views/mentor/profile/service_rates_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -67,8 +71,7 @@ class MyApp extends StatelessWidget {
 
         AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
         AppRoutes.editProfile: (_) => const EditProfilePage(),
-        AppRoutes.editRates: (_) =>
-            const Scaffold(body: Center(child: Text("Edit My Fee"))),
+        AppRoutes.editRates: (_) => const ServiceRatesPage(),
         AppRoutes.mySchedule: (_) =>
             const Scaffold(body: Center(child: Text("My Schedule"))),
         AppRoutes.historySession: (_) =>
@@ -78,6 +81,9 @@ class MyApp extends StatelessWidget {
         AppRoutes.teachingForm: (_) =>
             const Scaffold(body: Center(child: Text("Form Teaching Approval"))),
         AppRoutes.settingsAccount: (_) => const SettingsPage(),
+        AppRoutes.faq: (_) => const FaqPage(),
+        AppRoutes.changePassword: (_) => const ChangePasswordPage(),
+        AppRoutes.changeEmail: (_) => const ChangeEmailPage(),
       },
 
       onUnknownRoute: (settings) {
