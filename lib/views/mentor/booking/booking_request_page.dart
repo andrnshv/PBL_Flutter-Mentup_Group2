@@ -12,35 +12,130 @@ class _BookingRequestPageState extends State<BookingRequestPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // --- STATE UNTUK FITUR SEARCH, FILTER, & SORT ---
+  String _searchQuery = "";
+  String _selectedCategory = "All"; // Default: Menampilkan semua kategori
+  bool _isAscending = true;
+
+  final Color primary = const Color(0xFF6C63FF);
+  final Color backgroundColor = const Color(0xFFF4F6FA);
+
+  // Data Dummy Master
+  final List<Map<String, dynamic>> _allRequests = [
+    {
+      "name": "Aiska Rahma",
+      "cat": "Statistics",
+      "date": "21 Apr 2026",
+      "time": "09:00",
+      "status": "Pending",
+      "color": const Color(0xFFF5B3CE),
+    },
+    {
+      "name": "Bima Santoso",
+      "cat": "Web Development",
+      "date": "22 Apr 2026",
+      "time": "13:00",
+      "status": "Pending",
+      "color": const Color(0xFFA7C7E7),
+    },
+    {
+      "name": "Citra Kirana",
+      "cat": "UI/UX Design",
+      "date": "23 Apr 2026",
+      "time": "15:00",
+      "status": "Pending",
+      "color": const Color(0xFFCDB4DB),
+    },
+    {
+      "name": "Zidan Pratama",
+      "cat": "Database",
+      "date": "24 Apr 2026",
+      "time": "10:00",
+      "status": "Accepted",
+      "color": const Color(0xFFA7C7E7),
+    },
+    // --- INI DATA DUMMY REJECTED BARU ---
+    {
+      "name": "Riko Saputra",
+      "cat": "Mobile Dev",
+      "date": "25 Apr 2026",
+      "time": "14:00",
+      "status": "Rejected",
+      "reason":
+          "Maaf ya Riko, kebetulan di jam segitu aku ada jadwal bimbingan project dengan dosen. Boleh request ulang untuk jadwal minggu depan aja ya!",
+      "color": const Color(0xFFA7C7E7),
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  // --- LOGIKA UTAMA: SEARCHING, FILTERING, & SORTING ---
+  List<Map<String, dynamic>> _getFilteredList(String status) {
+    // 1. Filter berdasarkan status Tab (Pending/Accepted/Rejected)
+    var list = _allRequests.where((item) => item['status'] == status).toList();
+
+    // 2. Filter berdasarkan Pencarian Nama
+    if (_searchQuery.isNotEmpty) {
+      list = list.where((item) {
+        return item['name'].toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    // 3. Filter berdasarkan Kategori (Statistics, Web Dev, dll)
+    if (_selectedCategory != "All") {
+      list = list.where((item) => item['cat'] == _selectedCategory).toList();
+    }
+
+    // 4. Sorting berdasarkan Nama (A-Z atau Z-A)
+    list.sort((a, b) {
+      int cmp = a['name'].compareTo(b['name']);
+      return _isAscending ? cmp : -cmp;
+    });
+
+    return list;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: backgroundColor,
       appBar: AppBar(
         title: const Text(
           "Booking Requests",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black87,
       ),
       body: Column(
         children: [
-          _buildSearchAndFilter(),
-          // TabBar dengan styling lebih modern
+          // --- BARIS SEARCH, FILTER KATEGORI, & SORT ---
+          _buildActionControlBar(),
+
+          // --- TABBAR MODERN ---
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
-              color: Colors.grey[200],
+              color: Colors.white,
               borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
             child: TabBar(
               controller: _tabController,
@@ -48,41 +143,22 @@ class _BookingRequestPageState extends State<BookingRequestPage>
               unselectedLabelColor: Colors.grey[600],
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-                color: const Color(0xFF5B62CC),
+                borderRadius: BorderRadius.circular(12),
+                color: primary,
+              ),
+              labelStyle: const TextStyle(
+                fontFamily: 'Nunito',
+                fontWeight: FontWeight.bold,
               ),
               tabs: const [
-                Tab(
-                  child: Text(
-                    "Pending",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Text(
-                    "Accepted",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Tab(
-                  child: Text(
-                    "Rejected",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                Tab(text: "Pending"),
+                Tab(text: "Accepted"),
+                Tab(text: "Rejected"),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+
+          // --- LIST VIEW ---
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -98,14 +174,15 @@ class _BookingRequestPageState extends State<BookingRequestPage>
     );
   }
 
-  Widget _buildSearchAndFilter() {
+  Widget _buildActionControlBar() {
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
+          // Input Search
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              height: 50,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
@@ -113,117 +190,144 @@ class _BookingRequestPageState extends State<BookingRequestPage>
                   BoxShadow(
                     color: Colors.black.withOpacity(0.03),
                     blurRadius: 10,
-                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const TextField(
+              child: TextField(
+                onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
-                  hintText: "Search student name...",
-                  hintStyle: TextStyle(fontFamily: 'Nunito', fontSize: 14),
+                  hintText: "Search student...",
+                  hintStyle: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
                   border: InputBorder.none,
-                  icon: Icon(Icons.search, color: Color(0xFF5B62CC)),
+                  prefixIcon: Icon(Icons.search_rounded, color: primary),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 10),
-          _buildActionButton(Icons.tune_rounded),
+
+          // Tombol Filter Kategori (Menu Popup)
+          PopupMenuButton<String>(
+            onSelected: (value) => setState(() => _selectedCategory = value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: "All", child: Text("All Categories")),
+              const PopupMenuItem(
+                value: "Statistics",
+                child: Text("Statistics"),
+              ),
+              const PopupMenuItem(
+                value: "Web Development",
+                child: Text("Web Dev"),
+              ),
+              const PopupMenuItem(value: "UI/UX Design", child: Text("UI/UX")),
+              const PopupMenuItem(value: "Database", child: Text("Database")),
+            ],
+            child: _buildIconButton(
+              _selectedCategory == "All"
+                  ? Icons.filter_list_rounded
+                  : Icons.filter_alt_rounded,
+              _selectedCategory != "All",
+            ),
+          ),
           const SizedBox(width: 10),
-          _buildActionButton(Icons.swap_vert_rounded),
+
+          // Tombol Sort
+          GestureDetector(
+            onTap: () => setState(() => _isAscending = !_isAscending),
+            child: _buildIconButton(
+              _isAscending ? Icons.sort_by_alpha_rounded : Icons.sort_rounded,
+              false,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(IconData icon) {
+  Widget _buildIconButton(IconData icon, bool isActive) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      height: 50,
+      width: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isActive ? primary : Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
-      child: Icon(icon, color: const Color(0xFF5B62CC), size: 22),
+      child: Icon(icon, color: isActive ? Colors.white : primary, size: 22),
     );
   }
 
   Widget _buildRequestList(String status) {
-    // Data Dummy diperbanyak biar kelihatan "hidup"
-    final List<Map<String, dynamic>> requests = [
-      {
-        "name": "Aiska",
-        "cat": "Statistics",
-        "date": "21 Apr",
-        "time": "09:00",
-        "color": const Color(0xFFF5B3CE),
-      },
-      {
-        "name": "Bima",
-        "cat": "Web Dev",
-        "date": "22 Apr",
-        "time": "13:00",
-        "color": const Color(0xFFA7C7E7),
-      },
-      {
-        "name": "Citra",
-        "cat": "UI/UX Design",
-        "date": "23 Apr",
-        "time": "15:00",
-        "color": const Color(0xFFCDB4DB),
-      },
-    ];
+    final displayList = _getFilteredList(status);
+
+    if (displayList.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.search_off_rounded, size: 50, color: Colors.grey[300]),
+            const SizedBox(height: 10),
+            Text(
+              "No match found in $status",
+              style: TextStyle(fontFamily: 'Nunito', color: Colors.grey[400]),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      itemCount: requests.length,
+      physics: const BouncingScrollPhysics(),
+      itemCount: displayList.length,
       itemBuilder: (context, index) {
-        final item = requests[index];
+        final item = displayList[index];
         return GestureDetector(
-          onTap: () =>
-              Navigator.pushNamed(context, '/booking_detail', arguments: item),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.bookingDetail,
+              arguments: item,
+            );
+          },
           child: Container(
-            margin: const EdgeInsets.only(bottom: 15),
+            margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              // Border tipis dengan warna tema kategori
-              border: Border.all(
-                color: item['color'].withOpacity(0.3),
-                width: 1,
-              ),
               boxShadow: [
                 BoxShadow(
-                  color: item['color'].withOpacity(0.1),
-                  blurRadius: 10,
+                  color: primary.withOpacity(0.08),
+                  blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
               ],
             ),
             child: Row(
               children: [
-                // Avatar dengan pendaran
+                // Avatar Pastel dengan inisial
                 Container(
-                  padding: const EdgeInsets.all(2),
+                  width: 55,
+                  height: 55,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: item['color'], width: 2),
+                    color: item['color'].withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: item['color'].withOpacity(0.2),
+                  child: Center(
                     child: Text(
-                      item['name'][0],
+                      item['name'].substring(0, 1),
                       style: TextStyle(
-                        color: item['color'],
+                        fontFamily: 'Nunito',
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
+                        color: item['color'],
                       ),
                     ),
                   ),
@@ -237,32 +341,46 @@ class _BookingRequestPageState extends State<BookingRequestPage>
                         item['name'],
                         style: const TextStyle(
                           fontFamily: 'Nunito',
-                          fontWeight: FontWeight.w800,
                           fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item['cat'],
-                        style: TextStyle(
-                          fontFamily: 'Nunito',
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(height: 6),
+                      // Badge Kategori (Lebih Hidup)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item['cat'],
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            color: primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
+                // Kolom Tanggal
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      item['date'],
-                      style: const TextStyle(
+                      item['date'].split(" ")[0] +
+                          " " +
+                          item['date'].split(" ")[1],
+                      style: TextStyle(
                         fontFamily: 'Nunito',
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF5B62CC),
+                        fontWeight: FontWeight.w900,
+                        color: primary,
                         fontSize: 14,
                       ),
                     ),
@@ -271,8 +389,9 @@ class _BookingRequestPageState extends State<BookingRequestPage>
                       item['time'],
                       style: TextStyle(
                         fontFamily: 'Nunito',
-                        color: Colors.grey[500],
+                        color: Colors.grey[400],
                         fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -280,8 +399,8 @@ class _BookingRequestPageState extends State<BookingRequestPage>
                 const SizedBox(width: 10),
                 Icon(
                   Icons.arrow_forward_ios_rounded,
-                  color: Colors.grey[300],
-                  size: 16,
+                  color: Colors.grey[200],
+                  size: 14,
                 ),
               ],
             ),

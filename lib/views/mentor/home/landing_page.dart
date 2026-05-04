@@ -124,7 +124,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
 
               const SizedBox(height: 35),
 
-              // --- 3. UPCOMING SESSIONS ---
+              // --- 3. UPCOMING SESSIONS (Dimodifikasi Sesuai MySchedulePage) ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -148,7 +148,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      "Top 5",
+                      "Top 3",
                       style: TextStyle(
                         fontFamily: 'Nunito',
                         fontSize: 12,
@@ -168,40 +168,32 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                   physics: const BouncingScrollPhysics(),
                   clipBehavior: Clip.none,
                   children: [
-                    _buildHorizontalSessionCard(
-                      time: "08:00 - 12:00 WIB",
-                      topic: "Coding",
-                      clientName: "Chanyeol",
-                      duration: "240 mins",
-                      color: const Color(0xFFA7C7E7),
-                    ),
-                    _buildHorizontalSessionCard(
-                      time: "15:00 - 18:00 WIB",
-                      topic: "Statistics",
-                      clientName: "Aiska",
-                      duration: "180 mins",
-                      color: const Color(0xFFF5B3CE),
-                    ),
-                    _buildHorizontalSessionCard(
-                      time: "19:00 - 20:30 WIB",
-                      topic: "English",
-                      clientName: "Nabil",
-                      duration: "90 mins",
-                      color: const Color(0xFFCDB4DB),
-                    ),
+                    // Urutan 1: Pagi (09:00)
                     _buildHorizontalSessionCard(
                       time: "09:00 - 11:00 WIB",
-                      topic: "Flutter",
-                      clientName: "Andrian",
+                      topic: "Statistics",
+                      clientName: "Aiska Rahma",
+                      duration: "120 mins",
+                      color: const Color(0xFFF5B3CE),
+                      location: "https://zoom.us/j/123456789",
+                    ),
+                    // Urutan 2: Siang (13:00)
+                    _buildHorizontalSessionCard(
+                      time: "13:00 - 15:00 WIB",
+                      topic: "Web Dev",
+                      clientName: "Budi Santoso",
                       duration: "120 mins",
                       color: const Color(0xFFA7C7E7),
+                      location: "Library Central Park",
                     ),
+                    // Urutan 3: Sore (15:30)
                     _buildHorizontalSessionCard(
-                      time: "13:00 - 14:30 WIB",
-                      topic: "Database",
-                      clientName: "Abi",
+                      time: "15:30 - 17:00 WIB",
+                      topic: "UI/UX Design",
+                      clientName: "Citra Kirana",
                       duration: "90 mins",
-                      color: const Color(0xFFF5B3CE),
+                      color: const Color(0xFFCDB4DB),
+                      location: "https://meet.google.com/abc",
                     ),
                   ],
                 ),
@@ -221,13 +213,13 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
+                  const Text(
                     "See All",
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF5B62CC),
+                      color: Color(0xFF5B62CC),
                     ),
                   ),
                 ],
@@ -338,7 +330,11 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         ),
         Row(
           children: [
-            _buildIconButton(Icons.calendar_today_outlined),
+            // Perubahan: Menambahkan onTap menuju rute My Schedule
+            _buildIconButton(
+              Icons.calendar_today_outlined,
+              onTap: () => Navigator.pushNamed(context, '/my_schedule'),
+            ),
             const SizedBox(width: 12),
             _buildIconButton(Icons.notifications_none_outlined),
           ],
@@ -347,19 +343,23 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
-  Widget _buildIconButton(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        // Border opacity 50%
-        border: Border.all(
-          color: const Color(0xFF5B62CC).withOpacity(0.5),
-          width: 1.5,
+  // Perubahan: Menambahkan parameter onTap pada _buildIconButton
+  Widget _buildIconButton(IconData icon, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          // Border opacity 50%
+          border: Border.all(
+            color: const Color(0xFF5B62CC).withOpacity(0.5),
+            width: 1.5,
+          ),
         ),
+        child: Icon(icon, color: const Color(0xFF5B62CC), size: 20),
       ),
-      child: Icon(icon, color: const Color(0xFF5B62CC), size: 20),
     );
   }
 
@@ -575,107 +575,132 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
+  // Perubahan: Menambahkan logika onTap yang diarahkan ke Accepted page
   Widget _buildHorizontalSessionCard({
     required String time,
     required String topic,
     required String clientName,
     required String duration,
     required Color color,
+    required String location,
   }) {
-    return Container(
-      width: 270,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        // Border card opacity 50%
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              // Background icon opacity 50%
-              color: color.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/booking_detail',
+          arguments: {
+            'name': clientName,
+            'cat': topic,
+            'time': time,
+            'date': "Today", // Bisa disesuaikan jadi dinamis nanti
+            'color': color,
+            'location': location,
+            'status': 'Accepted', // CRITICAL: agar masuk UI Accepted
+            'totalPrice': 'Paid',
+            'note': "This session is already accepted and scheduled.",
+          },
+        );
+      },
+      child: Container(
+        width: 270,
+        margin: const EdgeInsets.only(right: 15),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          // Border card opacity 50%
+          border: Border.all(color: color.withOpacity(0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.videocam_outlined,
-                  color: color,
-                  size: 24,
-                ), // Ikon solid 100%
-                const SizedBox(height: 4),
-                Text(
-                  duration,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                // Background icon opacity 50%
+                color: color.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.videocam_outlined,
                     color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  clientName,
-                  style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  topic,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.grey[700],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 6),
-                    Text(
-                      time,
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[800],
-                      ),
+                    size: 24,
+                  ), // Ikon solid 100%
+                  const SizedBox(height: 4),
+                  Text(
+                    duration,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: color,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    clientName,
+                    style: const TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    topic,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[700],
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -847,20 +872,14 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
           currentIndex: _selectedIndex,
           onTap: (index) {
             if (index == 0) {
-              // Jika klik Home, tetap di sini atau pushNamed ke landing
-              // Biasanya jika sudah di home, tidak perlu pindah
               setState(() => _selectedIndex = index);
             } else if (index == 1) {
-              // Navigasi ke Request Page sesuai gaya kamu
               Navigator.pushNamed(context, '/booking_request');
             } else if (index == 2) {
-              // Navigasi ke History (jika rutenya sudah ada)
               // Navigator.pushNamed(context, '/history_session');
             } else if (index == 3) {
-              // Navigasi ke Profile Page yang baru kita buat
               Navigator.pushNamed(context, '/mentor_profile');
             } else {
-              // Jika menu lain diklik, cukup ubah indikator warna saja
               setState(() => _selectedIndex = index);
             }
           },
@@ -887,7 +906,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.description_outlined),
-              label: "Request", // Ini adalah Index ke-1
+              label: "Request",
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
