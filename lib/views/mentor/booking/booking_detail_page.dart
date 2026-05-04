@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cherry_toast/cherry_toast.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class BookingDetailPage extends StatelessWidget {
   const BookingDetailPage({super.key});
@@ -7,11 +9,15 @@ class BookingDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final args =
         (ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?) ??
-        {
-          'name': 'Unknown Client',
-          'cat': 'Unknown Category',
-          'color': const Color(0xFFCDB4DB), // Warna cadangan (Lavender)
-        };
+        {};
+
+    String name = args['name'] ?? 'Unknown Client';
+    String category = args['cat'] ?? 'Unknown Category';
+    Color primaryColor = args['color'] ?? const Color(0xFFCDB4DB);
+
+    // Status untuk mengecek apakah Pending, Accepted, atau Rejected
+    String status = args['status'] ?? 'Pending';
+    String reason = args['reason'] ?? '';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -52,7 +58,7 @@ class BookingDetailPage extends StatelessWidget {
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: args['color'].withOpacity(0.5),
+                      color: primaryColor.withOpacity(0.5),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
                     ),
@@ -64,7 +70,7 @@ class BookingDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
                   Text(
-                    args['name'],
+                    name,
                     style: const TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 24,
@@ -72,24 +78,57 @@ class BookingDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 5),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: args['color'].withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      args['cat'],
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: args['color'],
+
+                  // Row untuk Kategori dan Status (jika bukan pending)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          category,
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (status != 'Pending') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: status == 'Accepted'
+                                ? Colors.green.withOpacity(0.15)
+                                : Colors.redAccent.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: status == 'Accepted'
+                                  ? Colors.green
+                                  : Colors.redAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -100,7 +139,55 @@ class BookingDetailPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- SECTION 2: SESSION INFORMATION (COMPACT CARD) ---
+                  // --- SECTION ALASAN REJECT (Hanya muncul jika Rejected) ---
+                  if (status == 'Rejected') ...[
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 30),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.red[100]!),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                "Rejection Reason",
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            reason.isEmpty
+                                ? "No specific reason provided."
+                                : reason,
+                            style: const TextStyle(
+                              fontFamily: 'Nunito',
+                              color: Colors.black87,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // --- SECTION 2: SESSION INFORMATION (COMPACT CARD ORIGINAL) ---
                   const Text(
                     "Session Info",
                     style: TextStyle(
@@ -128,21 +215,21 @@ class BookingDetailPage extends StatelessWidget {
                           Icons.calendar_today_rounded,
                           "Date",
                           "Monday, 21 April 2026",
-                          args['color'],
+                          primaryColor,
                         ),
                         const Divider(height: 30),
                         _buildCompactInfo(
                           Icons.access_time_filled_rounded,
                           "Time & Duration",
                           "09:00 - 13:00 (4 Hours)",
-                          args['color'],
+                          primaryColor,
                         ),
                         const Divider(height: 30),
                         _buildCompactInfo(
                           Icons.location_on_rounded,
                           "Location",
                           "Jl. Simpang Remujung No. 5, Palu",
-                          args['color'],
+                          primaryColor,
                         ),
                       ],
                     ),
@@ -150,7 +237,7 @@ class BookingDetailPage extends StatelessWidget {
 
                   const SizedBox(height: 30),
 
-                  // --- SECTION 3: CLIENT MESSAGE ---
+                  // --- SECTION 3: CLIENT MESSAGE (ORIGINAL) ---
                   const Text(
                     "Message from Client",
                     style: TextStyle(
@@ -164,10 +251,10 @@ class BookingDetailPage extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: args['color'].withOpacity(0.05),
+                      color: primaryColor.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: args['color'].withOpacity(0.1),
+                        color: primaryColor.withOpacity(0.1),
                         width: 1.5,
                       ),
                     ),
@@ -186,56 +273,78 @@ class BookingDetailPage extends StatelessWidget {
                   const SizedBox(height: 40),
 
                   // --- SECTION 4: ACTION BUTTONS ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              _showRejectDialog(context, args['color']),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            side: const BorderSide(
-                              color: Colors.redAccent,
-                              width: 1.5,
+                  if (status == 'Pending')
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                _showRejectDialog(context, primaryColor, name),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(
+                                color: Colors.redAccent,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Reject Request",
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              color: Colors.redAccent,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1BACFF),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            "Accept Now",
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                            child: const Text(
+                              "Reject Request",
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _handleAccept(context, name),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1BACFF),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              "Accept Now",
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: const Text(
+                          "Back to List",
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
                 ],
               ),
             ),
@@ -245,6 +354,7 @@ class BookingDetailPage extends StatelessWidget {
     );
   }
 
+  // WIDGET COMPACT INFO ORIGINAL
   Widget _buildCompactInfo(
     IconData icon,
     String title,
@@ -289,7 +399,12 @@ class BookingDetailPage extends StatelessWidget {
     );
   }
 
-  void _showRejectDialog(BuildContext context, Color themeColor) {
+  // DIALOG FORM REJECT ORIGINAL
+  void _showRejectDialog(
+    BuildContext context,
+    Color themeColor,
+    String studentName,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -331,7 +446,10 @@ class BookingDetailPage extends StatelessWidget {
             child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context); // Tutup dialog dulu
+              _handleReject(context, studentName); // Panggil fungsi notifikasi
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
@@ -343,5 +461,40 @@ class BookingDetailPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // --- LOGIKA NOTIFIKASI MENGGUNAKAN CHERRY TOAST ---
+  void _handleAccept(BuildContext context, String name) {
+    CherryToast.success(
+      title: const Text(
+        "Booking Accepted",
+        style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+      ),
+      description: Text(
+        "You have accepted $name's request",
+        style: const TextStyle(fontFamily: 'Nunito'),
+      ),
+      animationType: AnimationType.fromTop,
+      toastPosition: Position.top,
+      autoDismiss: true,
+      onToastClosed: () => Navigator.pop(context),
+    ).show(context);
+  }
+
+  void _handleReject(BuildContext context, String name) {
+    CherryToast.error(
+      title: const Text(
+        "Booking Rejected",
+        style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+      ),
+      description: Text(
+        "Request from $name has been declined",
+        style: const TextStyle(fontFamily: 'Nunito'),
+      ),
+      animationType: AnimationType.fromTop,
+      toastPosition: Position.top,
+      autoDismiss: true,
+      onToastClosed: () => Navigator.pop(context),
+    ).show(context);
   }
 }
