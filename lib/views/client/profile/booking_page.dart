@@ -448,161 +448,250 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  /// ================= REVIEW =================
+/// ================= REVIEW =================
 Widget _buildReview() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text("Booking Summary",
-          style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold)),
+  return Padding(
+    padding: const EdgeInsets.all(16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
 
-      const SizedBox(height: 20),
-
-      _card(
-        child: Padding(
+        /// ================= HEADER =================
+        Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                primary.withOpacity(0.9),
+                primary.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
             children: [
-
-              /// ================= MENTOR =================
-              _summaryItem(
-                Icons.person,
-                "Mentor",
-                widget.mentor.name,
-              ),
-
-              /// ================= CATEGORY =================
-              _summaryItem(
-                Icons.category,
-                "Category",
-                widget.mentor.category,
-              ),
-
-              /// ================= MONTH =================
-              _summaryItem(
-                Icons.calendar_month,
-                "Duration",
-                "$selectedMonth Month(s)",
-              ),
-
-              /// ================= HOURS =================
-              _summaryItem(
-                Icons.access_time,
-                "Session Duration",
-                "$selectedHours Hour(s)",
-              ),
-
-              /// ================= SESSION PER WEEK =================
-              _summaryItem(
-                Icons.repeat,
-                "Sessions / Week",
-                "$sessionPerWeek x",
-              ),
-
-              /// ================= DAYS =================
-              _summaryItem(
-                Icons.date_range,
-                "Days",
-                selectedDays.join(", "),
-              ),
-
-              /// ================= START DATE =================
-              _summaryItem(
-                Icons.play_arrow,
-                "Start Date",
-                selectedDate == null
-                    ? "-"
-                    : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
-              ),
-
-              /// ================= MENTOR =================
-              _summaryItem(
-                Icons.access_time,
-                "Time",
-                selectedTime != null
-                ? selectedTime!.format(context)
-                : "-",
-              ),
-
-              /// ================= LOCATION =================
-              _summaryItem(
-                Icons.location_on,
-                "Location",
-                selectedLocation == null
-                    ? "-"
-                    : "Selected ✔",
-              ),
-
-              /// ================= NOTE =================
-              if (noteController.text.isNotEmpty)
-                _summaryItem(
-                  Icons.note,
-                  "Note",
-                  noteController.text,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-
-              const Divider(height: 30),
-
-              /// ================= PRICE DETAIL =================
-              const Text("Price Detail",
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-
-              Text(
-                "Rp ${widget.mentor.price} x $selectedHours jam x $sessionPerWeek sesi/minggu x $selectedMonth bulan x 4 minggu",
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: Colors.white,
+                ),
               ),
-
-              const SizedBox(height: 10),
-
-              /// ================= TOTAL =================
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Total Price",
+                  Text(
+                    "Booking Summary",
                     style: TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      color: Colors.white,
                     ),
                   ),
+                  SizedBox(height: 4),
                   Text(
-                    "Rp $totalPrice",
+                    "Review your booking before checkout",
                     style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: primary,
+                      fontSize: 12,
+                      color: Colors.white70,
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
-      ),
 
-      const Spacer(),
+        const SizedBox(height: 16),
 
-      /// ================= SUBMIT BUTTON =================
-      ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          minimumSize: const Size.fromHeight(50),
-        ),
-        onPressed: () {
-          setState(() => status = "pending");
-        },
-        child: const Text(
-          "Submit Booking",
-          style: TextStyle(
+        /// ================= MAIN CARD =================
+        Container(
+          decoration: BoxDecoration(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+              )
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                /// ===== MENTOR =====
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: primary.withOpacity(0.1),
+                      child: Icon(Icons.person, color: primary),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.mentor.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          widget.mentor.category,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+                const Divider(),
+
+                /// ================= DETAIL =================
+                _summaryItem(Icons.calendar_month, "Duration", "$selectedMonth Month(s)"),
+                _summaryItem(Icons.access_time, "Session Duration", "$selectedHours Hour(s)"),
+                _summaryItem(Icons.repeat, "Sessions / Week", "$sessionPerWeek x"),
+                _summaryItem(Icons.date_range, "Days", selectedDays.join(", ")),
+                _summaryItem(
+                  Icons.play_arrow,
+                  "Start Date",
+                  selectedDate == null
+                      ? "-"
+                      : "${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}",
+                ),
+                _summaryItem(
+                  Icons.schedule,
+                  "Time",
+                  selectedTime != null
+                      ? selectedTime!.format(context)
+                      : "-",
+                ),
+                _summaryItem(
+                  Icons.location_on,
+                  "Location",
+                  selectedLocation == null ? "-" : "Selected ✔",
+                ),
+
+                if (noteController.text.isNotEmpty)
+                  _summaryItem(Icons.note, "Note", noteController.text),
+
+                const SizedBox(height: 20),
+
+                /// ===== PRICE =====
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Price Detail",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+
+                      Text(
+                        "Rp ${widget.mentor.price} x $selectedHours jam x $sessionPerWeek sesi/minggu x $selectedMonth bulan x 4 minggu",
+                        style: const TextStyle(fontSize: 12),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Total Price",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "Rp $totalPrice",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: primary,
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      )
-    ],
+
+        const SizedBox(height: 20),
+
+        /// ================= BUTTON =================
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: primary,
+            minimumSize: const Size.fromHeight(55),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
+          ),
+          onPressed: () {
+            setState(() => status = "pending");
+          },
+          child: const Text(
+            "Submit Booking",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// ================= SUMMARY ITEM =================
+Widget _summaryItem(IconData icon, String title, String value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -670,30 +759,6 @@ Widget _buildReview() {
           hintText: hint,
           border: InputBorder.none,
         ),
-      ),
-    );
-  }
-
-  Widget _summaryItem(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(color: Colors.grey),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
