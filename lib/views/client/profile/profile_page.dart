@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import '../data/dummy_data.dart';
+import '../../../models/user_model.dart';
 import 'edit_profile_page.dart';
 import 'edit_security.dart';
+import 'my_mentors_page.dart';
+import 'payment_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -10,11 +14,13 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String name = "Park Chanyeol";
-  String username = "@chanyeol";
-  String role = "Client • Music Enthusiast";
-  String bio =
-      "Loves learning music and improving vocal skills. Actively books sessions with mentors.";
+  late UserModel user;
+  
+  @override
+  void initState() {
+    super.initState();
+    user = DummyData.user;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,43 +69,47 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
 
-            /// SECTION ACTIVITY
+            /// SECTION SOCIAL
             _buildMenuSection(
-              title: "Activity",
+              title: "Social",
               items: [
                 _buildMenuItem(
-                  Icons.calendar_today,
-                  "Sessions",
-                  "View your bookings",
-                  const Color(0xFFA7C7E7),
-                  () {},
-                ),
-                _buildMenuItem(
-                  Icons.music_note,
-                  "Practice History",
-                  "Your learning progress",
-                  const Color(0xFFF5B3CE),
-                  () {},
-                ),
-              ],
-            ),
-
-            /// SECTION REPUTATION
-            _buildMenuSection(
-              title: "Reputation",
-              items: [
-                _buildMenuItem(
-                  Icons.star_rounded,
-                  "Mentor Reviews",
-                  "View your review history for your mentor",
-                  const Color(0xFFE9C46A),
+                  Icons.people,
+                  "My Mentors",
+                  "Your active & past mentors",
+                const Color(0xFF90DBF4),
                   () {
-                    Navigator.pushNamed(context, "/reviews_page");
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MyMentorsPage(),
+                      ),
+                    );
                   },
                 ),
               ],
             ),
 
+            /// SECTION PAYMENT
+            _buildMenuSection(
+              title: "Payment & Billing",
+              items: [
+                _buildMenuItem(
+                  Icons.credit_card,
+                  "Payments",
+                  "History, methods & invoices",
+                const Color(0xFFB5E48C),
+                () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PaymentPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
             const SizedBox(height: 40),
           ],
         ),
@@ -129,22 +139,10 @@ class _ProfilePageState extends State<ProfilePage> {
           Stack(
             alignment: Alignment.bottomRight,
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 50,
-                backgroundImage: AssetImage("assets/profile.jpg"),
+                  backgroundImage: AssetImage(user.image),
               ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Colors.deepPurple,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt,
-                  size: 16,
-                  color: Colors.white,
-                ),
-              )
             ],
           ),
 
@@ -152,7 +150,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           /// NAME
           Text(
-            name,
+            user.name,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -164,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           /// USERNAME (BARU)
           Text(
-            username,
+            user.username,
             style: const TextStyle(
               fontSize: 13,
               color: Colors.white70,
@@ -174,7 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           /// ROLE
           Text(
-            role,
+            user.role,
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -191,7 +189,7 @@ class _ProfilePageState extends State<ProfilePage> {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              bio,
+              user.bio,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 12,

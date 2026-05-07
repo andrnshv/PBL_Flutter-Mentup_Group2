@@ -140,6 +140,15 @@ class MentorProfilePage extends StatelessWidget {
                   fontSize: 20, fontWeight: FontWeight.bold),
             ),
 
+            const SizedBox(height: 2),
+            
+            Text(
+              "@${mentor.username}",
+              style: const TextStyle(
+                fontSize: 13, color: Colors.grey,fontWeight: FontWeight.w500,
+              ),
+            ),
+
             Text(mentor.category, style: const TextStyle(color: Colors.grey)),
 
             const SizedBox(height: 6),

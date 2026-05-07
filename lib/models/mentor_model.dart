@@ -1,5 +1,9 @@
-class MentorModel {
+import 'package:equatable/equatable.dart';
+
+class MentorModel extends Equatable {
+  final String id;
   final String name;
+  final String username;
   final String category;
   final String image;
   final double rating;
@@ -7,8 +11,10 @@ class MentorModel {
   final double distance;
   final String? phone;
 
-  MentorModel({
+  const MentorModel({
+    required this.id,
     required this.name,
+    required this.username,
     required this.category,
     required this.image,
     required this.rating,
@@ -18,7 +24,9 @@ class MentorModel {
   });
 
   MentorModel copyWith({
+    String? id,
     String? name,
+    String? username,
     String? category,
     String? image,
     double? rating,
@@ -27,7 +35,9 @@ class MentorModel {
     String? phone,
   }) {
     return MentorModel(
+      id: id ?? this.id,
       name: name ?? this.name,
+      username: username?? this.username,
       category: category ?? this.category,
       image: image ?? this.image,
       rating: rating ?? this.rating,
@@ -39,19 +49,27 @@ class MentorModel {
 
   factory MentorModel.fromJson(Map<String, dynamic> json) {
     return MentorModel(
+      id: json['id'] ?? '',
       name: json['name'] ?? '',
+      username: json['username'] ?? '',
       category: json['category'] ?? '',
       image: json['image'] ?? '',
-      rating: (json['rating'] ?? 0).toDouble(),
+      rating: (json['rating'] is int)
+          ? (json['rating'] as int).toDouble()
+          : (json['rating'] ?? 0.0),
       price: json['price'] ?? 0,
-      distance: (json['distance'] ?? 0).toDouble(),
+      distance: (json['distance'] is int)
+          ? (json['distance'] as int).toDouble()
+          : (json['distance'] ?? 0.0),
       phone: json['phone'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
+      'username': username,
       'category': category,
       'image': image,
       'rating': rating,
@@ -60,4 +78,8 @@ class MentorModel {
       'phone': phone,
     };
   }
+
+  @override
+  List<Object?> get props =>
+      [id, name, username, category, image, rating, price, distance, phone];
 }

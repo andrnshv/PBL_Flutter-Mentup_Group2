@@ -27,9 +27,14 @@ class AppRoutes {
   static const changePassword = '/change_password';
   static const changeEmail = '/change_email';
 
-  // CLIEN
-  static const changePasswordClien = '/settings';
-  static const changeEmailClien = '/edit_security';
+  // ================= CLIENT =================
+  static const clientSettings = '/client-settings';
+  static const clientSecurity = '/client-security';
   static const faqSupport = '/faq-support';
+
+  static const clientPayment = '/client-payment';
+  static const myMentors = '/my-mentors';
+  static const notification = '/notification';
+  static const calendar = '/calendar';
 
 }

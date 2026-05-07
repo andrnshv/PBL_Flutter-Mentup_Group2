@@ -2,25 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../models/mentor_model.dart';
 import '../profile/mentor_profile_page.dart';
-
-/// MODEL MENTOR
-class Mentor {
-  final String name;
-  final String category;
-  final double price;
-  final double distance;
-  final String image;
-  final double rating;
-
-  Mentor({
-    required this.name,
-    required this.category,
-    required this.price,
-    required this.distance,
-    required this.image,
-    required this.rating,
-  });
-}
+import '../data/dummy_data.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -34,13 +16,7 @@ class _SearchPageState extends State<SearchPage> {
   double maxPrice = 100000;
   double maxDistance = 10;
 
-  final List<String> categories = [
-    "All",
-    "Balet",
-    "Produk designer",
-    "UX Designer",
-    "dance",
-  ];
+  final categories = DummyData.categories;
 
   final currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
@@ -48,45 +24,18 @@ class _SearchPageState extends State<SearchPage> {
     decimalDigits: 0,
   );
 
-  List<Mentor> allMentors = [
-    Mentor(
-      name: "Jerome",
-      category: "Matematika",
-      price: 80000,
-      distance: 5,
-      image: "assets/mentor1.jpg",
-      rating: 4.8,
-    ),
-    Mentor(
-      name: "Belva",
-      category: "UX Designer",
-      price: 100000,
-      distance: 3,
-      image: "assets/mentor2.jpg",
-      rating: 4.7,
-    ),
-    Mentor(
-      name: "Loey",
-      category: "Music",
-      price: 60000,
-      distance: 7,
-      image: "assets/profile.jpg",
-      rating: 4.5,
-    ),
-  ];
-
-  List<Mentor> filteredMentors = [];
+  List<MentorModel> filteredMentors = [];
 
   @override
   void initState() {
     super.initState();
-    filteredMentors = allMentors;
+    filteredMentors = DummyData.mentors;
   }
 
   /// ================= FILTER =================
   void applyFilter() {
     setState(() {
-      filteredMentors = allMentors.where((mentor) {
+      filteredMentors = DummyData.mentors.where((mentor) {
         final matchCategory =
             selectedCategory == "All" || mentor.category == selectedCategory;
 
@@ -98,20 +47,11 @@ class _SearchPageState extends State<SearchPage> {
     });
   }
 
-  void openProfile(Mentor mentor) {
+  void openProfile(MentorModel mentor) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MentorProfilePage(
-          mentor: MentorModel(
-            name: mentor.name,
-            category: mentor.category,
-            image: mentor.image,
-            rating: mentor.rating,
-            price: mentor.price.toInt(),
-            distance: mentor.distance,
-          ),
-        ),
+        builder: (_) =>  MentorProfilePage(mentor: mentor),
       ),
     );
   }
@@ -232,10 +172,6 @@ class _SearchPageState extends State<SearchPage> {
 
             const SizedBox(height: 15),
 
-            Text("${filteredMentors.length} Results"),
-
-            const SizedBox(height: 10),
-
             Expanded(
               child: ListView.builder(
                 itemCount: filteredMentors.length,
@@ -292,6 +228,9 @@ class _SearchPageState extends State<SearchPage> {
                 },
               ),
             ),
+            Text("${filteredMentors.length} Results"),
+
+            const SizedBox(height: 10),
           ],
         ),
       ),

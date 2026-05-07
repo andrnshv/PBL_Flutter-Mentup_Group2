@@ -55,8 +55,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
+        //CLIEN
         AppRoutes.landing: (_) => const HomePage(),
-
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),

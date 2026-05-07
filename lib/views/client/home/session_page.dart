@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../data/dummy_data.dart';
+import '../../../models/mentor_model.dart';
 
 class SessionPage extends StatefulWidget {
   const SessionPage({super.key});
@@ -10,34 +12,49 @@ class SessionPage extends StatefulWidget {
 class _SessionPageState extends State<SessionPage> {
   final Color primary = const Color(0xFF6C63FF);
 
-  int rating = 0;
-  final TextEditingController reviewController = TextEditingController();
+  final List<MentorModel> mentors = DummyData.mentors;
 
-  /// ================= SESSION DATA =================
-  final Map<String, dynamic> session = {
-    "name": "Jerome",
-    "category": "Mathematics",
-    "image": "assets/mentor1.jpg",
-    "time": "13:00 - 15:00",
-    "date": "Today",
-    "status": "Ongoing",
-  };
+  final List<bool> completedStatus = [];
+  final List<int> ratings = [];
+  final List<TextEditingController> reviewControllers = [];
 
-  bool isFinished = false;
+  @override
+  void initState() {
+    super.initState();
 
-  /// ================= FIXED STAR WIDGET =================
-  Widget buildStars(void Function(void Function()) modalSetState) {
+    for (int i = 0; i < mentors.length; i++) {
+      completedStatus.add(false);
+      ratings.add(0);
+      reviewControllers.add(TextEditingController());
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in reviewControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  /// ================= STAR WIDGET =================
+  Widget buildStars(
+    int mentorIndex,
+    void Function(void Function()) modalSetState,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(5, (index) {
         return IconButton(
           onPressed: () {
             modalSetState(() {
-              rating = index + 1;
+              ratings[mentorIndex] = index + 1;
             });
           },
           icon: Icon(
-            index < rating ? Icons.star : Icons.star_border,
+            index < ratings[mentorIndex]
+                ? Icons.star
+                : Icons.star_border,
             color: Colors.amber,
             size: 30,
           ),
@@ -46,13 +63,15 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  /// ================= RATING MODAL (=================
-  void openRating() {
+  /// ================= RATING MODAL =================
+  void openRating(int mentorIndex) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(25),
+        ),
       ),
       builder: (_) {
         return StatefulBuilder(
@@ -67,26 +86,33 @@ class _SessionPageState extends State<SessionPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+
                   const Text(
-                    "Give Your Feedback",
+                    "Session Verification",
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
 
+                  const SizedBox(height: 10),
+
+                  Text(
+                    "Give feedback for ${mentors[mentorIndex].name}",
+                    textAlign: TextAlign.center,
+                  ),
+
                   const SizedBox(height: 15),
 
-                  buildStars(modalSetState),
+                  buildStars(mentorIndex, modalSetState),
 
                   const SizedBox(height: 10),
 
                   TextField(
-                    controller: reviewController,
+                    controller: reviewControllers[mentorIndex],
                     maxLines: 3,
                     decoration: InputDecoration(
                       hintText: "Write your review...",
-                      hintStyle: const TextStyle(color: Colors.grey),
                       filled: true,
                       fillColor: const Color(0xFFF5F6FA),
                       border: OutlineInputBorder(
@@ -100,29 +126,32 @@ class _SessionPageState extends State<SessionPage> {
 
                   ElevatedButton(
                     onPressed: () {
+
                       setState(() {
-                        isFinished = true;
+                        completedStatus[mentorIndex] = true;
                       });
 
                       Navigator.pop(context);
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Review submitted successfully"),
+                        SnackBar(
+                          content: Text(
+                            "${mentors[mentorIndex].name} session completed",
+                          ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primary,
-                      minimumSize: const Size(double.infinity, 45),
+                      minimumSize: const Size(double.infinity, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
                     child: const Text(
-                      "Submit",
+                      "Submit Verification",
                       style: TextStyle(
-                        color: Colors.white, 
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -136,147 +165,197 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
+  /// ================= SESSION CARD =================
+  Widget buildSessionCard(int index) {
+
+    final mentor = mentors[index];
+    final isCompleted = completedStatus[index];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+
+      child: Column(
+        children: [
+
+          /// TOP SECTION
+          Row(
+            children: [
+
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: AssetImage(mentor.image),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    Text(
+                      mentor.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      mentor.category,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    const Text(
+                      "Today • 13:00 - 15:00",
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isCompleted
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isCompleted ? "Completed" : "Ongoing",
+                  style: TextStyle(
+                    color: isCompleted
+                        ? Colors.green
+                        : Colors.orange,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 18),
+
+          /// BUTTON / COMPLETED VIEW
+          if (!isCompleted)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => openRating(index),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  "Complete Session",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+          if (isCompleted) ...[
+
+            const Divider(),
+
+            const SizedBox(height: 10),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                ratings[index],
+                (i) => const Icon(
+                  Icons.star,
+                  color: Colors.amber,
+                  size: 20,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              reviewControllers[index].text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.black87,
+              ),
+            ),
+          ]
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
 
       appBar: AppBar(
-        title: const Text("Today's Session"),
+        title: const Text("Today's Sessions"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0,
       ),
 
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            /// ================= SESSION CARD =================
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  )
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundImage: AssetImage(session["image"]),
-                  ),
+        children: [
 
-                  const SizedBox(width: 14),
-
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          session["name"],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          session["category"],
-                          style: const TextStyle(color: Colors.grey),
-                        ),
-                        const SizedBox(height: 6),
-                        Text("${session["date"]} • ${session["time"]}"),
-                      ],
-                    ),
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isFinished
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      isFinished ? "Completed" : session["status"],
-                      style: TextStyle(
-                        color: isFinished ? Colors.green : Colors.orange,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                ],
-              ),
+          const Text(
+            "Active Mentoring Sessions",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
             ),
+          ),
 
-            const SizedBox(height: 30),
+          const SizedBox(height: 6),
 
-            if (!isFinished)
-              GestureDetector(
-                onTap: openRating,
-                child: Container(
-                  width: double.infinity,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primary, primary.withOpacity(0.8)],
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      "End Session",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+          const Text(
+            "Verify completed learning sessions with your mentors.",
+            style: TextStyle(
+              color: Colors.grey,
+            ),
+          ),
 
-            if (isFinished) ...[
-              const SizedBox(height: 25),
-              const Icon(Icons.check_circle, color: Colors.green, size: 70),
-              const SizedBox(height: 10),
-              const Text(
-                "Session Completed 🎉",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
+          const SizedBox(height: 25),
 
-              const SizedBox(height: 10),
-
-              if (rating > 0)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    rating,
-                    (index) => const Icon(Icons.star, color: Colors.amber),
-                  ),
-                ),
-
-              const SizedBox(height: 10),
-
-              if (reviewController.text.isNotEmpty)
-                Text(
-                  reviewController.text,
-                  textAlign: TextAlign.center,
-                ),
-            ]
-          ],
-        ),
+          ...List.generate(
+            mentors.length,
+            (index) => buildSessionCard(index),
+          ),
+        ],
       ),
     );
   }

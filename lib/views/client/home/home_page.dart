@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mentup/models/mentor_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import '../../../models/user_model.dart';
-import '../../../models/mentor_model.dart';
 import 'session_page.dart';
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
@@ -11,6 +9,7 @@ import '../History/History_page.dart';
 import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
 import '../profile/mentor_profile_page.dart';
+import '../data/dummy_data.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,32 +70,7 @@ class _LandingPageState extends State<HomePage> {
 
   /// ================= HOME CONTENT =================
   Widget _homeContent() {
-    List<MentorModel> mentors = [
-      MentorModel(
-        name: "Jerome",
-        image: "assets/mentor1.jpg",
-        rating: 4.8,
-        category: "Education",
-        price: 50000,
-        distance: 1.2,
-      ),
-      MentorModel(
-        name: "Belva",
-        image: "assets/mentor2.jpg",
-        rating: 4.9,
-        category: "Technology",
-        price: 75000,
-        distance: 2.5,
-      ),
-      MentorModel(
-        name: "Loey",
-        image: "assets/profile.jpg",
-        rating: 4.9,
-        category: "Dance",
-        price: 90000,
-        distance: 2.2,
-      ),
-    ];
+    final mentors = DummyData.mentors;
 
     return SafeArea(
       child: SingleChildScrollView(
