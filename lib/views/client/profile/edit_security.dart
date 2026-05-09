@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../routes/app_routes.dart';
-import 'fag_sup.dart';
+import '../data/dummy_data.dart';
 import 'email_pass.dart';
 
 class EditSecurityPage extends StatefulWidget {
@@ -18,7 +17,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Background utama adalah gradasi bermotif
       body: Stack(
         children: [
           // --- LAYER 1: FULL GRADIENT BACKGROUND WITH PATTERN ---
@@ -28,12 +26,10 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
           Column(
             children: [
               _buildCustomAppBar(context),
-
-              // Logo di tengah background (sebelum kartu)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Image.asset(
-                  'assets/logo.png', // Sesuaikan path logo kamu
+                  'assets/logo.png',
                   height: 100,
                   color: Colors.white.withOpacity(0.9),
                 ),
@@ -47,7 +43,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                     0,
                     20,
                     40,
-                  ), // Margin bawah agar melayang
+                  ), 
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(35),
@@ -90,7 +86,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                               icon: Icons.alternate_email_rounded,
                               iconColor: primaryBlue,
                               title: "Update Email",
-                              desc: "lovie@mentup.app",
+                              desc: DummyData.user.email,
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -112,21 +108,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                               title: "Help Center",
                               desc: "Contact support & info",
                               onTap: () => _showHelpCenterPopOut(context),
-                            ),
-                            _buildDivider(),
-                            _buildMenuTile(
-                              icon: Icons.help_outline_rounded,
-                              iconColor: const Color(0xFFF39C12),
-                              title: "FAQ & Support",
-                              desc: "Find answers or contact us",
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                  builder: (_) => const FaqSupPage(),
-                                  ),
-                                );
-                              },
                             ),
                           ]),
 
@@ -389,16 +370,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
               Icons.chat_rounded,
               "WhatsApp Support",
               "+62 812-3456-7890",
-            ),
-            _buildSupportTile(
-              Icons.email_outlined,
-              "Email Support",
-              "support@mentup.app",
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Mon - Fri, 08:00 - 17:00 WITA",
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
             ),
             const SizedBox(height: 10),
           ],

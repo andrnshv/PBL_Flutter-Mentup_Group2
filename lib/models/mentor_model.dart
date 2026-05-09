@@ -5,6 +5,7 @@ class MentorModel extends Equatable {
   final String name;
   final String username;
   final String category;
+  final String education;
   final String image;
   final double rating;
   final int price;
@@ -16,6 +17,7 @@ class MentorModel extends Equatable {
     required this.name,
     required this.username,
     required this.category,
+    required this.education,
     required this.image,
     required this.rating,
     required this.price,
@@ -28,6 +30,7 @@ class MentorModel extends Equatable {
     String? name,
     String? username,
     String? category,
+    String? education,
     String? image,
     double? rating,
     int? price,
@@ -39,6 +42,7 @@ class MentorModel extends Equatable {
       name: name ?? this.name,
       username: username?? this.username,
       category: category ?? this.category,
+      education: education ?? this.education,
       image: image ?? this.image,
       rating: rating ?? this.rating,
       price: price ?? this.price,
@@ -53,6 +57,7 @@ class MentorModel extends Equatable {
       name: json['name'] ?? '',
       username: json['username'] ?? '',
       category: json['category'] ?? '',
+      education: json['education'] ?? '',
       image: json['image'] ?? '',
       rating: (json['rating'] is int)
           ? (json['rating'] as int).toDouble()
@@ -71,6 +76,7 @@ class MentorModel extends Equatable {
       'name': name,
       'username': username,
       'category': category,
+      'education': education,
       'image': image,
       'rating': rating,
       'price': price,
@@ -81,5 +87,5 @@ class MentorModel extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, name, username, category, image, rating, price, distance, phone];
+      [id, name, username, category, education, image, rating, price, distance, phone];
 }

@@ -170,15 +170,6 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
 
-          /// ROLE
-          Text(
-            user.role,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
-          ),
-
           const SizedBox(height: 12),
 
           /// BIO
