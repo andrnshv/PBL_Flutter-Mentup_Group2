@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  supabase_flutter: ^2.8.0
+  flutter_dotenv: ^6.0.1
   cupertino_icons: ^1.0.8
   table_calendar: ^3.0.9
   getwidget: ^7.0.0
@@ -37,6 +39,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - .env
     - assets/logo.png
     - assets/mentor1.jpg
     - assets/mentor2.jpg

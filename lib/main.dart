@@ -1,8 +1,7 @@
+// FLUTTER
 import 'package:flutter/material.dart';
-import 'package:flutter_mentup/views/client/profile/mentor_profile_page.dart';
-import 'package:flutter_mentup/views/mentor/booking/booking_detail_page.dart';
-import 'package:flutter_mentup/views/mentor/booking/booking_request_page.dart';
-import 'package:flutter_mentup/views/mentor/home/article_page.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // AUTH (GLOBAL)
 import 'views/auth/welcome_page.dart';
@@ -16,9 +15,11 @@ import 'views/client/map/map_page.dart';
 import 'views/client/search/search_page.dart';
 import 'views/client/History/History_page.dart';
 import 'views/client/profile/profile_page.dart';
+import 'views/client/profile/mentor_profile_page.dart';
 
 // MENTOR
 import 'views/mentor/home/landing_page.dart';
+import 'views/mentor/home/article_page.dart';
 import 'views/mentor/profile/profile_page.dart';
 import 'views/mentor/profile/edit_profile_page.dart';
 import 'views/mentor/settings/settings_page.dart';
@@ -28,11 +29,22 @@ import 'views/mentor/settings/change_email_page.dart';
 import 'views/mentor/profile/service_rates_page.dart';
 import 'views/mentor/schedule/my_schedule_page.dart';
 import 'views/mentor/schedule/manage_slot_page.dart';
+import 'views/mentor/booking/booking_detail_page.dart';
+import 'views/mentor/booking/booking_request_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await dotenv.load(fileName: ".env");
+
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
+
   runApp(const MyApp());
 }
 
@@ -41,6 +53,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Cek session: kalau sudah login langsung ke home
+    final session = Supabase.instance.client.auth.currentSession;
+
     return MaterialApp(
       title: 'MentUp',
       debugShowCheckedModeBanner: false,
@@ -49,7 +64,7 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFFD4B2F7),
       ),
 
-      initialRoute: AppRoutes.welcome,
+      initialRoute: session != null ? AppRoutes.landing : AppRoutes.welcome,
 
       routes: {
         // AUTH
@@ -57,7 +72,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
-        //CLIEN
+        // CLIENT
         AppRoutes.landing: (_) => const HomePage(),
         AppRoutes.map: (_) => const MapPage(),
         AppRoutes.search: (_) => const SearchPage(),
