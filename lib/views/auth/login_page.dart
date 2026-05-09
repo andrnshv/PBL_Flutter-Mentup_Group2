@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/supabase_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -8,7 +10,88 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  bool _rememberMe = false;
+  final _emailController    = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool    _rememberMe   = false;
+  bool    _isLoading    = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Email dan password wajib diisi.');
+      return;
+    }
+
+    setState(() {
+      _isLoading    = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final response = await SupabaseService.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (response.user == null) {
+        setState(() => _errorMessage = 'Login gagal. Coba lagi.');
+        return;
+      }
+
+      // Ambil role dari tabel appuser
+      final userData = await SupabaseService.db
+          .from('appuser')
+          .select('role')
+          .eq('id', response.user!.id)
+          .single();
+
+      if (!mounted) return;
+
+      final role = userData['role'] as String;
+
+      if (role == 'mentor') {
+        // Cek apakah CV sudah diupload & statusnya
+        final cvData = await SupabaseService.db
+            .from('mentor_cv')
+            .select('status')
+            .eq('user_id', response.user!.id)
+            .maybeSingle();
+
+        if (!mounted) return;
+
+        if (cvData == null) {
+          // Belum upload CV
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/mentor_cv', (_) => false);
+        } else if (cvData['status'] == 'approved') {
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/mentor_landing', (_) => false);
+        } else {
+          // Status pending atau rejected
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/mentor_cv', (_) => false);
+        }
+      } else {
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/landing', (_) => false);
+      }
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = 'Terjadi kesalahan: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +103,9 @@ class _LoginPageState extends State<LoginPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFCDB4DB), // Lavender
-              Color(0xFFF5B3CE), // Pink
-              Color(0xFFA7C7E7), // Biru Muda
+              Color(0xFFCDB4DB),
+              Color(0xFFF5B3CE),
+              Color(0xFFA7C7E7),
             ],
           ),
         ),
@@ -58,14 +141,35 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(color: Colors.grey),
                       ),
                       const SizedBox(height: 40),
+
+                      // Error message
+                      if (_errorMessage != null)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: TextStyle(color: Colors.red.shade700),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
                       _buildTextField(
-                        "Username or Email",
-                        Icons.person_outline,
+                        "Email",
+                        Icons.email_outlined,
+                        controller: _emailController,
                       ),
                       const SizedBox(height: 20),
                       _buildTextField(
                         "Password",
                         Icons.lock_outline,
+                        controller: _passwordController,
                         isPassword: true,
                       ),
                       _buildForgotSection(),
@@ -93,9 +197,7 @@ class _LoginPageState extends State<LoginPage> {
           backgroundColor: Colors.white24,
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.black),
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
           ),
         ),
       ),
@@ -105,9 +207,11 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildTextField(
     String hint,
     IconData icon, {
+    required TextEditingController controller,
     bool isPassword = false,
   }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
@@ -156,7 +260,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () => Navigator.pushNamed(context, '/landing'),
+        onPressed: _isLoading ? null : _login,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -164,14 +268,16 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: const Text(
-          "Log In",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "Log In",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
@@ -182,9 +288,7 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         const Text("Don't have an account? "),
         GestureDetector(
-          onTap: () {
-            Navigator.pushNamed(context, '/register');
-          },
+          onTap: () => Navigator.pushNamed(context, '/register'),
           child: const Text(
             "Sign Up",
             style: TextStyle(fontWeight: FontWeight.bold),

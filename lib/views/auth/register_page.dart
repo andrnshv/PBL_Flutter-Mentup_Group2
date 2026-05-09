@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/supabase_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -8,11 +10,106 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  String selectedRole = 'Client';
+  String selectedRole = 'klien';
+
+  final _nameController     = TextEditingController();
+  final _usernameController = TextEditingController();
+  final _emailController    = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController  = TextEditingController();
+
+  bool    _isLoading    = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    if (_nameController.text.trim().isEmpty ||
+        _usernameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Semua field wajib diisi.');
+      return;
+    }
+
+    if (_passwordController.text != _confirmController.text) {
+      setState(() => _errorMessage = 'Password tidak cocok.');
+      return;
+    }
+
+    if (_passwordController.text.length < 6) {
+      setState(() => _errorMessage = 'Password minimal 6 karakter.');
+      return;
+    }
+
+    setState(() {
+      _isLoading    = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 1. Daftar ke Supabase Auth
+      final response = await SupabaseService.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        data: {
+          'nama_lengkap': _nameController.text.trim(),
+          'role'        : selectedRole,
+        },
+      );
+
+      if (response.user == null) {
+        setState(() => _errorMessage = 'Gagal mendaftar. Coba lagi.');
+        return;
+      }
+
+      // 2. Insert ke tabel appuser
+      await SupabaseService.db.from('appuser').insert({
+        'id'          : response.user!.id,
+        'nama_lengkap': _nameController.text.trim(),
+        'username'    : _usernameController.text.trim(),
+        'email'       : _emailController.text.trim(),
+        'role'        : selectedRole,
+      });
+
+      // 3. Insert ke tabel bio_profil
+      await SupabaseService.db.from('bio_profil').insert({
+        'email'       : _emailController.text.trim(),
+        'nama_lengkap': _nameController.text.trim(),
+      });
+
+      if (!mounted) return;
+
+      // 4. Navigasi — semua ke login dulu
+      if (selectedRole == 'klien') {
+        // Klien → login dulu baru ke beranda
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/login', (_) => false);
+      } else {
+        // Mentor → upload CV dulu, nanti login setelah approved
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/mentor_cv', (_) => false);
+      }
+    } on AuthException catch (e) {
+      setState(() => _errorMessage = e.message);
+    } catch (e) {
+      setState(() => _errorMessage = 'Terjadi kesalahan: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Mengatur agar konten tidak terdorong saat keyboard muncul
       resizeToAvoidBottomInset: true,
       body: Container(
         width: double.infinity,
@@ -28,10 +125,7 @@ class _RegisterPageState extends State<RegisterPage> {
           children: [
             const SizedBox(height: 60),
             _buildBackButton(),
-
-            // Mendorong konten di bawahnya ke paling dasar
             const Spacer(),
-
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
@@ -43,10 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               child: Padding(
                 padding: const EdgeInsets.only(
-                  top: 30,
-                  left: 30,
-                  right: 30,
-                  bottom: 20,
+                  top: 30, left: 30, right: 30, bottom: 20,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -65,39 +156,60 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 25),
 
-                    // --- FORM INPUT ---
-                    // Menggunakan Container agar SingleChildScrollView tidak bentrok dengan Column utama
+                    // Error message
+                    if (_errorMessage != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 15),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red.shade700),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
                     ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxHeight:
-                            MediaQuery.of(context).size.height *
-                            0.4, // Batasi tinggi form
+                        maxHeight: MediaQuery.of(context).size.height * 0.4,
                       ),
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            _buildTextField("Full Name", Icons.person_outline),
-                            const SizedBox(height: 15),
                             _buildTextField(
-                              "Email Address",
-                              Icons.email_outlined,
+                              "Full Name",
+                              Icons.person_outline,
+                              controller: _nameController,
                             ),
                             const SizedBox(height: 15),
                             _buildTextField(
                               "Username",
-                              Icons.lock_outline,
-                              isPassword: true,
+                              Icons.person_pin_outlined,
+                              controller: _usernameController,
+                            ),
+                            const SizedBox(height: 15),
+                            _buildTextField(
+                              "Email Address",
+                              Icons.email_outlined,
+                              controller: _emailController,
                             ),
                             const SizedBox(height: 15),
                             _buildTextField(
                               "Password",
                               Icons.lock_outline,
+                              controller: _passwordController,
                               isPassword: true,
                             ),
                             const SizedBox(height: 15),
                             _buildTextField(
                               "Confirm Password",
                               Icons.lock_reset_outlined,
+                              controller: _confirmController,
                               isPassword: true,
                             ),
                           ],
@@ -106,17 +218,15 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
 
                     const SizedBox(height: 20),
-                    // --- PILIHAN ROLE DENGAN JARAK DI MASING-MASING SISI ---
+
+                    // Pilihan Role
                     Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                      ), // Memberi jarak di sisi kiri & kanan
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment
-                            .spaceBetween, // Mendorong item ke ujung kiri & kanan padding
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildRoleRadio("Client"),
-                          _buildRoleRadio("Mentor"),
+                          _buildRoleRadio("Klien",  "klien"),
+                          _buildRoleRadio("Mentor", "mentor"),
                         ],
                       ),
                     ),
@@ -135,27 +245,20 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  // Fungsi baru untuk membuat Radio Button Lingkaran Biru
-  Widget _buildRoleRadio(String role) {
+  Widget _buildRoleRadio(String label, String value) {
     return GestureDetector(
-      // Biar kalau teksnya diklik, lingkarannya juga ikut terpilih
-      onTap: () => setState(() => selectedRole = role),
+      onTap: () => setState(() => selectedRole = value),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Radio<String>(
-            value: role,
-            groupValue:
-                selectedRole, // Variabel state yang menyimpan pilihan saat ini
-            activeColor: Colors.blue, // Warna titik lingkaran saat dipilih
-            onChanged: (String? value) {
-              setState(() {
-                selectedRole = value!;
-              });
-            },
+            value: value,
+            groupValue: selectedRole,
+            activeColor: Colors.blue,
+            onChanged: (v) => setState(() => selectedRole = v!),
           ),
           Text(
-            role,
+            label,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ],
@@ -182,14 +285,15 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildTextField(
     String hint,
     IconData icon, {
+    required TextEditingController controller,
     bool isPassword = false,
   }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon),
-        // TAMBAHKAN BARIS INI:
         contentPadding: const EdgeInsets.symmetric(vertical: 15),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(15),
@@ -210,14 +314,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () {
-          // LOGIKA NAVIGASI BERDASARKAN ROLE
-          if (selectedRole == 'Client') {
-            Navigator.pushNamed(context, '/landing');
-          } else {
-            Navigator.pushNamed(context, '/mentor_cv');
-          }
-        },
+        onPressed: _isLoading ? null : _register,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -225,14 +322,16 @@ class _RegisterPageState extends State<RegisterPage> {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: const Text(
-          "Sign Up",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "Sign Up",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
