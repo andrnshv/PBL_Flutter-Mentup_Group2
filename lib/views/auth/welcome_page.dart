@@ -1,9 +1,33 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'login_page.dart';
 
-class WelcomePage extends StatelessWidget {
+class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  @override
+  void initState() {
+    super.initState();
+    _testConnection();
+  }
+
+  Future<void> _testConnection() async {
+    try {
+      await Supabase.instance.client
+          .from('appuser')
+          .select('id')
+          .limit(1);
+      debugPrint('✅ Supabase terhubung!');
+    } catch (e) {
+      debugPrint('❌ Gagal koneksi: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,15 +35,14 @@ class WelcomePage extends StatelessWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        // Gradient Background
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFCDB4DB), // 0%
-              Color(0xFFF5B3CE), // 50%
-              Color(0xFFA7C7E7), // 100%
+              Color(0xFFCDB4DB),
+              Color(0xFFF5B3CE),
+              Color(0xFFA7C7E7),
             ],
           ),
         ),
@@ -29,7 +52,6 @@ class WelcomePage extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // Teks Welcome =)
               const Text(
                 'Welcome',
                 style: TextStyle(
@@ -42,11 +64,10 @@ class WelcomePage extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // Subtitle
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 40.0),
                 child: Text(
-                  'Ready to level up your skills today?\nLet’s find the perfect mentor for your goals!',
+                  'Ready to level up your skills today?\nLet\'s find the perfect mentor for your goals!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontFamily: 'Jost',
@@ -60,8 +81,6 @@ class WelcomePage extends StatelessWidget {
 
               const Spacer(flex: 1),
 
-              // LOGO DARI ASSETS
-              // PENTING: Ganti 'logo.png' dengan nama file logo yang ada di folder assets-mu!
               Image.asset(
                 'assets/logo.png',
                 width: 287,
