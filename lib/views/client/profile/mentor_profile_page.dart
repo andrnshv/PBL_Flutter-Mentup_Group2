@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../models/mentor_model.dart';
 import 'booking_page.dart';
+import 'mentor_reviews_page.dart';
 
 class MentorProfilePage extends StatelessWidget {
   final MentorModel mentor;
@@ -149,7 +150,20 @@ class MentorProfilePage extends StatelessWidget {
               ),
             ),
 
-            Text(mentor.category, style: const TextStyle(color: Colors.grey)),
+            Text(
+              mentor.category, 
+              style: const TextStyle(color: Colors.grey)
+            ),
+
+            const SizedBox(height: 4),
+            Text(
+              mentor.education,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
 
             const SizedBox(height: 6),
 
@@ -280,11 +294,120 @@ class MentorProfilePage extends StatelessWidget {
             ),
 
             /// ================= REVIEWS =================
-            _section(
-              title: "Reviews",
-              content:
-                  "⭐ 4.8 (120 reviews)\n\nMentor sangat membantu dan komunikatif!",
+Padding(
+  padding: const EdgeInsets.symmetric(
+    horizontal: 20,
+    vertical: 8,
+  ),
+  child: Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+
+        /// TITLE
+        Row(
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
+          children: [
+
+            const Text(
+              "Reviews",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
+
+            TextButton(
+              onPressed: () {
+
+                /// PINDAH KE HALAMAN REVIEW
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MentorReviewsPage(
+                      mentor: mentor,
+                    ),
+                  ),
+                );
+              },
+              child: const Text("See All"),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        /// REVIEW UTAMA
+        Row(
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+
+            CircleAvatar(
+              radius: 20,
+              backgroundColor:
+                  primary.withOpacity(0.1),
+              child: Icon(
+                Icons.person,
+                color: primary,
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+                children: [
+
+                  Row(
+                    children: const [
+
+                      Text(
+                        "Aiska",
+                        style: TextStyle(
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
+                      ),
+
+                      SizedBox(width: 6),
+
+                      Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                        size: 16,
+                      ),
+
+                      Text("4.8"),
+                    ],
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  const Text(
+                    "Mentor sangat membantu dan komunikatif!",
+                    style: TextStyle(
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+),
 
             /// ================= JADWAL =================
             Padding(

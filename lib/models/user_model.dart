@@ -2,6 +2,7 @@ class UserModel {
   final String username;
   final String token;
   final String name;
+  final String email;
   final String image;
   final String bio;
 
@@ -9,6 +10,7 @@ class UserModel {
     required this.username,
     required this.token,
     required this.name,
+    required this.email,
     required this.image,
     required this.bio,
   });
@@ -18,6 +20,7 @@ class UserModel {
       username: json['username'] ?? '',
       token: json['token'] ?? '',
       name: json['name'] ?? '',
+      email: json['email'] ?? '',
       image: json['image'] ?? '',
       bio: json['bio'] ?? '',
     );
@@ -28,6 +31,7 @@ class UserModel {
       'username': username,
       'token': token,
       'name': name,
+      'email' : email,
       'image': image,
       'bio': bio,
     };
