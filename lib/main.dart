@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.editProfile: (_) => const EditProfilePage(),
         AppRoutes.editRates: (_) => const ServiceRatesPage(),
         AppRoutes.mySchedule: (_) => const MySchedulePage(),
-AppRoutes.manageSlot: (_) => const ManageSlotPage(),
+        AppRoutes.manageSlot: (_) => const ManageSlotPage(),
         AppRoutes.historySession: (_) =>
             const Scaffold(body: Center(child: Text("History Session"))),
         AppRoutes.transactions: (_) =>

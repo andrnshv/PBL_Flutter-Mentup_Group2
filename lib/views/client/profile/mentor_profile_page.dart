@@ -263,7 +263,7 @@ class MentorProfilePage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _infoItem("Experience", "5+ Years"),
+                  _infoItem("Total Teaching ", "5+ Years"),
                   _infoItem("Price", "Rp ${mentor.price}"),
                   _infoItem("Distance", "${mentor.distance} km"),
                 ],

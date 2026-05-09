@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../routes/app_routes.dart';
-import 'fag_sup.dart';
 import 'email_pass.dart';
 
 class EditSecurityPage extends StatefulWidget {
@@ -112,21 +111,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                               title: "Help Center",
                               desc: "Contact support & info",
                               onTap: () => _showHelpCenterPopOut(context),
-                            ),
-                            _buildDivider(),
-                            _buildMenuTile(
-                              icon: Icons.help_outline_rounded,
-                              iconColor: const Color(0xFFF39C12),
-                              title: "FAQ & Support",
-                              desc: "Find answers or contact us",
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                  builder: (_) => const FaqSupPage(),
-                                  ),
-                                );
-                              },
                             ),
                           ]),
 

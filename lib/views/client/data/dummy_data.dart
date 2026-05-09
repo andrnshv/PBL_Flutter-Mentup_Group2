@@ -103,7 +103,6 @@ class DummyData {
     token: "dummy_token",
     name: "Park Chanyeol",
     image: "assets/profile.jpg",
-    role: "Client • Music Enthusiast",
     bio: "Loves learning music and improving vocal skills. Actively books sessions with mentors.",
   );
 }
