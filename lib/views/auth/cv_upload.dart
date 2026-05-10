@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
+import '../../routes/app_routes.dart';
 
 class MentorCvUploadPage extends StatefulWidget {
   const MentorCvUploadPage({super.key});
@@ -13,76 +15,163 @@ class MentorCvUploadPage extends StatefulWidget {
 
 class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
   bool _isSubmitted = false;
-  bool _isLoading   = false;
+  bool _isLoading = false;
+  bool _isCheckingStatus = true;
   String? _errorMessage;
   String? _selectedFileName;
-  File?   _selectedFile;
+  File? _selectedFile;
+  Uint8List? _selectedFileBytes;
 
-  // Pilih file PDF dari device
+  bool get _fileReady => kIsWeb ? _selectedFileBytes != null : _selectedFile != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCvStatus();
+  }
+
+  Future<void> _checkCvStatus() async {
+    try {
+      final user = SupabaseService.currentUser;
+      if (user == null) {
+        setState(() => _isCheckingStatus = false);
+        return;
+      }
+
+      final cvData = await SupabaseService.db
+          .from('mentor_cv')
+          .select('status')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (cvData != null) {
+        setState(() => _isSubmitted = true);
+      }
+    } catch (_) {
+      // Silently fail checking status
+    } finally {
+      setState(() => _isCheckingStatus = false);
+    }
+  }
+
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-    );
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        allowMultiple: false,
+        withData: kIsWeb, // Wajib true untuk Web
+      );
 
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _selectedFile     = File(result.files.single.path!);
-        _selectedFileName = result.files.single.name;
-        _errorMessage     = null;
-      });
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.single;
+        
+        // Validasi ekstensi tambahan (untuk jaga-jaga)
+        if (file.extension?.toLowerCase() != 'pdf') {
+          setState(() => _errorMessage = 'Hanya file PDF yang diperbolehkan.');
+          return;
+        }
+
+        setState(() {
+          _selectedFileName = file.name;
+          _errorMessage = null;
+
+          if (kIsWeb) {
+            _selectedFileBytes = file.bytes;
+            _selectedFile = null;
+          } else {
+            if (file.path != null) {
+              _selectedFile = File(file.path!);
+              _selectedFileBytes = null;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      setState(() => _errorMessage = 'Gagal membuka file picker: $e');
     }
   }
 
   Future<void> _uploadCV() async {
-    if (_selectedFile == null) {
+    if (!_fileReady) {
       setState(() => _errorMessage = 'Pilih file PDF terlebih dahulu.');
       return;
     }
 
+    // --- 1. VALIDASI UKURAN FILE (MAX 2MB) ---
+    const int maxFileSize = 2 * 1024 * 1024; // 2MB dalam bytes
+    int? fileSize;
+
+    if (kIsWeb) {
+      fileSize = _selectedFileBytes?.length;
+    } else {
+      fileSize = await _selectedFile?.length();
+    }
+
+    if (fileSize != null && fileSize > maxFileSize) {
+      setState(() => _errorMessage = 'Ukuran file terlalu besar. Maksimal 2MB.');
+      return;
+    }
+
     setState(() {
-      _isLoading    = true;
+      _isLoading = true;
       _errorMessage = null;
     });
 
     try {
       final user = SupabaseService.currentUser;
       if (user == null) {
-        setState(() => _errorMessage = 'Sesi tidak ditemukan, silakan login ulang.');
+        setState(() => _errorMessage = 'Sesi tidak ditemukan. Silakan login ulang.');
         return;
       }
 
-      // 1. Upload PDF ke Supabase Storage bucket 'mentor-cv'
-      final filePath = 'cv/${user.id}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      await SupabaseService.storage
-          .from('mentor-cv')
-          .upload(filePath, _selectedFile!);
+      // --- 2. PREPARASI STORAGE ---
+      final String bucketName = 'mentor_cv';
+      // Path menggunakan User ID agar sesuai dengan RLS Policy Storage
+      final String fileName = 'cv_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final String filePath = '${user.id}/$fileName';
 
-      // 2. Ambil public URL file yang diupload
-      final cvUrl = SupabaseService.storage
-          .from('mentor-cv')
-          .getPublicUrl(filePath);
+      // --- 3. UPLOAD KE SUPABASE STORAGE ---
+      if (kIsWeb) {
+        await SupabaseService.storage.from(bucketName).uploadBinary(
+              filePath,
+              _selectedFileBytes!,
+              fileOptions: const FileOptions(upsert: true),
+            );
+      } else {
+        await SupabaseService.storage.from(bucketName).upload(
+              filePath,
+              _selectedFile!,
+              fileOptions: const FileOptions(upsert: true),
+            );
+      }
 
-      // 3. Ambil data user dari tabel appuser
+      // Ambil Public URL untuk disimpan di database
+      final cvUrl = SupabaseService.storage.from(bucketName).getPublicUrl(filePath);
+
+      // --- 4. AMBIL DATA DARI TABEL APPUSER ---
       final userData = await SupabaseService.db
           .from('appuser')
           .select('nama_lengkap, email')
           .eq('id', user.id)
           .single();
 
-      // 4. Insert ke tabel mentor_cv
-      await SupabaseService.db.from('mentor_cv').insert({
-        'user_id'     : user.id,
+      // --- 5. UPSERT KE TABEL MENTOR_CV ---
+      await SupabaseService.db.from('mentor_cv').upsert({
+        'user_id': user.id,
         'nama_lengkap': userData['nama_lengkap'],
-        'email'       : userData['email'],
-        'cv_url'      : cvUrl,
-        'status'      : 'pending',
-      });
+        'email': userData['email'],
+        'cv_url': cvUrl, // Link file asli disimpan di sini
+        'status': 'pending',
+        'created_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'user_id');
 
       setState(() => _isSubmitted = true);
 
     } on StorageException catch (e) {
       setState(() => _errorMessage = 'Gagal upload file: ${e.message}');
+    } on PostgrestException catch (e) {
+      setState(() => _errorMessage = 'Database Error: ${e.message}');
     } catch (e) {
       setState(() => _errorMessage = 'Terjadi kesalahan: $e');
     } finally {
@@ -92,6 +181,12 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isCheckingStatus) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -151,7 +246,6 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Error message
                       if (_errorMessage != null)
                         Container(
                           width: double.infinity,
@@ -169,7 +263,6 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                           ),
                         ),
 
-                      // Kotak Upload
                       GestureDetector(
                         onTap: _isLoading ? null : _pickFile,
                         child: Container(
@@ -179,9 +272,7 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: _selectedFile != null
-                                  ? Colors.green
-                                  : const Color(0xFF333333),
+                              color: _fileReady ? Colors.green : const Color(0xFF333333),
                               width: 2,
                             ),
                           ),
@@ -189,32 +280,24 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                _selectedFile != null
-                                    ? Icons.check_circle_outline
-                                    : Icons.cloud_upload_outlined,
+                                _fileReady ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
                                 size: 50,
-                                color: _selectedFile != null
-                                    ? Colors.green
-                                    : Colors.grey.shade600,
+                                color: _fileReady ? Colors.green : Colors.grey.shade600,
                               ),
                               const SizedBox(height: 15),
                               Text(
-                                _selectedFile != null
-                                    ? _selectedFileName!
-                                    : "Drop or click here to upload your resume.",
+                                _fileReady ? _selectedFileName! : "Tap here to upload your resume.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: 'Jost',
                                   fontSize: 15,
                                   fontWeight: FontWeight.w300,
-                                  color: _selectedFile != null
-                                      ? Colors.green
-                                      : Colors.black,
+                                  color: _fileReady ? Colors.green : Colors.black,
                                 ),
                               ),
                               const SizedBox(height: 5),
                               const Text(
-                                "The format supported is PDF",
+                                "Max size: 2MB (PDF format)",
                                 style: TextStyle(
                                   fontFamily: 'Jost',
                                   fontSize: 12,
@@ -291,7 +374,11 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
             color: Colors.black,
             size: 40,
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.welcome,
+            (_) => false,
+          ),
         ),
       ),
     );
@@ -322,7 +409,7 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
             : const Text(
-                "Sign Up",
+                "Submit CV",
                 style: TextStyle(
                   fontFamily: 'Jost',
                   color: Colors.white,
@@ -346,8 +433,8 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
       child: ElevatedButton(
         onPressed: () => Navigator.pushNamedAndRemoveUntil(
           context,
-          '/login',
-          (route) => false,
+          AppRoutes.login,
+          (_) => false,
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
@@ -378,7 +465,11 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
           style: TextStyle(fontFamily: 'Jost', fontSize: 16),
         ),
         GestureDetector(
-          onTap: () => Navigator.pushNamed(context, '/login'),
+          onTap: () => Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.login,
+            (_) => false,
+          ),
           child: const Text(
             "Log In",
             style: TextStyle(
