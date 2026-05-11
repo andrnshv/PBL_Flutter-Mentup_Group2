@@ -38,7 +38,7 @@ class PaymentPage extends StatelessWidget {
 
           const SizedBox(height: 20),
 
-          /// 📜 HISTORY
+          /// HISTORY
           const Text(
             "Transactions",
             style: TextStyle(fontWeight: FontWeight.bold),

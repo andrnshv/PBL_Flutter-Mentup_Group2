@@ -142,7 +142,7 @@ class _LandingPageState extends State<HomePage> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primary, primary.withOpacity(0.7)],
+                    colors: [primary, primary.withValues(alpha:0.7)],
                   ),
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -200,7 +200,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -211,7 +211,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
+                        color: primary.withValues(alpha:0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.lightbulb, color: primary),
@@ -247,7 +247,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha:0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -258,7 +258,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
+                        color: primary.withValues(alpha:0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.schedule, color: primary),
@@ -318,7 +318,7 @@ class _LandingPageState extends State<HomePage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha:0.6),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
@@ -375,7 +375,7 @@ class _LandingPageState extends State<HomePage> {
                                 gradient: LinearGradient(
                                   colors: [
                                     Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
+                                    Colors.black.withValues(alpha:0.7),
                                   ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
@@ -478,7 +478,7 @@ class _LandingPageState extends State<HomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha:0.6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -534,7 +534,7 @@ class _LandingPageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 10,
           ),
         ],

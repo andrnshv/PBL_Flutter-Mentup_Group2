@@ -65,7 +65,7 @@ class MentorProfilePage extends StatelessWidget {
                   height: 220,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primary, primary.withOpacity(0.7)],
+                      colors: [primary, primary.withValues(alpha: 0.7)],
                     ),
                     borderRadius: const BorderRadius.vertical(
                       bottom: Radius.circular(30),
@@ -78,7 +78,7 @@ class MentorProfilePage extends StatelessWidget {
                   left: 10,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
@@ -115,9 +115,7 @@ class MentorProfilePage extends StatelessWidget {
                               width: 16,
                               height: 16,
                               decoration: BoxDecoration(
-                                color: isAvailable
-                                    ? Colors.green
-                                    : Colors.grey,
+                                color: isAvailable ? Colors.green : Colors.grey,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                     color: Colors.white, width: 2),
@@ -182,8 +180,8 @@ class MentorProfilePage extends StatelessWidget {
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isAvailable
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.grey.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -240,7 +238,7 @@ class MentorProfilePage extends StatelessWidget {
                         foregroundColor: 
                             isAvailable ? Colors.white : Colors.grey.shade600,
                         elevation: isAvailable ? 3 : 0,
-                        shadowColor: Colors.black.withOpacity(0.2),
+                        shadowColor: Colors.black.withValues(alpha: 0.2),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -277,7 +275,7 @@ class MentorProfilePage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _infoItem("Total Teaching ", "5+ Years"),
+                  _infoItem("Mentoring Sessions ", "20+ "),
                   _infoItem("Price", "Rp ${mentor.price}"),
                   _infoItem("Distance", "${mentor.distance} km"),
                 ],
@@ -353,7 +351,7 @@ Padding(
             CircleAvatar(
               radius: 20,
               backgroundColor:
-                  primary.withOpacity(0.1),
+                  primary.withValues(alpha: 0.1),
               child: Icon(
                 Icons.person,
                 color: primary,
@@ -447,7 +445,7 @@ Padding(
                           margin: const EdgeInsets.only(bottom: 10),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: primary.withOpacity(0.05),
+                            color: primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Row(
@@ -479,8 +477,7 @@ Padding(
                                         horizontal: 10, vertical: 5),
                                 decoration: BoxDecoration(
                                   color: getStatusColor(
-                                          item["status"]!)
-                                      .withOpacity(0.1),
+                                          item["status"]!).withValues(alpha: 0.1),
                                   borderRadius:
                                       BorderRadius.circular(20),
                                 ),

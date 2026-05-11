@@ -106,7 +106,9 @@ class DummyData {
     token: "dummy_token",
     name: "Park Chanyeol",
     email: "pcy2727@gmail.com",
+    password:"Aiska2727*",
     image: "assets/profile.jpg",
     bio: "Loves learning music and improving vocal skills. Actively books sessions with mentors.",
+    address : "jl.in aja dulu",
   );
 }

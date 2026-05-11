@@ -177,7 +177,7 @@ class _BookingPageState extends State<BookingPage> {
                   todayDecoration:
                       BoxDecoration(
                     color:
-                        primary.withOpacity(0.4),
+                        primary.withValues(alpha:0.4),
                     shape: BoxShape.circle,
                   ),
 
@@ -206,7 +206,7 @@ class _BookingPageState extends State<BookingPage> {
                     selectedDates.map((date) {
                   return Chip(
                     backgroundColor:
-                        primary.withOpacity(0.1),
+                        primary.withValues(alpha:0.1),
                     label: Text(
                       "${date.day}/${date.month}/${date.year}",
                     ),
@@ -433,8 +433,8 @@ class _BookingPageState extends State<BookingPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primary.withOpacity(0.9),
-                  primary.withOpacity(0.7),
+                  primary.withValues(alpha:0.9),
+                  primary.withValues(alpha:0.7),
                 ],
               ),
               borderRadius:
@@ -492,8 +492,7 @@ class _BookingPageState extends State<BookingPage> {
                       CircleAvatar(
                         radius: 26,
                         backgroundColor:
-                            primary.withOpacity(
-                                0.1),
+                            primary.withValues(alpha:0.1),
                         child: Icon(
                           Icons.person,
                           color: primary,
@@ -585,9 +584,7 @@ class _BookingPageState extends State<BookingPage> {
 
                         decoration:
                             BoxDecoration(
-                          color: primary
-                              .withOpacity(
-                                  0.08),
+                          color: primary.withValues(alpha:0.08),
                           borderRadius:
                               BorderRadius
                                   .circular(
@@ -617,8 +614,7 @@ class _BookingPageState extends State<BookingPage> {
 
                     decoration: BoxDecoration(
                       color:
-                          primary.withOpacity(
-                              0.05),
+                          primary.withValues(alpha:0.05),
 
                       borderRadius:
                           BorderRadius

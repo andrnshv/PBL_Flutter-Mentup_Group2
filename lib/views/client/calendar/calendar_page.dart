@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import 'add_session_page.dart';
-
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
 
@@ -47,38 +45,6 @@ class _CalendarPageState extends State<CalendarPage> {
                     ),
                   )
                 ],
-              ),
-
-              const SizedBox(height: 20),
-
-              /// ================= ADD BUTTON =================
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const AddSessionPage(),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.pink),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.add, color: Colors.pink),
-                      SizedBox(width: 8),
-                      Text(
-                        "Add to your calender",
-                        style: TextStyle(color: Colors.pink),
-                      ),
-                    ],
-                  ),
-                ),
               ),
 
               const SizedBox(height: 20),
