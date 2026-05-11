@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mentup/controller/mentor/edit_profile_controller.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart'; // Wajib ditambahin buat format input
+import 'package:cherry_toast/cherry_toast.dart';
+import 'package:cherry_toast/resources/arrays.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -144,13 +146,153 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         _controller.headlineController,
                         Icons.work_outline,
                       ),
-                      _buildCustomField(
-                        "Teaching Experience (Years)",
-                        _controller.experienceController,
-                        Icons.history_edu_rounded,
-                        isNumber: true,
-                        // Jika kamu ingin keyboardnya hanya angka, tambahkan parameter TextInputType di _buildCustomField asli kamu
+                      // ==========================================
+                      // MULAI REVISI: DROPDOWN UI MATCHING & JARAK DITAMBAH
+                      // ==========================================
+                      const SizedBox(height: 20), // Jarak atas dilebihin
+
+                      DropdownButtonFormField<String>(
+                        value: _controller.selectedCategory,
+                        items: _controller.categories
+                            .map(
+                              (cat) => DropdownMenuItem(
+                                value: cat,
+                                child: Text(
+                                  cat,
+                                  style: const TextStyle(
+                                    fontFamily: 'Nunito',
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) =>
+                            setState(() => _controller.selectedCategory = val),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.grey,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: "Teaching Category",
+                          labelStyle: const TextStyle(
+                            fontFamily: 'Nunito',
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor:
+                              Colors.white, // Menyamakan warna latar form lain
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide:
+                                BorderSide.none, // Menghilangkan garis outline
+                          ),
+                          prefixIcon: Container(
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF7E7BB9,
+                              ).withOpacity(0.1), // Background ikon
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.category_rounded,
+                              color: Color(0xFF7E7BB9),
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ),
+
+                      // Munculkan TextField tambahan JIKA milih "Lainnya"
+                      if (_controller.selectedCategory == "Lainnya") ...[
+                        const SizedBox(height: 20),
+                        _buildCustomField(
+                          "Enter specific category",
+                          _controller.categoryController,
+                          Icons.edit,
+                        ),
+                      ],
+
+                      const SizedBox(
+                        height: 20,
+                      ), // Jarak antar dropdown dilebihin
+
+                      DropdownButtonFormField<String>(
+                        value: _controller.selectedUniversity,
+                        items: _controller.universities
+                            .map(
+                              (uni) => DropdownMenuItem(
+                                value: uni,
+                                child: Text(
+                                  uni,
+                                  style: const TextStyle(
+                                    fontFamily: 'Nunito',
+                                    fontSize: 14,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (val) => setState(
+                          () => _controller.selectedUniversity = val,
+                        ),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: Colors.grey,
+                        ),
+                        decoration: InputDecoration(
+                          labelText: "University / Campus",
+                          labelStyle: const TextStyle(
+                            fontFamily: 'Nunito',
+                            color: Colors.grey,
+                            fontSize: 14,
+                          ),
+                          filled: true,
+                          fillColor:
+                              Colors.white, // Menyamakan warna latar form lain
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide:
+                                BorderSide.none, // Menghilangkan garis outline
+                          ),
+                          prefixIcon: Container(
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF7E7BB9,
+                              ).withOpacity(0.1), // Background ikon
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.school_rounded,
+                              color: Color(0xFF7E7BB9),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Munculkan TextField tambahan JIKA milih "Lainnya"
+                      if (_controller.selectedUniversity == "Lainnya") ...[
+                        const SizedBox(height: 20),
+                        _buildCustomField(
+                          "Enter university name",
+                          _controller.universityController,
+                          Icons.edit,
+                        ),
+                      ],
+
+                      const SizedBox(
+                        height: 5,
+                      ), // Jarak sebelum Bimble Location
+                      // ==========================================
+                      // AKHIR REVISI
                       _buildCustomField(
                         "Bimble Location",
                         _controller.addressController,
@@ -425,19 +567,72 @@ class _EditProfilePageState extends State<EditProfilePage> {
           elevation: 0,
         ),
         onPressed: () {
+          // --- LOGIKA GAGAL (VALIDASI) ---
+          // Contoh: Mencegah user menyimpan jika nama kosong
+          if (_controller.nameController.text.trim().isEmpty) {
+            CherryToast.error(
+              title: const Text(
+                "Save Failed",
+                style: TextStyle(
+                  fontFamily: 'Nunito',
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              description: const Text(
+                "Name cannot be empty!",
+                style: TextStyle(fontFamily: 'Nunito'),
+              ),
+              animationType: AnimationType.fromTop,
+              toastPosition: Position.top,
+              autoDismiss: true,
+            ).show(context);
+            return; // Hentikan proses simpan
+          }
+
           _controller.saveProfile();
-          Navigator.pop(context, {
-            'name': _controller.nameController.text,
-            'username': _controller.usernameController.text,
-            'headline': _controller.headlineController.text,
-            'bio': _controller.bioController.text,
-            'phone': _controller.phoneController.text,
-            'address': _controller.addressController.text,
-            'imageBytes': _controller.profileImageBytes,
-            'cvFileName': _controller.cvFileName, // Bawa pulang nama file
-            'cvDocumentBytes': _controller.cvDocumentBytes,
-            'experience': _controller.experienceController.text,
-          });
+
+          // Logika untuk menentukan nilai yang disimpan
+          String finalCat = _controller.selectedCategory == "Lainnya"
+              ? _controller.categoryController.text
+              : (_controller.selectedCategory ?? "");
+
+          String finalUni = _controller.selectedUniversity == "Lainnya"
+              ? _controller.universityController.text
+              : (_controller.selectedUniversity ?? "");
+
+          // --- LOGIKA BERHASIL ---
+          CherryToast.success(
+            title: const Text(
+              "Profile Updated",
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            description: const Text(
+              "Your profile has been successfully saved!",
+              style: TextStyle(fontFamily: 'Nunito'),
+            ),
+            animationType: AnimationType.fromTop,
+            toastPosition: Position.top,
+            autoDismiss: true,
+            // Setelah toast tertutup otomatis, baru pindah halaman dan bawa data
+            onToastClosed: () {
+              Navigator.pop(context, {
+                'name': _controller.nameController.text,
+                'username': _controller.usernameController.text,
+                'headline': _controller.headlineController.text,
+                'bio': _controller.bioController.text,
+                'phone': _controller.phoneController.text,
+                'address': _controller.addressController.text,
+                'imageBytes': _controller.profileImageBytes,
+                'cvFileName': _controller.cvFileName,
+                'cvDocumentBytes': _controller.cvDocumentBytes,
+                'category': finalCat,
+                'university': finalUni,
+              });
+            },
+          ).show(context);
         },
         child: const Text(
           "Save Changes",
