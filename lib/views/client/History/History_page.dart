@@ -277,7 +277,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             )
@@ -344,8 +344,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
                   decoration: BoxDecoration(
                     color: isDone
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
 
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -377,7 +377,7 @@ class _HistoryPageState extends State<HistoryPage> {
                       ),
 
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.1),
+                        color: Colors.purple.withValues(alpha: 0.1),
 
                         borderRadius: BorderRadius.circular(20),
                       ),

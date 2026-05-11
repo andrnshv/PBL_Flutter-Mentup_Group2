@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../data/dummy_data.dart';
 import 'email_pass.dart';
+import 'fag_sup.dart';
+import '../../auth/login_page.dart';
 
 class EditSecurityPage extends StatefulWidget {
   const EditSecurityPage({super.key});
@@ -31,7 +33,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 child: Image.asset(
                   'assets/logo.png',
                   height: 100,
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                 ),
               ),
 
@@ -49,7 +51,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                     borderRadius: BorderRadius.circular(35),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withValues(alpha:0.15),
                         blurRadius: 30,
                         offset: const Offset(0, 15),
                       ),
@@ -109,6 +111,21 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                               desc: "Contact support & info",
                               onTap: () => _showHelpCenterPopOut(context),
                             ),
+                            _buildDivider(),
+                            _buildMenuTile(
+                              icon: Icons.help_outline_rounded,
+                              iconColor: const Color(0xFFF39C12),
+                              title: "FAQ & Support",
+                              desc: "Find answers or contact us",
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                  builder: (_) => const FaqSupPage(),
+                                  ),
+                                );
+                              },
+                            ),
                           ]),
 
                           const SizedBox(height: 25),
@@ -121,11 +138,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                               title: "Sign Out",
                               titleColor: Colors.redAccent,
                               desc: "Log Out from your account",
-                              onTap: () => _showConfirmPopOut(
-                                context,
-                                "Sign Out",
-                                "Are you sure you want to sign out?",
-                              ),
+                              onTap: () => _showLogoutDialog(context),
                             ),
                             _buildDivider(),
                             _buildMenuTile(
@@ -219,7 +232,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
           fontFamily: 'Nunito',
           fontWeight: FontWeight.w900,
           fontSize: 11,
-          color: primaryPurple.withOpacity(0.5),
+          color: primaryPurple.withValues(alpha: 0.5),
           letterSpacing: 1.2,
         ),
       ),
@@ -231,7 +244,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFFDFDFD),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.withOpacity(0.05)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.05)),
       ),
       child: Column(children: children),
     );
@@ -251,7 +264,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
+          color: iconColor.withValues(alpha: 0.1),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: iconColor, size: 20),
@@ -283,7 +296,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
     return Divider(
       height: 1,
       thickness: 1,
-      color: Colors.grey.withOpacity(0.05),
+      color: Colors.grey.withValues(alpha:0.05),
       indent: 65,
       endIndent: 15,
     );
@@ -293,12 +306,19 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(25)
+        ),
         title: const Text(
           "Sign Out",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.w900),
+          style: TextStyle(
+            fontFamily: 'Nunito', 
+            fontWeight: FontWeight.w900
+          ),
         ),
-        content: const Text("Are you sure you want to sign out?"),
+        content: const Text(
+          "Are you sure you want to sign out?"
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -311,7 +331,16 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () => Navigator.pop(context),
+            onPressed: (){
+              Navigator.of(context).pop(); 
+
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const LoginPage(),
+                ),
+                (route) => false,
+              );
+            },
             child: const Text(
               "Sign Out",
               style: TextStyle(
@@ -378,7 +407,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
     );
   }
 
-  // Widget kecil khusus buat list di dalam Help Center
+  // Widget Help Center
   Widget _buildSupportTile(IconData icon, String title, String val) {
     return ListTile(
       leading: Icon(icon, color: primaryPurple, size: 20),
@@ -391,7 +420,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
         ),
       ),
       subtitle: Text(val, style: const TextStyle(fontSize: 12)),
-      onTap: () {}, // Nanti bisa ditambah logic launch URL
+      onTap: () {},
     );
   }
 
@@ -472,7 +501,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
   }
 }
 
-// Painter untuk membuat motif garis di background gradasi
 class LinePatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

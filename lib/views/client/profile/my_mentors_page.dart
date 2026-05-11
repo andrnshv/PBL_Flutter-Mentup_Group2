@@ -17,7 +17,6 @@ class MyMentorsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔥 ACTIVE MENTORS
             const Text(
               "Active Mentors",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -36,7 +35,7 @@ class MyMentorsPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            /// 📜 PAST MENTORS
+            /// PAST MENTORS
             const Text(
               "Past Mentors",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -96,7 +95,7 @@ class MyMentorsPage extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
