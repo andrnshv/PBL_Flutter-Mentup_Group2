@@ -116,7 +116,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                         const Color(
                           0xFFE9C46A,
                         ), // Warna Gold Muted (50% intensity)
-                        "/reviews_page", // Ganti dengan rute ulasanmu nanti
+                        "/client_reviews", // Ganti dengan rute ulasanmu nanti
                       ),
                     ],
                   ),
