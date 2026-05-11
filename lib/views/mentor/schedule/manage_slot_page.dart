@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-// --- TAMBAHAN IMPORT CHERRY TOAST ---
 import 'package:cherry_toast/cherry_toast.dart';
 import 'package:cherry_toast/resources/arrays.dart';
+// --- TAMBAHAN IMPORT KALENDER ---
+import 'package:table_calendar/table_calendar.dart';
 
 class ManageSlotPage extends StatefulWidget {
   const ManageSlotPage({super.key});
@@ -14,26 +15,13 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
   final Color primaryColor = const Color(0xFF5B62CC);
   final Color backgroundColor = const Color(0xFFF4F6FA);
 
-  // Palet Pastel untuk tiap hari
-  final List<Color> dayColors = [
-    const Color(0xFF4A90E2), // Mon - Blue
-    const Color(0xFFE24A7C), // Tue - Pink
-    const Color(0xFF9013FE), // Wed - Purple
-    const Color(0xFFF5B3CE), // Thu - Pastel Pink
-    const Color(0xFFA7C7E7), // Fri - Sky Blue
-    const Color(0xFFCDB4DB), // Sat - Lavender
-    const Color(0xFFF2A65A), // Sun - Peach
-  ];
+  // --- STATE UNTUK KALENDER ---
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay = DateTime.now();
 
-  Map<String, List<Map<String, TimeOfDay>>> availabilityWindows = {
-    "Monday": [],
-    "Tuesday": [],
-    "Wednesday": [],
-    "Thursday": [],
-    "Friday": [],
-    "Saturday": [],
-    "Sunday": [],
-  };
+  // Struktur data diubah menjadi berbasis DateTime, bukan lagi String nama hari
+  Map<DateTime, List<Map<String, TimeOfDay>>> availabilityWindows = {};
 
   int _toMinutes(TimeOfDay time) => time.hour * 60 + time.minute;
 
@@ -43,13 +31,40 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
     return "$hour:$minute";
   }
 
+  // Fungsi helper untuk mengubah format tanggal menjadi cantik tanpa package intl
+  String _formatDate(DateTime date) {
+    List<String> months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return "${date.day} ${months[date.month - 1]} ${date.year}";
+  }
+
+  // Fungsi untuk menormalkan tanggal (membuang jam/menit/detik) agar seragam di Map
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
   // --- LOGIKA VALIDASI & INPUT JAM ---
-  Future<void> _pickTimeRange(String day, Color color) async {
+  Future<void> _pickTimeRange(DateTime rawDate) async {
+    DateTime date = _normalizeDate(rawDate);
+
     TimeOfDay? start = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 9, minute: 0),
     );
     if (start == null) return;
+
     TimeOfDay? end = await showTimePicker(
       context: context,
       initialTime: const TimeOfDay(hour: 17, minute: 0),
@@ -59,8 +74,8 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
     int newStart = _toMinutes(start);
     int newEnd = _toMinutes(end);
 
+    // 1. Validasi: Waktu selesai harus setelah waktu mulai
     if (newEnd <= newStart) {
-      // PERUBAHAN: Notifikasi Error Cherry Toast
       CherryToast.error(
         title: const Text(
           "Invalid Time",
@@ -77,18 +92,39 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
       return;
     }
 
+    // --- 2. VALIDASI BARU: MINIMAL 1 JAM (60 MENIT) ---
+    int duration = newEnd - newStart;
+    if (duration < 60) {
+      CherryToast.warning(
+        title: const Text(
+          "Duration Too Short",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: const Text(
+          "The minimum duration of the session is 1 hour.",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+      return;
+    }
+
+    // 3. Validasi: Cek Overlap (Tumpang tindih)
     bool isOverlapping = false;
-    for (var existingRange in availabilityWindows[day]!) {
-      int exStart = _toMinutes(existingRange['start']!);
-      int exEnd = _toMinutes(existingRange['end']!);
-      if (newStart < exEnd && newEnd > exStart) {
-        isOverlapping = true;
-        break;
+    if (availabilityWindows.containsKey(date)) {
+      for (var existingRange in availabilityWindows[date]!) {
+        int exStart = _toMinutes(existingRange['start']!);
+        int exEnd = _toMinutes(existingRange['end']!);
+        if (newStart < exEnd && newEnd > exStart) {
+          isOverlapping = true;
+          break;
+        }
       }
     }
 
     if (isOverlapping) {
-      // PERUBAHAN: Notifikasi Warning Cherry Toast
       CherryToast.warning(
         title: const Text(
           "Overlap Detected",
@@ -105,9 +141,13 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
       return;
     }
 
+    // Menyimpan Data
     setState(() {
-      availabilityWindows[day]!.add({"start": start, "end": end});
-      availabilityWindows[day]!.sort(
+      if (!availabilityWindows.containsKey(date)) {
+        availabilityWindows[date] = [];
+      }
+      availabilityWindows[date]!.add({"start": start, "end": end});
+      availabilityWindows[date]!.sort(
         (a, b) => _toMinutes(a['start']!).compareTo(_toMinutes(b['start']!)),
       );
     });
@@ -129,7 +169,7 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
       ),
       body: Column(
         children: [
-          // --- GUIDELINE CARD ---
+          // --- GUIDELINE CARD (TIDAK DIUBAH) ---
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             padding: const EdgeInsets.all(20),
@@ -165,7 +205,7 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        "Set your regular available time windows. Overlapping ranges are automatically blocked for consistency.",
+                        "Select a specific date on the calendar, then set your available hours. Past dates are automatically blocked.",
                         style: TextStyle(
                           fontFamily: 'Nunito',
                           color: Colors.white70,
@@ -179,18 +219,14 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
             ),
           ),
 
-          // --- LIST HARI ---
+          // --- INTERACTIVE CALENDAR & SLOTS ---
           Expanded(
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              itemCount: availabilityWindows.keys.length,
-              itemBuilder: (context, index) {
-                String day = availabilityWindows.keys.elementAt(index);
-                List<Map<String, TimeOfDay>> ranges = availabilityWindows[day]!;
-                Color accentColor = dayColors[index];
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 15),
+              physics: const BouncingScrollPhysics(),
+              children: [
+                // Container Kalender
+                Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -201,101 +237,86 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: accentColor.withOpacity(0.1),
-                          child: Text(
-                            day[0],
-                            style: TextStyle(
-                              color: accentColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          day,
-                          style: const TextStyle(
-                            fontFamily: 'Nunito',
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(
-                            Icons.add_circle_outline,
-                            color: accentColor,
-                          ),
-                          onPressed: () => _pickTimeRange(day, accentColor),
-                        ),
+                  padding: const EdgeInsets.all(10),
+                  child: TableCalendar(
+                    // Logika memblokir hari kemarin
+                    firstDay: DateTime.now(),
+                    lastDay: DateTime.now().add(const Duration(days: 365)),
+                    focusedDay: _focusedDay,
+                    calendarFormat: _calendarFormat,
+                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    onFormatChanged: (format) {
+                      setState(() {
+                        _calendarFormat = format;
+                      });
+                    },
+                    // Menampilkan titik di kalender jika hari itu punya slot
+                    eventLoader: (day) {
+                      return availabilityWindows[_normalizeDate(day)] ?? [];
+                    },
+                    calendarStyle: CalendarStyle(
+                      selectedDecoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
                       ),
-                      if (ranges.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 15),
-                          child: Text(
-                            "No availability set for $day",
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                          ),
-                        )
-                      else
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            left: 15,
-                            right: 15,
-                            bottom: 15,
-                          ),
-                          child: Column(
-                            children: ranges
-                                .map(
-                                  (range) => Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: accentColor.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: accentColor.withOpacity(0.2),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          "${_formatTime(range['start']!)} - ${_formatTime(range['end']!)}",
-                                          style: const TextStyle(
-                                            fontFamily: 'Nunito',
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () => setState(
-                                            () => ranges.remove(range),
-                                          ),
-                                          child: const Icon(
-                                            Icons.cancel_rounded,
-                                            color: Colors.redAccent,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
-                    ],
+                      todayDecoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                      ),
+                      // Desain titik/marker
+                      markerDecoration: const BoxDecoration(
+                        color: Color(0xFFE24A7C), // Pink pastel
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    headerStyle: const HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-                );
-              },
+                ),
+
+                const SizedBox(height: 25),
+
+                // Header untuk Slot di Tanggal Terpilih
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Slots for ${_formatDate(_selectedDay!)}",
+                      style: const TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.add_circle,
+                        color: primaryColor,
+                        size: 30,
+                      ),
+                      onPressed: () => _pickTimeRange(_selectedDay!),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                // Daftar Slot
+                _buildSlotList(),
+              ],
             ),
           ),
         ],
@@ -304,6 +325,96 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
     );
   }
 
+  // --- WIDGET LIST SLOT ---
+  Widget _buildSlotList() {
+    DateTime normalizedDate = _normalizeDate(_selectedDay!);
+    List<Map<String, TimeOfDay>> ranges =
+        availabilityWindows[normalizedDate] ?? [];
+
+    if (ranges.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(25),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.event_busy_rounded, color: Colors.grey[400], size: 40),
+            const SizedBox(height: 10),
+            Text(
+              "No slots available for this date.",
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                color: Colors.grey[500],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: ranges
+          .map(
+            (range) => Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: primaryColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: primaryColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_filled_rounded,
+                        color: primaryColor,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        "${_formatTime(range['start']!)} - ${_formatTime(range['end']!)}",
+                        style: const TextStyle(
+                          fontFamily: 'Nunito',
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        availabilityWindows[normalizedDate]!.remove(range);
+                        // Bersihkan key tanggal jika array slot-nya kosong (supaya titik kalender hilang)
+                        if (availabilityWindows[normalizedDate]!.isEmpty) {
+                          availabilityWindows.remove(normalizedDate);
+                        }
+                      });
+                    },
+                    child: const Icon(
+                      Icons.cancel_rounded,
+                      color: Colors.redAccent,
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  // --- SAVE BUTTON (TIDAK DIUBAH) ---
   Widget _buildSaveButton() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -327,7 +438,6 @@ class _ManageSlotPageState extends State<ManageSlotPage> {
           elevation: 0,
         ),
         onPressed: () {
-          // PERUBAHAN: Notifikasi Success Cherry Toast & Navigator Pop otomatis
           CherryToast.success(
             title: const Text(
               "Success",
