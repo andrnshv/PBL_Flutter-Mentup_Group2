@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mentup/models/mentor_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'session_page.dart';
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
 import '../History/History_page.dart';
@@ -10,6 +9,7 @@ import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
 import '../profile/mentor_profile_page.dart';
 import '../data/dummy_data.dart';
+import '../../../routes/app_routes.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -52,7 +52,7 @@ class _LandingPageState extends State<HomePage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
           ],
         ),
         child: Row(
@@ -111,9 +111,7 @@ class _LandingPageState extends State<HomePage> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const CalendarPage(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const CalendarPage()),
                       );
                     },
                     child: _circleIcon(Icons.calendar_today),
@@ -139,52 +137,109 @@ class _LandingPageState extends State<HomePage> {
 
               /// ================= SESSION CARD =================
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primary, primary.withValues(alpha:0.7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [primary, primary.withValues(alpha: 0.75)],
                   ),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.25),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
+
                 child: Row(
                   children: [
+                    /// ICON
+                    Container(
+                      width: 55,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Icon(
+                        Icons.verified_rounded,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    /// TEXT
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Time for a session review ✨",
+                            "Session Finished 🎉",
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
+
                           SizedBox(height: 6),
+
                           Text(
-                            "Rate and review your learning experience",
-                            style: TextStyle(color: Colors.white70),
+                            "Please verify your mentoring session with the mentor.",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              height: 1.4,
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
                     ),
+
+                    const SizedBox(width: 10),
+
+                    /// BUTTON
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 14,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(18),
                         ),
                       ),
+
                       onPressed: () {
-                        Navigator.push(
+                        final mentor = DummyData.mentors[0];
+
+                        Navigator.pushNamed(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const SessionPage(),
-                          ),
+                          AppRoutes.clientVerification,
+                          arguments: {
+                            "mentorName": mentor.name,
+                            "category": mentor.category,
+                            "date": "12 April 2026",
+                            "time": "13:00",
+                            "summary":
+                                "Today we learned algebra basics and solved several practice problems together.",
+                            "image": mentor.image,
+                          },
                         );
                       },
-                      child: const Text("Finish Session"),
+
+                      child: const Text(
+                        "Verify",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
@@ -200,7 +255,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha:0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -211,7 +266,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withValues(alpha:0.1),
+                        color: primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.lightbulb, color: primary),
@@ -247,7 +302,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha:0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                     ),
                   ],
@@ -258,7 +313,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withValues(alpha:0.1),
+                        color: primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.schedule, color: primary),
@@ -318,7 +373,7 @@ class _LandingPageState extends State<HomePage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha:0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Text(
@@ -351,9 +406,8 @@ class _LandingPageState extends State<HomePage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => MentorProfilePage(
-                              mentor: mentors[index],
-                            ),
+                            builder: (_) =>
+                                MentorProfilePage(mentor: mentors[index]),
                           ),
                         );
                       },
@@ -375,7 +429,7 @@ class _LandingPageState extends State<HomePage> {
                                 gradient: LinearGradient(
                                   colors: [
                                     Colors.transparent,
-                                    Colors.black.withValues(alpha:0.7),
+                                    Colors.black.withValues(alpha: 0.7),
                                   ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
@@ -430,18 +484,20 @@ class _LandingPageState extends State<HomePage> {
 
               SizedBox(
                 height: 140,
-                child:  ListView(
+                child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
                     _testimonialCard(
                       name: "Alya",
-                      review: "Mentornya sabar banget! Aku jadi lebih paham matematika 😭✨",
+                      review:
+                          "Mentornya sabar banget! Aku jadi lebih paham matematika 😭✨",
                       rating: 5.0,
                       image: "assets/profile.jpg",
                     ),
                     _testimonialCard(
                       name: "Raka",
-                      review: "Belajar coding jadi lebih fun, langsung praktek!",
+                      review:
+                          "Belajar coding jadi lebih fun, langsung praktek!",
                       rating: 4.8,
                       image: "assets/mentor1.jpg",
                     ),
@@ -451,9 +507,9 @@ class _LandingPageState extends State<HomePage> {
                       rating: 4.9,
                       image: "assets/mentor2.jpg",
                     ),
-                  ]
+                  ],
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -478,7 +534,7 @@ class _LandingPageState extends State<HomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha:0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -534,7 +590,7 @@ class _LandingPageState extends State<HomePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
           ),
         ],
@@ -545,10 +601,7 @@ class _LandingPageState extends State<HomePage> {
           /// USER INFO
           Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: AssetImage(image),
-              ),
+              CircleAvatar(radius: 18, backgroundImage: AssetImage(image)),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -560,10 +613,7 @@ class _LandingPageState extends State<HomePage> {
                 children: [
                   const Icon(Icons.star, size: 14, color: Colors.amber),
                   const SizedBox(width: 2),
-                  Text(
-                    rating.toString(),
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                  Text(rating.toString(), style: const TextStyle(fontSize: 12)),
                 ],
               ),
             ],

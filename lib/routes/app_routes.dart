@@ -38,5 +38,6 @@ class AppRoutes {
   static const myMentors = '/my-mentors';
   static const notification = '/notification';
   static const calendar = '/calendar';
+  static const clientVerification = '/clientVerification';
 
 }
