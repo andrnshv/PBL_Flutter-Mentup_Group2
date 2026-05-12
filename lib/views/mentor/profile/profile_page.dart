@@ -19,6 +19,9 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
   // TAMBAHKAN 2 VARIABEL INI:
   String phone = "08123456789";
   String address = "Kota Malang";
+  // Tambahkan variabel di State
+  String category = "Statistics";
+  String university = "Politeknik Negeri Malang";
 
   // VARIABEL BARU UNTUK NAMPUNG FOTO BARU
   Uint8List? profileImageBytes;
@@ -113,7 +116,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                         const Color(
                           0xFFE9C46A,
                         ), // Warna Gold Muted (50% intensity)
-                        "/reviews_page", // Ganti dengan rute ulasanmu nanti
+                        "/client_reviews", // Ganti dengan rute ulasanmu nanti
                       ),
                     ],
                   ),
@@ -144,7 +147,8 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                               'cvFileName':
                                   cvFileName, // Kirim CV yang ada sekarang
                               'cvDocumentBytes': cvDocumentBytes,
-                              'experience': experience,
+                              'category': category,
+                              'university': university,
                             },
                           );
 
@@ -166,7 +170,8 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                               cvFileName =
                                   result['cvFileName']; // Terima CV baru
                               cvDocumentBytes = result['cvDocumentBytes'];
-                              experience = result['experience'] ?? experience;
+                              category = result['category'];
+                              university = result['university'];
                             });
                           }
                         },
@@ -196,7 +201,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 50, 24, 30),
       decoration: const BoxDecoration(
-        // GRADIENT BACKGROUND: Selaras dengan Home Page
+        // GRADIENT BACKGROUND
         gradient: LinearGradient(
           colors: [Color(0xFFCDB4DB), Color(0xFFA7C7E7)],
           begin: Alignment.topLeft,
@@ -213,7 +218,7 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                onPressed: () => Navigator.pop(context), // Tombol Back Putih
+                onPressed: () => Navigator.pop(context),
                 icon: const Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: Colors.white,
@@ -230,42 +235,27 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
               ),
             ],
           ),
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  image: profileImageBytes != null
-                      ? DecorationImage(
-                          image: MemoryImage(profileImageBytes!),
-                          fit: BoxFit.cover,
-                        )
-                      : const DecorationImage(
-                          image: AssetImage('assets/mentor.png'),
-                          fit: BoxFit.cover,
-                        ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF5B62CC),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.camera_alt_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ),
-            ],
+
+          // FOTO PROFIL
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+              image: profileImageBytes != null
+                  ? DecorationImage(
+                      image: MemoryImage(profileImageBytes!),
+                      fit: BoxFit.cover,
+                    )
+                  : const DecorationImage(
+                      image: AssetImage('assets/mentor.png'),
+                      fit: BoxFit.cover,
+                    ),
+            ),
           ),
           const SizedBox(height: 12),
-          // UBAH JADI INI:
+
           Text(
             name,
             style: const TextStyle(
@@ -293,12 +283,28 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
+
           const SizedBox(height: 15),
-          // CAPTION BIO: Menambahkan personal touch sesuai contoh
+
+          // CHIP UNIVERSITAS & KATEGORI
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildSmallInfoChip(Icons.school_rounded, university),
+              const SizedBox(width: 10),
+              _buildSmallInfoChip(Icons.verified_user_rounded, category),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          // CAPTION BIO (Sekarang menggunakan putih transparan agar senada)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.15),
+              color: Colors.white.withOpacity(
+                0.2,
+              ), // Mengganti grey menjadi white transparan
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
@@ -311,6 +317,33 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                 fontStyle: FontStyle.italic,
                 height: 1.4,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- HELPER UNTUK MEMBUAT CHIP INFO (Taruh di bawah _buildHeaderProfile) ---
+  Widget _buildSmallInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.25),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: 'Nunito',
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

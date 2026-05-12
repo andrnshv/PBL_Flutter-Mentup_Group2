@@ -31,6 +31,8 @@ import 'views/mentor/schedule/my_schedule_page.dart';
 import 'views/mentor/schedule/manage_slot_page.dart';
 import 'views/mentor/booking/booking_detail_page.dart';
 import 'views/mentor/booking/booking_request_page.dart';
+import 'views/mentor/review/teaching_proof_page.dart';
+import 'views/mentor/review/clients_review_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -95,8 +97,8 @@ class MyApp extends StatelessWidget {
             const Scaffold(body: Center(child: Text("History Session"))),
         AppRoutes.transactions: (_) =>
             const Scaffold(body: Center(child: Text("Transactions"))),
-        AppRoutes.teachingForm: (_) =>
-            const Scaffold(body: Center(child: Text("Form Teaching Approval"))),
+        AppRoutes.teachingForm: (_) => const TeachingProofPage(),
+        AppRoutes.clientReviews: (_) => const ClientReviewsPage(),
         AppRoutes.settingsAccount: (_) => const SettingsPage(),
         AppRoutes.faq: (_) => const FaqPage(),
         AppRoutes.changePassword: (_) => const ChangePasswordPage(),

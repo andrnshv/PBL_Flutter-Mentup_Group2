@@ -12,7 +12,18 @@ class EditProfileController {
   late TextEditingController headlineController;
   late TextEditingController addressController;
   late TextEditingController bioController;
-  late TextEditingController experienceController;
+
+  // Controller baru
+  late TextEditingController categoryController;
+  late TextEditingController universityController;
+
+  // Variabel untuk Dropdown
+  String? selectedCategory;
+  String? selectedUniversity;
+  
+  // List Pilihan (Bisa ditambah sesuai kebutuhan)
+  final List<String> categories = ["Statistics", "Web Dev", "UI/UX Design", "Mobile Dev", "Database", "English", "Lainnya"];
+  final List<String> universities = ["Universitas Tadulako", "Institut Teknologi Bandung", "Universitas Indonesia", "Universitas Gadjah Mada", "Lainnya"];
 
   // Variabel penampung File (Foto & CV)
   File? profileImage;
@@ -38,9 +49,31 @@ class EditProfileController {
       profileImageBytes = args['imageBytes'];
       cvFileName = args['cvFileName']; // Tangkap nama file CV
       cvDocumentBytes = args['cvDocumentBytes'];
-      experienceController = TextEditingController(
-        text: args['experience']?.toString(),
-      );
+      
+      // Inisialisasi Kategori
+      String initialCat = args['category'] ?? "";
+      if (categories.contains(initialCat)) {
+        selectedCategory = initialCat;
+        categoryController = TextEditingController();
+      } else if (initialCat.isNotEmpty) {
+        selectedCategory = "Lainnya";
+        categoryController = TextEditingController(text: initialCat);
+      } else {
+        categoryController = TextEditingController();
+      }
+
+      // Inisialisasi Universitas
+      String initialUni = args['university'] ?? "";
+      if (universities.contains(initialUni)) {
+        selectedUniversity = initialUni;
+        universityController = TextEditingController();
+      } else if (initialUni.isNotEmpty) {
+        selectedUniversity = "Lainnya";
+        universityController = TextEditingController(text: initialUni);
+      } else {
+        universityController = TextEditingController();
+      }
+
     } else {
       // Jika kosong, inisiasi controller kosong
       nameController = TextEditingController();
@@ -116,6 +149,7 @@ class EditProfileController {
     headlineController.dispose();
     addressController.dispose();
     bioController.dispose();
-    experienceController.dispose();
+    categoryController.dispose();
+    universityController.dispose();
   }
 }
