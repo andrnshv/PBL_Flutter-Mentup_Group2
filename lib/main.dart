@@ -11,6 +11,7 @@ import 'views/auth/cv_upload.dart';
 
 // CLIENT
 import 'views/client/home/home_page.dart';
+import 'views/client/home/client_verification_page.dart';
 import 'views/client/map/map_page.dart';
 import 'views/client/search/search_page.dart';
 import 'views/client/History/History_page.dart';
@@ -80,6 +81,7 @@ class MyApp extends StatelessWidget {
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
+        AppRoutes.clientVerification: (context) => const ClientVerificationPage(),
 
         // MENTOR
         AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
