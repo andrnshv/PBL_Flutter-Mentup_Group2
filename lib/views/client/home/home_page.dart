@@ -10,6 +10,7 @@ import '../notification/notification_page.dart';
 import '../profile/mentor_profile_page.dart';
 import '../data/dummy_data.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/supabase_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,17 +20,19 @@ class HomePage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  int     _selectedIndex = 0;
+  String  _namaUser      = '';
+  bool    _loadingUser   = true;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
 
-  late final List<Widget> _pages;
+  late List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
-
+    _loadUserData();
     _pages = [
       _homeContent(),
       const SearchPage(),
@@ -38,13 +41,34 @@ class _LandingPageState extends State<HomePage> {
     ];
   }
 
+  Future<void> _loadUserData() async {
+    try {
+      final user = SupabaseService.currentUser;
+      if (user == null) return;
+
+      final data = await SupabaseService.db
+          .from('appuser')
+          .select('nama_lengkap')
+          .eq('id', user.id)
+          .single();
+
+      if (mounted) {
+        setState(() {
+          _namaUser    = data['nama_lengkap'] ?? '';
+          _loadingUser = false;
+          _pages[0]    = _homeContent(); // rebuild dengan nama baru
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingUser = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
-
       body: IndexedStack(index: _selectedIndex, children: _pages),
-
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -52,7 +76,10 @@ class _LandingPageState extends State<HomePage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+            ),
           ],
         ),
         child: Row(
@@ -68,7 +95,6 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// ================= HOME CONTENT =================
   Widget _homeContent() {
     final mentors = DummyData.mentors;
 
@@ -88,21 +114,27 @@ class _LandingPageState extends State<HomePage> {
                   ),
                   const SizedBox(width: 10),
 
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           "Hello 👋",
                           style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
-                        Text(
-                          "Chanyeol",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        _loadingUser
+                            ? const SizedBox(
+                                height: 18,
+                                width: 100,
+                                child: LinearProgressIndicator(),
+                              )
+                            : Text(
+                                _namaUser.isNotEmpty ? _namaUser : 'User',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ],
                     ),
                   ),
@@ -135,7 +167,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// ================= SESSION CARD =================
+              /// SESSION CARD
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -153,10 +185,8 @@ class _LandingPageState extends State<HomePage> {
                     ),
                   ],
                 ),
-
                 child: Row(
                   children: [
-                    /// ICON
                     Container(
                       width: 55,
                       height: 55,
@@ -170,10 +200,7 @@ class _LandingPageState extends State<HomePage> {
                         size: 30,
                       ),
                     ),
-
                     const SizedBox(width: 16),
-
-                    /// TEXT
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,9 +213,7 @@ class _LandingPageState extends State<HomePage> {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-
                           SizedBox(height: 6),
-
                           Text(
                             "Please verify your mentoring session with the mentor.",
                             style: TextStyle(
@@ -200,10 +225,7 @@ class _LandingPageState extends State<HomePage> {
                         ],
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
-                    /// BUTTON
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -217,10 +239,8 @@ class _LandingPageState extends State<HomePage> {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-
                       onPressed: () {
                         final mentor = DummyData.mentors[0];
-
                         Navigator.pushNamed(
                           context,
                           AppRoutes.clientVerification,
@@ -235,7 +255,6 @@ class _LandingPageState extends State<HomePage> {
                           },
                         );
                       },
-
                       child: const Text(
                         "Verify",
                         style: TextStyle(fontWeight: FontWeight.bold),
@@ -247,7 +266,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// ================= MOTIVATION CARD =================
+              /// MOTIVATION CARD
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
@@ -294,7 +313,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              /// ================= TODAY SESSION =================
+              /// TODAY SESSION
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -342,7 +361,7 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              /// ================= MAP =================
+              /// MAP
               const Text(
                 "Nearby Mentors",
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -517,7 +536,6 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// ================= ICON BULAT =================
   Widget _circleIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
@@ -529,7 +547,6 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// ================= RATING =================
   Widget _ratingBox(double rating) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -550,14 +567,9 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  /// ================= NAV ITEM =================
   Widget _navItem(IconData icon, String label, int index) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
+      onTap: () => setState(() => _selectedIndex = index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -598,7 +610,6 @@ class _LandingPageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// USER INFO
           Row(
             children: [
               CircleAvatar(radius: 18, backgroundImage: AssetImage(image)),
@@ -618,10 +629,7 @@ class _LandingPageState extends State<HomePage> {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
-          /// ================= REVIEW TEXT =================
           Text(
             review,
             maxLines: 3,
