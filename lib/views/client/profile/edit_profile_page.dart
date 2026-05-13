@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../data/dummy_data.dart';
+import '../../../controller/client/edit_profile_controller.dart';
+import '../../../models/client/edit_profile_model.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -15,173 +16,281 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState
     extends State<EditProfilePage> {
+
+  final EditProfileController
+      _controller =
+      EditProfileController();
+
   final Color primary =
       const Color(0xFF6C63FF);
 
-  final user = DummyData.user;
+  final nameController =
+      TextEditingController();
 
-  late TextEditingController nameController;
-  late TextEditingController emailController;
-  late TextEditingController addressController;
-  late TextEditingController aboutController;
+  final emailController =
+      TextEditingController();
+
+  final aboutController =
+      TextEditingController();
 
   File? selectedImage;
 
+  String? networkImage;
+
   bool isPhotoDeleted = false;
+
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-
-    nameController =
-        TextEditingController(text: user.name);
-
-    emailController =
-        TextEditingController(text: user.email);
-
-    addressController =
-        TextEditingController(
-      text: user.address,
-    );
-
-    aboutController =
-        TextEditingController(text: user.bio);
+    loadProfile();
   }
 
-  /// ================= PICK IMAGE =================
+  Future<void> loadProfile()
+  async {
 
-Future<void> pickImage(
-  ImageSource source,
-) async {
-  try {
-    final picker = ImagePicker();
+    final EditProfileModel? profile =
+        await _controller.getProfile();
 
-    final pickedImage =
-        await picker.pickImage(
-      source: source,
-      imageQuality: 80,
-    );
+    if (profile != null) {
 
-    if (pickedImage != null) {
+      nameController.text =
+          profile.namaLengkap;
+
+      emailController.text =
+          profile.email;
+
+      aboutController.text =
+          profile.bio;
+
+      networkImage =
+          profile.fotoUrl;
+    }
+
+    if (mounted) {
+
       setState(() {
-        selectedImage =
-            File(pickedImage.path);
-
-        isPhotoDeleted = false;
+        isLoading = false;
       });
     }
-  } catch (e) {
-    debugPrint("ERROR CAMERA: $e");
+  }
+
+  @override
+  void dispose() {
+
+    nameController.dispose();
+
+    emailController.dispose();
+
+    aboutController.dispose();
+
+    super.dispose();
+  }
+
+  Future<void> pickImage(
+    ImageSource source,
+  ) async {
+
+    try {
+
+      final picker = ImagePicker();
+
+      final pickedImage =
+          await picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+
+      if (pickedImage != null) {
+
+        setState(() {
+          selectedImage =
+              File(pickedImage.path);
+
+          isPhotoDeleted = false;
+        });
+      }
+
+    } catch (e) {
+
+      debugPrint(
+        "ERROR CAMERA: $e",
+      );
+    }
+  }
+
+  void removeImage() {
+
+    setState(() {
+      selectedImage = null;
+      networkImage = null;
+      isPhotoDeleted = true;
+    });
+
+    Navigator.pop(context);
+  }
+
+  void showPhotoOptions() {
+
+    showModalBottomSheet(
+      context: context,
+
+      builder: (context) {
+
+        return Column(
+          mainAxisSize:
+              MainAxisSize.min,
+
+          children: [
+
+            ListTile(
+              leading:
+                  const Icon(
+                Icons.camera_alt,
+              ),
+
+              title:
+                  const Text(
+                "Camera",
+              ),
+
+              onTap: () async {
+
+                Navigator.pop(
+                  context,
+                );
+
+                await pickImage(
+                  ImageSource.camera,
+                );
+              },
+            ),
+
+            ListTile(
+              leading:
+                  const Icon(
+                Icons.photo,
+              ),
+
+              title:
+                  const Text(
+                "Gallery",
+              ),
+
+              onTap: () async {
+
+                Navigator.pop(
+                  context,
+                );
+
+                await pickImage(
+                  ImageSource.gallery,
+                );
+              },
+            ),
+
+            ListTile(
+              leading:
+                  const Icon(
+                Icons.delete,
+              ),
+
+              title:
+                  const Text(
+                "Remove",
+              ),
+
+              onTap: removeImage,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> saveProfile()
+  async {
+
+    setState(() {
+      isLoading = true;
+    });
+
+    String? imageUrl =
+        networkImage;
+
+    if (selectedImage != null) {
+
+      imageUrl =
+          await _controller
+              .uploadImage(
+        selectedImage!,
+      );
+    }
+
+    final success =
+        await _controller
+            .updateProfile(
+      namaLengkap:
+          nameController.text,
+      email:
+          emailController.text,
+      bio:
+          aboutController.text,
+      fotoUrl:
+          isPhotoDeleted
+              ? null
+              : imageUrl,
+    );
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "Failed to open camera: $e",
+    setState(() {
+      isLoading = false;
+    });
+
+    if (success) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          backgroundColor:
+              primary,
+
+          content: const Text(
+            "Profile updated successfully",
+          ),
         ),
-      ),
-    );
-  }
-}
-
-/// ================= REMOVE IMAGE =================
-
-void removeImage() {
-  setState(() {
-    selectedImage = null;
-    isPhotoDeleted = true;
-  });
-
-  Navigator.pop(context);
-}
-
-/// ================= SHOW PHOTO OPTIONS =================
-
-void showPhotoOptions() {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.camera_alt),
-            title: const Text("Camera"),
-            onTap: () async {
-              Navigator.pop(context);
-
-              await pickImage(
-                ImageSource.camera,
-              );
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.photo),
-            title: const Text("Gallery"),
-            onTap: () async {
-              Navigator.pop(context);
-
-              await pickImage(
-                ImageSource.gallery,
-              );
-            },
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.delete),
-            title: const Text("Remove"),
-            onTap: removeImage,
-          ),
-        ],
       );
-    },
-  );
-}
 
-  Widget _photoOption({
-    required IconData icon,
-    required String title,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
+      Navigator.pop(context);
 
-      child: Column(
-        children: [
-          Container(
-            width: 70,
-            height: 70,
+    } else {
 
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-
-            child: Icon(
-              icon,
-              color: color,
-              size: 32,
-            ),
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Failed to update profile",
           ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
-          )
-        ],
-      ),
-    );
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+
+    if (isLoading) {
+
+      return const Scaffold(
+        body: Center(
+          child:
+              CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor:
           const Color(0xFFF5F7FB),
@@ -189,170 +298,122 @@ void showPhotoOptions() {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            /// ================= HEADER =================
 
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  height: 260,
+            Container(
+              height: 260,
 
-                  decoration:
-                      const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFFB993D6),
-                        Color(0xFF8CA6DB),
-                      ],
-                      begin:
-                          Alignment.topLeft,
-                      end: Alignment
-                          .bottomRight,
-                    ),
-
-                    borderRadius:
-                        BorderRadius.vertical(
-                      bottom:
-                          Radius.circular(40),
-                    ),
-                  ),
+              decoration:
+                  const BoxDecoration(
+                gradient:
+                    LinearGradient(
+                  colors: [
+                    Color(0xFFB993D6),
+                    Color(0xFF8CA6DB),
+                  ],
                 ),
 
-                /// DECORATION CIRCLE
-
-                Positioned(
-                  top: -40,
-                  right: -20,
-                  child: Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                borderRadius:
+                    BorderRadius.vertical(
+                  bottom:
+                      Radius.circular(40),
                 ),
+              ),
 
-                Positioned(
-                  top: 70,
-                  left: -30,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
+              child: SafeArea(
+                child: Column(
+                  children: [
 
-                /// BACK BUTTON
+                    Row(
+                      children: [
 
-                Positioned(
-                  top: 50,
-                  left: 15,
+                        IconButton(
+                          onPressed: () {
+                            Navigator.pop(
+                              context,
+                            );
+                          },
 
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color:
+                                Colors.white,
+                          ),
+                        ),
 
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Colors.white,
-                      ),
+                        const Expanded(
+                          child: Text(
+                            "Edit Profile",
 
-                      onPressed: () =>
-                          Navigator.pop(
-                              context),
-                    ),
-                  ),
-                ),
+                            textAlign:
+                                TextAlign
+                                    .center,
 
-                /// TITLE
-
-                const Positioned(
-                  top: 58,
-                  left: 0,
-                  right: 0,
-
-                  child: Center(
-                    child: Text(
-                      "Edit Profile",
-
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-
-                /// ================= PROFILE =================
-
-                Positioned(
-                  bottom: -85,
-                  left: 0,
-                  right: 0,
-
-                  child: Column(
-                    children: [
-                      Stack(
-                        children: [
-                          Container(
-                            padding:
-                                const EdgeInsets
-                                    .all(5),
-
-                            decoration:
-                                BoxDecoration(
+                            style:
+                                TextStyle(
                               color:
                                   Colors.white,
-                              shape:
-                                  BoxShape.circle,
-
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors
-                                      .black
-                                      .withValues(alpha: 0.15),
-
-                                  blurRadius:
-                                      20,
-
-                                  offset:
-                                      const Offset(
-                                          0, 10),
-                                )
-                              ],
+                              fontSize:
+                                  22,
+                              fontWeight:
+                                  FontWeight
+                                      .bold,
                             ),
+                          ),
+                        ),
 
-                            child: CircleAvatar(
-                              radius: 60,
+                        const SizedBox(
+                          width: 48,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-                              backgroundColor:
-                                  Colors
-                                      .grey
-                                      .shade200,
+            Transform.translate(
+              offset:
+                  const Offset(0, -70),
 
-                              backgroundImage:
-                                  selectedImage !=
+              child: Column(
+                children: [
+
+                  Stack(
+                    children: [
+
+                      CircleAvatar(
+                        radius: 65,
+
+                        backgroundColor:
+                            Colors.white,
+
+                        child: CircleAvatar(
+                          radius: 60,
+
+                          backgroundColor:
+                              Colors.grey
+                                  .shade200,
+
+                          backgroundImage:
+                              selectedImage !=
+                                      null
+                                  ? FileImage(
+                                      selectedImage!,
+                                    )
+
+                                  : networkImage !=
                                           null
-                                      ? FileImage(
-                                          selectedImage!,
+                                      ? NetworkImage(
+                                          networkImage!,
                                         )
-                                      : isPhotoDeleted
-                                          ? null
-                                          : AssetImage(
-                                                  user
-                                                      .image)
-                                              as ImageProvider,
 
-                              child: isPhotoDeleted
+                                      : null,
+
+                          child:
+                              selectedImage ==
+                                          null &&
+                                      networkImage ==
+                                          null
                                   ? Icon(
                                       Icons.person,
                                       size: 60,
@@ -361,443 +422,227 @@ void showPhotoOptions() {
                                           .shade500,
                                     )
                                   : null,
-                            ),
-                          ),
-
-                          /// CAMERA BUTTON
-
-                          Positioned(
-                            bottom: 5,
-                            right: 5,
-
-                            child: GestureDetector(
-                              onTap:
-                                  showPhotoOptions,
-
-                              child: Container(
-                                padding:
-                                    const EdgeInsets
-                                        .all(10),
-
-                                decoration:
-                                    BoxDecoration(
-                                  gradient:
-                                      const LinearGradient(
-                                    colors: [
-                                      Color(
-                                          0xFFB993D6),
-                                      Color(
-                                          0xFF8CA6DB),
-                                    ],
-                                  ),
-
-                                  shape:
-                                      BoxShape
-                                          .circle,
-
-                                  border:
-                                      Border.all(
-                                    color: Colors
-                                        .white,
-                                    width: 3,
-                                  ),
-
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: primary
-                                          .withValues(alpha: 0.4),
-
-                                      blurRadius:
-                                          10,
-                                    )
-                                  ],
-                                ),
-
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  size: 20,
-                                  color:
-                                      Colors.white,
-                                ),
-                              ),
-                            ),
-                          )
-                        ],
+                        ),
                       ),
 
-                      const SizedBox(height: 4),
+                      Positioned(
+                        bottom: 5,
+                        right: 5,
 
-                      Container(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal: 14,
-                          vertical: 6,
-                        ),
+                        child: GestureDetector(
+                          onTap:
+                              showPhotoOptions,
 
-                        decoration:
-                            BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
+                          child: Container(
+                            padding:
+                                const EdgeInsets
+                                    .all(10),
 
-                          borderRadius:
-                              BorderRadius
-                                  .circular(30),
+                            decoration:
+                                const BoxDecoration(
+                              gradient:
+                                  LinearGradient(
+                                colors: [
+                                  Color(
+                                      0xFFB993D6),
+                                  Color(
+                                      0xFF8CA6DB),
+                                ],
+                              ),
+
+                              shape:
+                                  BoxShape.circle,
+                            ),
+
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color:
+                                  Colors.white,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
 
-            const SizedBox(height: 110),
+                  const SizedBox(height: 25),
 
-            /// ================= FORM =================
-
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal: 20,
-              ),
-
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-                  /// CARD
-
-                  Container(
+                  Padding(
                     padding:
-                        const EdgeInsets.all(
-                            22),
-
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-
-                      borderRadius:
-                          BorderRadius
-                              .circular(30),
-
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-
-                          blurRadius: 25,
-
-                          offset:
-                              const Offset(
-                                  0, 12),
-                        )
-                      ],
+                        const EdgeInsets
+                            .symmetric(
+                      horizontal: 20,
                     ),
 
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
+                    child: Container(
+                      padding:
+                          const EdgeInsets
+                              .all(22),
 
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding:
-                                  const EdgeInsets
-                                      .all(12),
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            Colors.white,
 
-                              decoration:
-                                  BoxDecoration(
-                                gradient:
-                                    LinearGradient(
-                                  colors: [
-                                    primary.withValues(alpha: 0.15),
+                        borderRadius:
+                            BorderRadius
+                                .circular(30),
 
-                                    Colors.blue.withValues(alpha: 0.15),
-                                  ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors
+                                .black
+                                .withValues(
+                                  alpha: 0.05,
                                 ),
 
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                            18),
-                              ),
+                            blurRadius:
+                                25,
+                          ),
+                        ],
+                      ),
 
-                              child: Icon(
+                      child: Column(
+                        children: [
+
+                          _buildInput(
+                            label:
+                                "Full Name",
+                            controller:
+                                nameController,
+                            icon:
                                 Icons.person,
-                                color: primary,
-                              ),
-                            ),
+                          ),
 
-                            const SizedBox(
-                                width: 14),
+                          const SizedBox(
+                            height: 20,
+                          ),
 
-                            const Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                          _buildInput(
+                            label:
+                                "Email",
+                            controller:
+                                emailController,
+                            icon:
+                                Icons.email,
+                          ),
 
-                              children: [
-                                Text(
-                                  "Personal Information",
+                          const SizedBox(
+                            height: 20,
+                          ),
 
-                                  style:
-                                      TextStyle(
-                                    fontSize:
-                                        18,
-
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
-                                  ),
-                                ),
-
-                                SizedBox(
-                                    height: 4),
-
-                                Text(
-                                  "Update your account details",
-
-                                  style:
-                                      TextStyle(
-                                    color: Colors
-                                        .grey,
-
-                                    fontSize:
-                                        12,
-                                  ),
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-
-                        const SizedBox(
-                            height: 30),
-
-                        _buildInput(
-                          label:
-                              "Full Name",
-                          controller:
-                              nameController,
-                          icon: Icons
-                              .person_outline,
-                        ),
-
-                        const SizedBox(
-                            height: 20),
-
-                        _buildInput(
-                          label: "Email",
-                          controller:
-                              emailController,
-                          icon: Icons
-                              .email_outlined,
-                        ),
-
-                        const SizedBox(
-                            height: 20),
-
-                        _buildInput(
-                          label:
-                              "Address",
-                          controller:
-                              addressController,
-                          icon: Icons
-                              .location_on_outlined,
-                          maxLines: 2,
-                        ),
-
-                        const SizedBox(
-                            height: 20),
-
-                        _buildInput(
-                          label: "About",
-                          controller:
-                              aboutController,
-                          icon: Icons
-                              .info_outline,
-                          maxLines: 4,
-                        ),
-                      ],
+                          _buildInput(
+                            label:
+                                "About",
+                            controller:
+                                aboutController,
+                            icon:
+                                Icons.info,
+                            maxLines: 4,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 25),
 
-                  /// ================= SAVE BUTTON =================
+                  Padding(
+                    padding:
+                        const EdgeInsets
+                            .symmetric(
+                      horizontal: 20,
+                    ),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 60,
 
-                    child: ElevatedButton(
-                      style:
-                          ElevatedButton
-                              .styleFrom(
-                        padding:
-                            EdgeInsets.zero,
+                      child: ElevatedButton(
+                        onPressed:
+                            saveProfile,
 
-                        elevation: 10,
+                        style:
+                            ElevatedButton
+                                .styleFrom(
+                          padding:
+                              EdgeInsets.zero,
 
-                        shadowColor: primary.withValues(alpha:0.4),
-
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                                      24),
-                        ),
-                      ),
-
-                      onPressed: () {
-                        DummyData.user =
-                            DummyData.user
-                                .copyWith(
-                          name:
-                              nameController
-                                  .text,
-
-                          email:
-                              emailController
-                                  .text,
-
-                          address:
-                              addressController
-                                  .text,
-
-                          bio:
-                              aboutController
-                                  .text,
-                        );
-
-                        ScaffoldMessenger.of(
-                                context)
-                            .showSnackBar(
-                          SnackBar(
-                            backgroundColor:
-                                primary,
-
-                            behavior:
-                                SnackBarBehavior
-                                    .floating,
-
-                            shape:
-                                RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          18),
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(
+                              24,
                             ),
+                          ),
+                        ),
 
-                            margin:
-                                const EdgeInsets
-                                    .all(16),
-
-                            content: const Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle,
-                                  color:
-                                      Colors
-                                          .white,
-                                ),
-
-                                SizedBox(
-                                    width: 10),
-
-                                Text(
-                                  "Profile updated successfully ✨",
-
-                                  style:
-                                      TextStyle(
-                                    color: Colors
-                                        .white,
-
-                                    fontWeight:
-                                        FontWeight
-                                            .w600,
-                                  ),
-                                ),
+                        child: Ink(
+                          decoration:
+                              BoxDecoration(
+                            gradient:
+                                const LinearGradient(
+                              colors: [
+                                Color(
+                                    0xFFB993D6),
+                                Color(
+                                    0xFF8CA6DB),
                               ],
                             ),
-                          ),
-                        );
 
-                        Navigator.pop(
-                          context,
-                        );
-                      },
-
-                      child: Ink(
-                        decoration:
-                            BoxDecoration(
-                          gradient:
-                              const LinearGradient(
-                            colors: [
-                              Color(
-                                  0xFFB993D6),
-                              Color(
-                                  0xFF8CA6DB),
-                            ],
+                            borderRadius:
+                                BorderRadius
+                                    .circular(
+                              24,
+                            ),
                           ),
 
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                                      24),
-                        ),
+                          child:
+                              const Center(
+                            child: Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment
+                                      .center,
 
-                        child: const Center(
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment
-                                    .center,
+                              children: [
 
-                            children: [
-                              Icon(
-                                Icons.save_rounded,
-                                color: Colors
-                                    .white,
-                              ),
-
-                              SizedBox(
-                                  width: 10),
-
-                              Text(
-                                "Save Changes",
-
-                                style:
-                                    TextStyle(
-                                  fontSize:
-                                      16,
-
-                                  fontWeight:
-                                      FontWeight
-                                          .bold,
-
+                                Icon(
+                                  Icons.save,
                                   color: Colors
                                       .white,
                                 ),
-                              ),
-                            ],
+
+                                SizedBox(
+                                  width: 10,
+                                ),
+
+                                Text(
+                                  "Save Changes",
+
+                                  style:
+                                      TextStyle(
+                                    color:
+                                        Colors.white,
+                                    fontWeight:
+                                        FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 35),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
-
-  /// ================= INPUT =================
 
   Widget _buildInput({
     required String label,
@@ -806,19 +651,21 @@ void showPhotoOptions() {
     required IconData icon,
     int maxLines = 1,
   }) {
+
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
 
       children: [
+
         Text(
           label,
 
           style: TextStyle(
-            color: Colors.grey.shade700,
+            color:
+                Colors.grey.shade700,
             fontWeight:
                 FontWeight.w700,
-            fontSize: 13,
           ),
         ),
 
@@ -839,52 +686,15 @@ void showPhotoOptions() {
             fillColor:
                 const Color(0xFFF8F9FD),
 
-            hintText: label,
-
-            hintStyle: TextStyle(
-              color: Colors
-                  .grey.shade400,
-            ),
-
-            contentPadding:
-                const EdgeInsets
-                    .symmetric(
-              vertical: 18,
-              horizontal: 15,
-            ),
-
             border:
                 OutlineInputBorder(
               borderRadius:
                   BorderRadius.circular(
-                      20),
+                20,
+              ),
 
               borderSide:
                   BorderSide.none,
-            ),
-
-            enabledBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                      20),
-
-              borderSide: BorderSide(
-                color:
-                    Colors.grey.shade200,
-              ),
-            ),
-
-            focusedBorder:
-                OutlineInputBorder(
-              borderRadius:
-                  BorderRadius.circular(
-                      20),
-
-              borderSide: BorderSide(
-                color: primary,
-                width: 1.5,
-              ),
             ),
           ),
         ),
