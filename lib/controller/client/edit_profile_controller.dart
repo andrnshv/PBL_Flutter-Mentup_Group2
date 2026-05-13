@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../models/clien/edit_profile_model.dart';
+import '../../models/client/edit_profile_model.dart';
 import '../../services/supabase_service.dart';
 
 class EditProfileController {

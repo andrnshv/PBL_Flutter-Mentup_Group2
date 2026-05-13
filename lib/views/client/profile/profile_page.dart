@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../controller/clien/profile_controller.dart';
-import '../../../models/clien/profile_model.dart';
+import '../../../controller/client/profile_controller.dart';
+import '../../../models/client/profile_model.dart';
 import 'edit_profile_page.dart';
 import 'edit_security.dart';
 import 'my_mentors_page.dart';

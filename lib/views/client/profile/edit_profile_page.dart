@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../controller/clien/edit_profile_controller.dart';
-import '../../../models/clien/edit_profile_model.dart';
+import '../../../controller/client/edit_profile_controller.dart';
+import '../../../models/client/edit_profile_model.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
