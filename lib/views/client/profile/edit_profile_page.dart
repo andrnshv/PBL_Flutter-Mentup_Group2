@@ -425,22 +425,6 @@ void showPhotoOptions() {
                         ],
                       ),
 
-                      const SizedBox(
-                          height: 14),
-
-                      Text(
-                        user.username,
-
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.95),
-
-                          fontWeight:
-                              FontWeight.w700,
-
-                          fontSize: 15,
-                        ),
-                      ),
-
                       const SizedBox(height: 4),
 
                       Container(
@@ -458,17 +442,6 @@ void showPhotoOptions() {
                           borderRadius:
                               BorderRadius
                                   .circular(30),
-                        ),
-
-                        child: const Text(
-                          "MentUp User ✨",
-
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight:
-                                FontWeight.w600,
-                            fontSize: 12,
-                          ),
                         ),
                       ),
                     ],

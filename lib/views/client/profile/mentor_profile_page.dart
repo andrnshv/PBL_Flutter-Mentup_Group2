@@ -277,7 +277,7 @@ class MentorProfilePage extends StatelessWidget {
                 children: [
                   _infoItem("Mentoring Sessions ", "20+ "),
                   _infoItem("Price", "Rp ${mentor.price}"),
-                  _infoItem("Distance", "${mentor.distance} km"),
+                  _infoItem("Distance", "${mentor.dom} km"),
                 ],
               ),
             ),

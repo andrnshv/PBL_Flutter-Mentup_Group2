@@ -577,13 +577,13 @@ class _HistoryPageState extends State<HistoryPage> {
         username:
             data["name"].toLowerCase(),
         category: data["role"],
-        education: data["education"],
+        education: data["education"] ?? "-",
         image: data["image"],
         rating:
             (data["rating"] ?? 5)
                 .toDouble(),
         price: 0,
-        distance: 0,
+        dom: data["dom"],
       ),
     );
 

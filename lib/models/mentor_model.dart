@@ -9,7 +9,7 @@ class MentorModel extends Equatable {
   final String image;
   final double rating;
   final int price;
-  final double distance;
+  final String dom;
   final String? phone;
 
   const MentorModel({
@@ -21,7 +21,7 @@ class MentorModel extends Equatable {
     required this.image,
     required this.rating,
     required this.price,
-    required this.distance,
+    required this.dom,
     this.phone,
   });
 
@@ -34,7 +34,7 @@ class MentorModel extends Equatable {
     String? image,
     double? rating,
     int? price,
-    double? distance,
+    String? dom,
     String? phone,
   }) {
     return MentorModel(
@@ -46,7 +46,7 @@ class MentorModel extends Equatable {
       image: image ?? this.image,
       rating: rating ?? this.rating,
       price: price ?? this.price,
-      distance: distance ?? this.distance,
+      dom: dom ?? this.dom,
       phone: phone ?? this.phone,
     );
   }
@@ -63,9 +63,7 @@ class MentorModel extends Equatable {
           ? (json['rating'] as int).toDouble()
           : (json['rating'] ?? 0.0),
       price: json['price'] ?? 0,
-      distance: (json['distance'] is int)
-          ? (json['distance'] as int).toDouble()
-          : (json['distance'] ?? 0.0),
+      dom: json['dom'] ?? '',
       phone: json['phone'],
     );
   }
@@ -80,12 +78,12 @@ class MentorModel extends Equatable {
       'image': image,
       'rating': rating,
       'price': price,
-      'distance': distance,
+      'dom': dom,
       'phone': phone,
     };
   }
 
   @override
   List<Object?> get props =>
-      [id, name, username, category, education, image, rating, price, distance, phone];
+      [id, name, username, category, education, image, rating, price, dom, phone];
 }

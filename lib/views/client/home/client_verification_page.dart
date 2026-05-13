@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cherry_toast/cherry_toast.dart';
 import 'package:cherry_toast/resources/arrays.dart';
+import '../data/dummy_data.dart';
 
 class ClientVerificationPage extends StatefulWidget {
   const ClientVerificationPage({super.key});
 
   @override
-  State<ClientVerificationPage> createState() =>
-      _ClientVerificationPageState();
+  State<ClientVerificationPage> createState() => _ClientVerificationPageState();
 }
 
-class _ClientVerificationPageState
-    extends State<ClientVerificationPage> {
+class _ClientVerificationPageState extends State<ClientVerificationPage> {
   final Color primaryColor = const Color(0xFF5B62CC);
 
   bool isVerified = false;
@@ -20,8 +19,7 @@ class _ClientVerificationPageState
   @override
   Widget build(BuildContext context) {
     final args =
-        ModalRoute.of(context)!.settings.arguments
-            as Map<String, dynamic>?;
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
 
     final String mentorName = args?['mentorName'] ?? "Unknown Mentor";
     final String category = args?['category'] ?? "Unknown";
@@ -54,8 +52,6 @@ class _ClientVerificationPageState
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-
-            /// CARD
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -74,14 +70,11 @@ class _ClientVerificationPageState
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
-                  /// HEADER
                   Row(
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor:
-                            primaryColor.withOpacity(0.1),
+                        backgroundColor: primaryColor.withOpacity(0.1),
                         child: Text(
                           mentorName[0],
                           style: TextStyle(
@@ -96,8 +89,7 @@ class _ClientVerificationPageState
 
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               mentorName,
@@ -136,7 +128,6 @@ class _ClientVerificationPageState
 
                   const SizedBox(height: 24),
 
-                  /// SESSION PHOTO
                   const Text(
                     "Session Proof",
                     style: TextStyle(
@@ -154,14 +145,15 @@ class _ClientVerificationPageState
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       image: DecorationImage(
-                        image: AssetImage(image), fit: BoxFit.cover,
+                        image: AssetImage(image),
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
 
                   const SizedBox(height: 24),
 
-                  /// SUMMARY
+                  /// ================= SUMMARY =================
                   const Text(
                     "Session Summary",
                     style: TextStyle(
@@ -192,12 +184,9 @@ class _ClientVerificationPageState
 
                   const SizedBox(height: 30),
 
-                  /// BUTTONS
                   if (!isVerified && !isRejected)
                     Row(
                       children: [
-
-                        /// REJECT
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
@@ -206,28 +195,21 @@ class _ClientVerificationPageState
                               });
 
                               CherryToast.error(
-                                title: const Text(
-                                  "Session Rejected",
-                                ),
+                                title: const Text("Session Rejected"),
                                 description: const Text(
                                   "Mentor will need to resubmit proof.",
                                 ),
-                                animationType:
-                                    AnimationType.fromTop,
+                                animationType: AnimationType.fromTop,
                                 toastPosition: Position.top,
                               ).show(context);
                             },
 
                             style: OutlinedButton.styleFrom(
-                              minimumSize:
-                                  const Size.fromHeight(52),
+                              minimumSize: const Size.fromHeight(52),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(14),
                               ),
-                              side: const BorderSide(
-                                color: Colors.redAccent,
-                              ),
+                              side: const BorderSide(color: Colors.redAccent),
                             ),
 
                             child: const Text(
@@ -242,7 +224,7 @@ class _ClientVerificationPageState
 
                         const SizedBox(width: 14),
 
-                        /// VERIFY
+                        /// ================= VERIFY =================
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
@@ -250,26 +232,38 @@ class _ClientVerificationPageState
                                 isVerified = true;
                               });
 
+                              /// ================= MASUKKAN KE HISTORY =================
+                              DummyData.historyMentors.add({
+                                "name": mentorName,
+                                "role": category,
+                                "image": image,
+                                "date": date,
+                                "dateObject": DateTime.now(),
+                                "status": "Done",
+
+                                "rating": 0,
+                                "review": null,
+                                "isReviewed": false,
+                              });
+
                               CherryToast.success(
-                                title: const Text(
-                                  "Session Verified",
-                                ),
+                                title: const Text("Session Verified"),
+
                                 description: const Text(
                                   "Thank you for confirming the session.",
                                 ),
-                                animationType:
-                                    AnimationType.fromTop,
+
+                                animationType: AnimationType.fromTop,
+
                                 toastPosition: Position.top,
                               ).show(context);
                             },
 
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryColor,
-                              minimumSize:
-                                  const Size.fromHeight(52),
+                              minimumSize: const Size.fromHeight(52),
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               elevation: 0,
                             ),
@@ -297,19 +291,14 @@ class _ClientVerificationPageState
                       ),
                       child: const Row(
                         children: [
-                          Icon(
-                            Icons.verified_rounded,
-                            color: Colors.green,
-                          ),
+                          Icon(Icons.verified_rounded, color: Colors.green),
 
                           SizedBox(width: 10),
 
                           Expanded(
                             child: Text(
                               "You have verified this mentoring session.",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -327,19 +316,14 @@ class _ClientVerificationPageState
                       ),
                       child: const Row(
                         children: [
-                          Icon(
-                            Icons.cancel_rounded,
-                            color: Colors.redAccent,
-                          ),
+                          Icon(Icons.cancel_rounded, color: Colors.redAccent),
 
                           SizedBox(width: 10),
 
                           Expanded(
                             child: Text(
                               "You rejected this session proof.",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
