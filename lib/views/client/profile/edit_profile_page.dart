@@ -26,8 +26,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   bool isPhotoDeleted = false;
   bool isLoading = true;
-
-  String? userEmail; // tetap dipakai untuk FK internal
+  String? userEmail;
 
   @override
   void initState() {
@@ -36,8 +35,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> loadProfile() async {
-    debugPrint("=== LOAD PROFILE ===");
-
     final EditProfileModel? profile = await _controller.getProfile();
 
     if (profile != null) {
@@ -46,10 +43,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       bioController.text = profile.bio;
       networkImage = profile.fotoUrl;
       userEmail = profile.email;
-
-      debugPrint("PROFILE LOADED: ${profile.namaLengkap}");
-    } else {
-      debugPrint("FAILED LOAD PROFILE");
     }
 
     setState(() => isLoading = false);
@@ -125,16 +118,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Future<void> saveProfile() async {
     setState(() => isLoading = true);
 
-    debugPrint("=== SAVE PROFILE ===");
-    debugPrint("Name: ${nameController.text}");
-    debugPrint("Address: ${addressController.text}");
-    debugPrint("Bio: ${bioController.text}");
-
     String? imageUrl = networkImage;
 
     if (selectedImage != null) {
       imageUrl = await _controller.uploadImage(selectedImage!);
-      debugPrint("IMAGE UPLOADED: $imageUrl");
     }
 
     final success = await _controller.updateProfile(
@@ -149,17 +136,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: primary,
-          content: const Text("Profile updated successfully"),
-        ),
+        const SnackBar(content: Text("Profile updated")),
       );
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to update profile"),
-        ),
+        const SnackBar(content: Text("Update failed")),
       );
     }
   }
@@ -177,7 +159,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // HEADER
+            // HEADER (UNCHANGED STYLE)
             Container(
               height: 240,
               decoration: const BoxDecoration(
@@ -189,28 +171,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
               ),
               child: SafeArea(
-                child: Column(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            "Edit Profile",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 48),
-                      ],
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
+                    const Expanded(
+                      child: Text(
+                        "Edit Profile",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
@@ -220,24 +198,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
               offset: const Offset(0, -60),
               child: Column(
                 children: [
-                  // PROFILE IMAGE
+                  // PROFILE IMAGE (FIXED SAFE IMAGE HANDLING)
                   Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.white,
-                        child: CircleAvatar(
-                          radius: 56,
-                          backgroundImage: selectedImage != null
-                              ? FileImage(selectedImage!)
-                              : (networkImage != null
-                                  ? NetworkImage(networkImage!)
-                                  : null) as ImageProvider?,
-                          child: (selectedImage == null && networkImage == null)
-                              ? Icon(Icons.person, size: 50, color: Colors.grey)
-                              : null,
-                        ),
-                      ),
+CircleAvatar(
+  radius: 60,
+  backgroundColor: Colors.white,
+  child: CircleAvatar(
+    radius: 56,
+    backgroundColor: Colors.grey.shade200,
+
+    backgroundImage: selectedImage != null
+        ? FileImage(selectedImage!)
+        : (networkImage != null && networkImage!.isNotEmpty)
+            ? NetworkImage(networkImage!) as ImageProvider
+            : null,
+
+    child: (selectedImage == null &&
+            (networkImage == null || networkImage!.isEmpty))
+        ? const Icon(
+            Icons.person,
+            size: 50,
+            color: Colors.grey,
+          )
+        : null,
+  ),
+),
                       Positioned(
                         bottom: 0,
                         right: 0,
@@ -251,8 +237,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                                 colors: [Color(0xFFB993D6), Color(0xFF8CA6DB)],
                               ),
                             ),
-                            child: const Icon(Icons.camera_alt,
-                                color: Colors.white, size: 18),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 18,
+                            ),
                           ),
                         ),
                       ),
@@ -261,7 +250,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                   const SizedBox(height: 20),
 
-                  // FORM CARD
+                  // FORM CARD (UNCHANGED STRUCTURE)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -284,14 +273,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             icon: Icons.person,
                           ),
                           const SizedBox(height: 15),
-
                           _buildInput(
                             label: "Alamat",
                             controller: addressController,
                             icon: Icons.location_on,
                           ),
                           const SizedBox(height: 15),
-
                           _buildInput(
                             label: "About",
                             controller: bioController,
@@ -305,7 +292,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                   const SizedBox(height: 25),
 
-                  // SAVE BUTTON
+                  // SAVE BUTTON (UNCHANGED STYLE)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: SizedBox(

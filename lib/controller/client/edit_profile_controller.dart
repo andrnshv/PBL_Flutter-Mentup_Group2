@@ -36,26 +36,40 @@ class EditProfileController {
     }
   }
 
+  // =========================
+  // UPLOAD IMAGE
+  // =========================
   Future<String?> uploadImage(File imageFile) async {
     try {
       final user = SupabaseService.currentUser;
       if (user == null) return null;
 
-      final fileName =
-          '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      const bucketName = 'foto-profil';
 
-      final path = '${user.id}/$fileName';
+      final fileName =
+          'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      final filePath = '${user.id}/$fileName';
+
+      final bytes = await imageFile.readAsBytes();
 
       await SupabaseService.storage
-          .from('foto-profil')
-          .upload(path, imageFile);
+          .from(bucketName)
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(
+              upsert: true,
+              contentType: 'image/jpeg',
+            ),
+          );
 
       return SupabaseService.storage
-          .from('foto-profil')
-          .getPublicUrl(path);
+          .from(bucketName)
+          .getPublicUrl(filePath);
 
     } catch (e) {
-      print("UPLOAD ERROR: $e");
+      print("UPLOAD IMAGE ERROR: $e");
       return null;
     }
   }
@@ -71,7 +85,7 @@ class EditProfileController {
       final user = SupabaseService.currentUser;
       if (user == null) return false;
 
-      // 1. update appuser
+      // UPDATE appuser
       await SupabaseService.client
           .from('appuser')
           .update({
@@ -79,7 +93,7 @@ class EditProfileController {
           })
           .eq('id', user.id);
 
-      // 2. upsert bio_profil (WAJIB onConflict)
+      // UPSERT bio_profil
       await SupabaseService.client
           .from('bio_profil')
           .upsert({
@@ -93,7 +107,7 @@ class EditProfileController {
       return true;
 
     } catch (e) {
-      print("UPDATE ERROR DETAIL: $e");
+      print("UPDATE PROFILE ERROR: $e");
       return false;
     }
   }
