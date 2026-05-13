@@ -10,35 +10,62 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController    = TextEditingController();
+  final _identifierController =
+      TextEditingController(); // ← UBAH: dari _emailController
   final _passwordController = TextEditingController();
 
-  bool    _rememberMe   = false;
-  bool    _isLoading    = false;
+  bool _rememberMe = false;
+  bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose(); // ← UBAH
     _passwordController.dispose();
     super.dispose();
   }
 
+  // ← TAMBAH: deteksi email atau username
+  bool _isEmail(String input) => input.contains('@');
+
+  // ← TAMBAH: resolve username ke email jika perlu
+  Future<String?> _resolveEmail(String identifier) async {
+    if (_isEmail(identifier)) return identifier;
+
+    final result = await SupabaseService.db
+        .from('appuser')
+        .select('email')
+        .eq('username', identifier)
+        .maybeSingle();
+
+    return result?['email'] as String?;
+  }
+
   Future<void> _login() async {
-    if (_emailController.text.trim().isEmpty ||
+    if (_identifierController.text.trim().isEmpty || // ← UBAH
         _passwordController.text.isEmpty) {
-      setState(() => _errorMessage = 'Email dan password wajib diisi.');
+      setState(
+        () => _errorMessage = 'Email/username dan password wajib diisi.',
+      ); // ← UBAH pesan
       return;
     }
 
     setState(() {
-      _isLoading    = true;
+      _isLoading = true;
       _errorMessage = null;
     });
 
     try {
+      // ← TAMBAH: resolve identifier ke email
+      final email = await _resolveEmail(_identifierController.text.trim());
+
+      if (email == null) {
+        setState(() => _errorMessage = 'Username tidak ditemukan.');
+        return;
+      }
+
       final response = await SupabaseService.auth.signInWithPassword(
-        email: _emailController.text.trim(),
+        email: email, // ← UBAH: dari _emailController.text.trim()
         password: _passwordController.text,
       );
 
@@ -71,18 +98,26 @@ class _LoginPageState extends State<LoginPage> {
         if (cvData == null) {
           // Belum upload CV
           Navigator.pushNamedAndRemoveUntil(
-              context, '/mentor_cv', (_) => false);
+            context,
+            '/mentor_cv',
+            (_) => false,
+          );
         } else if (cvData['status'] == 'approved') {
           Navigator.pushNamedAndRemoveUntil(
-              context, '/mentor_landing', (_) => false);
+            context,
+            '/mentor_landing',
+            (_) => false,
+          );
         } else {
           // Status pending atau rejected
           Navigator.pushNamedAndRemoveUntil(
-              context, '/mentor_cv', (_) => false);
+            context,
+            '/mentor_cv',
+            (_) => false,
+          );
         }
       } else {
-        Navigator.pushNamedAndRemoveUntil(
-            context, '/landing', (_) => false);
+        Navigator.pushNamedAndRemoveUntil(context, '/landing', (_) => false);
       }
     } on AuthException catch (e) {
       setState(() => _errorMessage = e.message);
@@ -102,11 +137,7 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFCDB4DB),
-              Color(0xFFF5B3CE),
-              Color(0xFFA7C7E7),
-            ],
+            colors: [Color(0xFFCDB4DB), Color(0xFFF5B3CE), Color(0xFFA7C7E7)],
           ),
         ),
         child: Column(
@@ -161,9 +192,10 @@ class _LoginPageState extends State<LoginPage> {
                         ),
 
                       _buildTextField(
-                        "Email",
-                        Icons.email_outlined,
-                        controller: _emailController,
+                        "Email or Username", // ← UBAH: dari "Email"
+                        Icons
+                            .person_outline, // ← UBAH: dari Icons.email_outlined
+                        controller: _identifierController, // ← UBAH
                       ),
                       const SizedBox(height: 20),
                       _buildTextField(
