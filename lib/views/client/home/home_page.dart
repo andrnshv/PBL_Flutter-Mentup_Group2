@@ -20,9 +20,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<HomePage> {
-  int _selectedIndex = 0;
-  String _namaUser = '';
-  bool _loadingUser = true;
+  int     _selectedIndex = 0;
+  String  _namaUser      = '';
+  bool    _loadingUser   = true;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
@@ -54,9 +54,9 @@ class _LandingPageState extends State<HomePage> {
 
       if (mounted) {
         setState(() {
-          _namaUser = data['nama_lengkap'] ?? '';
+          _namaUser    = data['nama_lengkap'] ?? '';
           _loadingUser = false;
-          _pages[0] = _homeContent(); // rebuild dengan nama baru
+          _pages[0]    = _homeContent(); // rebuild dengan nama baru
         });
       }
     } catch (_) {
