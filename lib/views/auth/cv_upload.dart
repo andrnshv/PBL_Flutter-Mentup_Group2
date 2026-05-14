@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../controller/auth/cv_upload_controller.dart';
 import '../../services/supabase_service.dart';
 import '../../routes/app_routes.dart';
 
@@ -14,15 +17,20 @@ class MentorCvUploadPage extends StatefulWidget {
 }
 
 class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
+  final CvUploadController _controller = CvUploadController();
+
   bool _isSubmitted = false;
   bool _isLoading = false;
   bool _isCheckingStatus = true;
+
   String? _errorMessage;
   String? _selectedFileName;
+
   File? _selectedFile;
   Uint8List? _selectedFileBytes;
 
-  bool get _fileReady => kIsWeb ? _selectedFileBytes != null : _selectedFile != null;
+  bool get _fileReady =>
+      kIsWeb ? _selectedFileBytes != null : _selectedFile != null;
 
   @override
   void initState() {
@@ -30,155 +38,140 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
     _checkCvStatus();
   }
 
+  /// =========================
+  /// CHECK STATUS CV
+  /// =========================
   Future<void> _checkCvStatus() async {
-    try {
-      final user = SupabaseService.currentUser;
-      if (user == null) {
-        setState(() => _isCheckingStatus = false);
-        return;
-      }
+    final user = SupabaseService.currentUser;
 
-      final cvData = await SupabaseService.db
-          .from('mentor_cv')
-          .select('status')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      if (cvData != null) {
-        setState(() => _isSubmitted = true);
-      }
-    } catch (_) {
-      // Silently fail checking status
-    } finally {
+    if (user == null) {
       setState(() => _isCheckingStatus = false);
+      return;
     }
+
+    final result = await _controller.checkCvStatus(user.id);
+
+    setState(() {
+      _isSubmitted = result;
+      _isCheckingStatus = false;
+    });
+
+    debugPrint("CV STATUS: $_isSubmitted");
   }
 
+  /// =========================
+  /// PICK FILE PDF
+  /// =========================
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
-        allowMultiple: false,
-        withData: kIsWeb, // Wajib true untuk Web
+        withData: kIsWeb,
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.single;
-        
-        // Validasi ekstensi tambahan (untuk jaga-jaga)
-        if (file.extension?.toLowerCase() != 'pdf') {
-          setState(() => _errorMessage = 'Hanya file PDF yang diperbolehkan.');
-          return;
-        }
+      if (result == null) return;
 
-        setState(() {
-          _selectedFileName = file.name;
-          _errorMessage = null;
+      final file = result.files.single;
 
-          if (kIsWeb) {
-            _selectedFileBytes = file.bytes;
-            _selectedFile = null;
-          } else {
-            if (file.path != null) {
-              _selectedFile = File(file.path!);
-              _selectedFileBytes = null;
-            }
+      setState(() {
+        _selectedFileName = file.name;
+        _errorMessage = null;
+
+        if (kIsWeb) {
+          _selectedFileBytes = file.bytes;
+          _selectedFile = null;
+        } else {
+          if (file.path != null) {
+            _selectedFile = File(file.path!);
+            _selectedFileBytes = null;
           }
-        });
-      }
+        }
+      });
+
+      debugPrint("FILE SELECTED: ${file.name}");
     } catch (e) {
-      setState(() => _errorMessage = 'Gagal membuka file picker: $e');
+      setState(() => _errorMessage = "File picker error: $e");
     }
   }
 
+  /// =========================
+  /// UPLOAD CV FLOW
+  /// =========================
   Future<void> _uploadCV() async {
+    final user = SupabaseService.currentUser;
+
+    if (user == null) {
+      setState(() => _errorMessage = "User tidak ditemukan");
+      return;
+    }
+
     if (!_fileReady) {
-      setState(() => _errorMessage = 'Pilih file PDF terlebih dahulu.');
+      setState(() => _errorMessage = "Pilih file PDF terlebih dahulu");
       return;
     }
 
-    // --- 1. VALIDASI UKURAN FILE (MAX 2MB) ---
-    const int maxFileSize = 2 * 1024 * 1024; // 2MB dalam bytes
-    int? fileSize;
-
-    if (kIsWeb) {
-      fileSize = _selectedFileBytes?.length;
-    } else {
-      fileSize = await _selectedFile?.length();
-    }
-
-    if (fileSize != null && fileSize > maxFileSize) {
-      setState(() => _errorMessage = 'Ukuran file terlalu besar. Maksimal 2MB.');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final user = SupabaseService.currentUser;
-      if (user == null) {
-        setState(() => _errorMessage = 'Sesi tidak ditemukan. Silakan login ulang.');
+      debugPrint("=== UPLOAD START ===");
+
+      /// 1. GET USER DATA
+      final userData = await _controller.getUserData(user.id);
+
+      if (userData == null) {
+        setState(() => _errorMessage = "Gagal ambil data user");
         return;
       }
 
-      // --- 2. PREPARASI STORAGE ---
-      final String bucketName = 'mentor_cv';
-      // Path menggunakan User ID agar sesuai dengan RLS Policy Storage
-      final String fileName = 'cv_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final String filePath = '${user.id}/$fileName';
+      debugPrint("USER DATA OK: $userData");
 
-      // --- 3. UPLOAD KE SUPABASE STORAGE ---
-      if (kIsWeb) {
-        await SupabaseService.storage.from(bucketName).uploadBinary(
-              filePath,
-              _selectedFileBytes!,
-              fileOptions: const FileOptions(upsert: true),
-            );
-      } else {
-        await SupabaseService.storage.from(bucketName).upload(
-              filePath,
-              _selectedFile!,
-              fileOptions: const FileOptions(upsert: true),
-            );
+      /// 2. UPLOAD FILE TO STORAGE
+      final cvUrl = await _controller.uploadCvFile(
+        userId: user.id,
+        file: _selectedFile,
+        bytes: _selectedFileBytes,
+      );
+
+      if (cvUrl == null) {
+        setState(() => _errorMessage = "Upload file gagal");
+        return;
       }
 
-      // Ambil Public URL untuk disimpan di database
-      final cvUrl = SupabaseService.storage.from(bucketName).getPublicUrl(filePath);
+      debugPrint("UPLOAD SUCCESS URL: $cvUrl");
 
-      // --- 4. AMBIL DATA DARI TABEL APPUSER ---
-      final userData = await SupabaseService.db
-          .from('appuser')
-          .select('nama_lengkap, email')
-          .eq('id', user.id)
-          .single();
+      /// 3. SAVE TO DATABASE
+      final success = await _controller.submitCv(
+        userId: user.id,
+        cvUrl: cvUrl,
+        userData: userData,
+      );
 
-      // --- 5. UPSERT KE TABEL MENTOR_CV ---
-      await SupabaseService.db.from('mentor_cv').upsert({
-        'user_id': user.id,
-        'nama_lengkap': userData['nama_lengkap'],
-        'email': userData['email'],
-        'cv_url': cvUrl, // Link file asli disimpan di sini
-        'status': 'pending',
-        'created_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'user_id');
+      debugPrint("DB SAVE RESULT: $success");
 
-      setState(() => _isSubmitted = true);
+      if (success) {
+        setState(() => _isSubmitted = true);
 
-    } on StorageException catch (e) {
-      setState(() => _errorMessage = 'Gagal upload file: ${e.message}');
-    } on PostgrestException catch (e) {
-      setState(() => _errorMessage = 'Database Error: ${e.message}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("CV berhasil diupload"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() => _errorMessage = "Gagal simpan ke database");
+      }
     } catch (e) {
-      setState(() => _errorMessage = 'Terjadi kesalahan: $e');
+      setState(() => _errorMessage = "Error: $e");
+      debugPrint("UPLOAD ERROR: $e");
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
+  /// =========================
+  /// UI
+  /// =========================
   @override
   Widget build(BuildContext context) {
     if (_isCheckingStatus) {
@@ -195,32 +188,40 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFCDB4DB), Color(0xFFF5B3CE), Color(0xFFA7C7E7)],
+            colors: [
+              Color(0xFFCDB4DB),
+              Color(0xFFF5B3CE),
+              Color(0xFFA7C7E7),
+            ],
           ),
         ),
         child: Column(
           children: [
             const SizedBox(height: 60),
-            if (!_isSubmitted) _buildBackButton(),
+
+            if (!_isSubmitted)
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppRoutes.welcome,
+                  (_) => false,
+                ),
+              ),
+
             const Spacer(),
+
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(80),
-                  topRight: Radius.circular(80),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(80),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, -2),
-                  ),
-                ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -228,81 +229,58 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                       const Text(
                         "Hello Mentor!",
                         style: TextStyle(
-                          fontFamily: 'Jost',
                           fontSize: 33,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
                       const Text(
-                        "Submit your CV here before officially\nbecoming a mentor on our platform.",
+                        "Submit your CV here before officially\nbecoming a mentor.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Jost',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
                       ),
-                      const SizedBox(height: 30),
+
+                      const SizedBox(height: 25),
 
                       if (_errorMessage != null)
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 15),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: Text(
-                            _errorMessage!,
-                            style: TextStyle(color: Colors.red.shade700),
-                            textAlign: TextAlign.center,
-                          ),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.red),
                         ),
 
+                      const SizedBox(height: 10),
+
+                      /// FILE UPLOAD BOX
                       GestureDetector(
-                        onTap: _isLoading ? null : _pickFile,
+                        onTap: _pickFile,
                         child: Container(
-                          width: double.infinity,
                           height: 200,
+                          width: double.infinity,
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: _fileReady ? Colors.green : const Color(0xFF333333),
-                              width: 2,
+                              color: _fileReady
+                                  ? Colors.green
+                                  : Colors.black,
                             ),
+                            borderRadius: BorderRadius.circular(15),
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                _fileReady ? Icons.check_circle_outline : Icons.cloud_upload_outlined,
+                                _fileReady
+                                    ? Icons.check_circle
+                                    : Icons.cloud_upload,
                                 size: 50,
-                                color: _fileReady ? Colors.green : Colors.grey.shade600,
+                                color: _fileReady
+                                    ? Colors.green
+                                    : Colors.grey,
                               ),
-                              const SizedBox(height: 15),
+                              const SizedBox(height: 10),
                               Text(
-                                _fileReady ? _selectedFileName! : "Tap here to upload your resume.",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontFamily: 'Jost',
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w300,
-                                  color: _fileReady ? Colors.green : Colors.black,
-                                ),
-                              ),
-                              const SizedBox(height: 5),
-                              const Text(
-                                "Max size: 2MB (PDF format)",
-                                style: TextStyle(
-                                  fontFamily: 'Jost',
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
+                                _selectedFileName ??
+                                    "Tap to upload PDF CV",
                               ),
                             ],
                           ),
@@ -310,48 +288,24 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
                       ),
 
                       const SizedBox(height: 20),
-                      const Text(
-                        "Please wait, your account will be confirmed\nwithin 2x24 hours. Thank you for signing up!",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Jost',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w300,
-                        ),
+
+                      ElevatedButton(
+                        onPressed:
+                            _isLoading ? null : _uploadCV,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text("Submit CV"),
                       ),
-                      const SizedBox(height: 30),
-                      _buildUploadButton(),
-                      const SizedBox(height: 20),
-                      _buildLoginLink(),
                     ] else ...[
                       const Icon(
-                        Icons.access_time_filled,
-                        color: Color(0xFFA7C7E7),
+                        Icons.check_circle,
                         size: 90,
+                        color: Colors.green,
                       ),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "Please Wait...",
-                        style: TextStyle(
-                          fontFamily: 'Jost',
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      const Text(
-                        "Your CV has been successfully uploaded.\nOur admin is currently reviewing your profile.\nPlease check here periodically within the next 2x24 hours.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Jost',
-                          fontSize: 16,
-                          color: Colors.black87,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      _buildBackToLoginButton(),
                       const SizedBox(height: 10),
+                      const Text("CV Successfully Uploaded"),
                     ],
                   ],
                 ),
@@ -360,126 +314,6 @@ class _MentorCvUploadPageState extends State<MentorCvUploadPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildBackButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: IconButton(
-          icon: const Icon(
-            Icons.arrow_circle_left_outlined,
-            color: Colors.black,
-            size: 40,
-          ),
-          onPressed: () => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.welcome,
-            (_) => false,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUploadButton() {
-    return Container(
-      width: double.infinity,
-      height: 55,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF5B3CE), Color(0xFFA7C7E7)],
-        ),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 4)),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _uploadCV,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-        ),
-        child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text(
-                "Submit CV",
-                style: TextStyle(
-                  fontFamily: 'Jost',
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildBackToLoginButton() {
-    return Container(
-      width: double.infinity,
-      height: 55,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFA7C7E7), width: 2),
-      ),
-      child: ElevatedButton(
-        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.login,
-          (_) => false,
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
-          ),
-        ),
-        child: const Text(
-          "Back to Login",
-          style: TextStyle(
-            fontFamily: 'Jost',
-            color: Color(0xFFA7C7E7),
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoginLink() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "Already have an account? ",
-          style: TextStyle(fontFamily: 'Jost', fontSize: 16),
-        ),
-        GestureDetector(
-          onTap: () => Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.login,
-            (_) => false,
-          ),
-          child: const Text(
-            "Log In",
-            style: TextStyle(
-              fontFamily: 'Jost',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
