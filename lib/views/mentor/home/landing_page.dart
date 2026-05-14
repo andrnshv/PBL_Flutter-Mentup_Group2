@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../routes/app_routes.dart';
 
 class MentorLandingPage extends StatefulWidget {
   const MentorLandingPage({super.key});
@@ -202,6 +203,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
               const SizedBox(height: 35),
 
               // --- 4. RECENT REVIEWS ---
+              // --- HEADER RECENT REVIEWS ---
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -213,13 +215,19 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const Text(
-                    "See All",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5B62CC),
+                  GestureDetector(
+                    onTap: () {
+                      // Navigasi ke halaman review (Menampilkan SEMUA)
+                      Navigator.pushNamed(context, AppRoutes.clientReviews);
+                    },
+                    child: const Text(
+                      "See All",
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        color: Color(0xFF5B62CC),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -234,20 +242,31 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                   clipBehavior: Clip.none,
                   children: [
                     _buildReviewCard(
-                      name: "Budi Santoso",
-                      initial: "B",
-                      rating: 5,
-                      color: const Color(0xFFA7C7E7),
-                      text:
-                          "Kak Lovie penjelasannya mudah banget dipahami! Akhirnya aku ngerti konsep dasar UI/UX. Thank you kak!",
-                    ),
-                    _buildReviewCard(
-                      name: "Aiska",
+                      name: "Aiska Rahma",
                       initial: "A",
                       rating: 5,
                       color: const Color(0xFFF5B3CE),
                       text:
-                          "Sangat sabar ngajarin aku yang masih pemula di dunia programming. Recommended mentor deh!",
+                          "Penjelasannya sangat mudah dimengerti! Kak Lovie sabar banget ngajarin konsep hipotesis.",
+                      context: context,
+                    ),
+                    _buildReviewCard(
+                      name: "Bima Santoso",
+                      initial: "B",
+                      rating: 4,
+                      color: const Color(0xFFA7C7E7),
+                      text:
+                          "Keren banget materinya, langsung praktek bikin Flexbox. Cuman internetku agak lemot tadi.",
+                      context: context,
+                    ),
+                    _buildReviewCard(
+                      name: "Citra Kirana",
+                      initial: "C",
+                      rating: 5,
+                      color: const Color(0xFFCDB4DB),
+                      text:
+                          "Design system yang diajarin kak Lovie rapi banget. Puas bgt!",
+                      context: context,
                     ),
                     _buildReviewCard(
                       name: "Chanyeol",
@@ -255,7 +274,8 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       rating: 4,
                       color: const Color(0xFFCDB4DB),
                       text:
-                          "Materi terstruktur dengan baik. Mungkin next time bisa ditambahin lebih banyak contoh real-world case.",
+                          "Materi terstruktur dengan baik. Mungkin next time bisa ditambahin lebih banyak contoh.",
+                      context: context,
                     ),
                     _buildReviewCard(
                       name: "Giselle",
@@ -264,14 +284,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       color: const Color(0xFFA7C7E7),
                       text:
                           "Super detail dan cara komunikasinya asyik banget. Gak kerasa waktu belajarnya cepat berlalu!",
-                    ),
-                    _buildReviewCard(
-                      name: "Andrian",
-                      initial: "A",
-                      rating: 5,
-                      color: const Color(0xFFF5B3CE),
-                      text:
-                          "Sangat ngebantu buat persiapan ujianku. Mentor Lovie the best deh pokoknya, bakal order lagi!",
+                      context: context,
                     ),
                   ],
                 ),
@@ -330,13 +343,15 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         ),
         Row(
           children: [
-            // Perubahan: Menambahkan onTap menuju rute My Schedule
             _buildIconButton(
               Icons.calendar_today_outlined,
               onTap: () => Navigator.pushNamed(context, '/my_schedule'),
             ),
             const SizedBox(width: 12),
-            _buildIconButton(Icons.notifications_none_outlined),
+            _buildIconButton(
+              Icons.star_rate_outlined,
+              onTap: () => Navigator.pushNamed(context, '/client_reviews'),
+            ),
           ],
         ),
       ],
@@ -363,45 +378,142 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
+  // --- REVISI FINAL: THE REAL MODERN HERO BANNER (CLEAN & FLOATING LOGO) ---
   Widget _buildQuickStatsCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+      width: double.infinity,
+      // Tetap tanpa 'height' kaku agar anti-overflow
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFCDB4DB), width: 2),
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFCDB4DB), // Lavender
+            Color(0xFFA7C7E7), // Pastel Blue
+          ],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: const Color(0xFFCDB4DB).withOpacity(0.4),
             blurRadius: 15,
-            offset: const Offset(0, 5),
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatItem(
-            "168h",
-            "Total Session",
-            Icons.schedule,
-            const Color(0xFFCDB4DB),
-          ),
-          Container(height: 40, width: 1, color: Colors.grey[200]),
-          _buildStatItem(
-            "Rp 1.5M",
-            "Revenue",
-            Icons.account_balance_wallet_outlined,
-            const Color(0xFFA7C7E7),
-          ),
-          Container(height: 40, width: 1, color: Colors.grey[200]),
-          _buildStatItem(
-            "5.0",
-            "Rating",
-            Icons.star_border_rounded,
-            const Color(0xFFF5B3CE),
-          ),
-        ],
+      // ClipRRect agar elemen yang melayang di pojok tidak keluar dari lengkungan radius
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // --- 1. MOTIF BUBBLE AESTHETIC ---
+            Positioned(
+              top: -20,
+              left: -20,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.white.withOpacity(0.12),
+              ),
+            ),
+            Positioned(
+              bottom: -40,
+              right: 30,
+              child: CircleAvatar(
+                radius: 80,
+                backgroundColor: Colors.white.withOpacity(0.08),
+              ),
+            ),
+            Positioned(
+              top: 20,
+              right: 80,
+              child: CircleAvatar(
+                radius: 15,
+                backgroundColor: Colors.white.withOpacity(0.15),
+              ),
+            ),
+
+            // --- 2. LOGO MENTUP MELAYANG (Tanpa Bingkai Kaku!) ---
+            Positioned(
+              right:
+                  -10, // Sengaja digeser dikit ke kanan biar ada efek "bleed" estetik
+              top: 0,
+              bottom:
+                  0, // Kombinasi top & bottom 0 akan membuat image otomatis rata tengah vertikal
+              child: Center(
+                child: Image.asset(
+                  'assets/logo.png',
+                  width:
+                      140, // Ukuran raksasa tapi natural karena tidak ada bingkai
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.white,
+                    size: 80,
+                  ),
+                ),
+              ),
+            ),
+
+            // --- 3. KONTEN TEKS & SAPAAN ---
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.55,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      "Hello, Mentor 👋",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Nunito',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Ready to hit the ground running today? MentUp is here to keep track of your schedule, so you can focus on delivering your best without any worries!",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.95),
+                        fontSize: 12,
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Glassmorphism Badge Modern
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      child: const Text(
+                        "Mentor Dashboard",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'Nunito',
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -711,78 +823,87 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     required int rating,
     required Color color,
     required String text,
+    required BuildContext context, // Tambahkan parameter context
   }) {
-    return Container(
-      width: 300,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        // Border card opacity 50%
-        border: Border.all(color: color.withOpacity(0.5), width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                // Background avatar opacity 50%
-                backgroundColor: color.withOpacity(0.5),
-                radius: 20,
-                // Inisial warna solid 100%
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+    return GestureDetector(
+      onTap: () {
+        // NAVIGASI DENGAN FILTER NAMA
+        Navigator.pushNamed(
+          context,
+          AppRoutes.clientReviews,
+          arguments: {'studentName': name},
+        );
+      },
+      child: Container(
+        width: 280,
+        margin: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: color.withOpacity(0.2),
+                  radius: 18,
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
                     name,
                     style: const TextStyle(
                       fontFamily: 'Nunito',
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Row(
+                  children: List.generate(
+                    5,
+                    (index) => Icon(
+                      Icons.star_rounded,
+                      size: 14,
+                      color: index < rating ? Colors.amber : Colors.grey[300],
                     ),
                   ),
-                  Row(
-                    children: List.generate(
-                      5,
-                      (index) => Icon(
-                        Icons.star,
-                        color: index < rating
-                            ? Colors.amber
-                            : Colors.grey.shade300,
-                        size: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "\"$text\"",
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 13,
-              color: Colors.grey[800],
-              fontStyle: FontStyle.italic,
+                ),
+              ],
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 10),
+            Text(
+              "\"$text\"",
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -876,7 +997,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             } else if (index == 1) {
               Navigator.pushNamed(context, '/booking_request');
             } else if (index == 2) {
-              // Navigator.pushNamed(context, '/history_session');
+              Navigator.pushNamed(context, '/transactions');
             } else if (index == 3) {
               Navigator.pushNamed(context, '/mentor_profile');
             } else {

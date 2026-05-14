@@ -20,7 +20,6 @@ class AppRoutes {
   static const editRates = '/edit_rates';
   static const mySchedule = '/my_schedule';
   static const manageSlot = '/manage_slot';
-  static const historySession = '/history_session';
   static const transactions = '/transactions';
   static const teachingForm = '/teaching_form';
   static const settingsAccount = '/settings_account';
