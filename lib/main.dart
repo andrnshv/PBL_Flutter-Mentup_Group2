@@ -33,7 +33,6 @@ import 'views/mentor/booking/booking_detail_page.dart';
 import 'views/mentor/booking/booking_request_page.dart';
 import 'views/mentor/review/teaching_proof_page.dart';
 import 'views/mentor/review/clients_review_page.dart';
-import 'views/mentor/history/mentor_transactions_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -110,12 +109,6 @@ class MyApp extends StatelessWidget {
 
         AppRoutes.manageSlot: (_) =>
             const ManageSlotPage(),
-
-        AppRoutes.historySession: (_) => const Scaffold(
-              body: Center(
-                child: Text("History Session"),
-              ),
-            ),
 
         AppRoutes.transactions: (_) => const Scaffold(
               body: Center(
