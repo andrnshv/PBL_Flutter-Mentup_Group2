@@ -46,6 +46,9 @@ void main() async {
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    authOptions: const FlutterAuthClientOptions(
+      autoRefreshToken: true,
+    ),
   );
 
   runApp(const MyApp());
@@ -65,13 +68,12 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFFD4B2F7),
       ),
 
-      // ================= AUTH CHECKER =================
-      // Menggunakan AuthChecker sebagai entry point utama
+      // ================= ENTRY POINT =================
       home: const AuthChecker(),
 
       // ================= ROUTES =================
       routes: {
-        // AUTH - Rute welcome ('/') dihapus dari sini karena sudah ditangani oleh properti 'home'
+        // AUTH
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
@@ -81,31 +83,62 @@ class MyApp extends StatelessWidget {
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
-        AppRoutes.clientVerification: (_) => const ClientVerificationPage(),
+        AppRoutes.clientVerification: (_) =>
+            const ClientVerificationPage(),
 
         // MENTOR
         AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
-        AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
+        AppRoutes.mentorLanding: (_) =>
+            const MentorLandingPage(),
         AppRoutes.mentorTips: (_) => const ArticlePage(),
-        AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
-        AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
-        AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
-        AppRoutes.editProfile: (_) => const EditProfilePage(),
-        AppRoutes.editRates: (_) => const ServiceRatesPage(),
-        AppRoutes.mySchedule: (_) => const MySchedulePage(),
-        AppRoutes.manageSlot: (_) => const ManageSlotPage(),
+        AppRoutes.bookingRequest: (_) =>
+            const BookingRequestPage(),
+        AppRoutes.bookingDetail: (_) =>
+            const BookingDetailPage(),
+
+        AppRoutes.mentorProfile: (_) =>
+            const MentorMainProfilePage(),
+
+        AppRoutes.editProfile: (_) =>
+            const EditProfilePage(),
+
+        AppRoutes.editRates: (_) =>
+            const ServiceRatesPage(),
+
+        AppRoutes.mySchedule: (_) =>
+            const MySchedulePage(),
+
+        AppRoutes.manageSlot: (_) =>
+            const ManageSlotPage(),
+
         AppRoutes.historySession: (_) => const Scaffold(
-              body: Center(child: Text("History Session")),
+              body: Center(
+                child: Text("History Session"),
+              ),
             ),
+
         AppRoutes.transactions: (_) => const Scaffold(
-              body: Center(child: Text("Transactions")),
+              body: Center(
+                child: Text("Transactions"),
+              ),
             ),
-        AppRoutes.teachingForm: (_) => const TeachingProofPage(),
-        AppRoutes.clientReviews: (_) => const ClientReviewsPage(),
-        AppRoutes.settingsAccount: (_) => const SettingsPage(),
+
+        AppRoutes.teachingForm: (_) =>
+            const TeachingProofPage(),
+
+        AppRoutes.clientReviews: (_) =>
+            const ClientReviewsPage(),
+
+        AppRoutes.settingsAccount: (_) =>
+            const SettingsPage(),
+
         AppRoutes.faq: (_) => const FaqPage(),
-        AppRoutes.changePassword: (_) => const ChangePasswordPage(),
-        AppRoutes.changeEmail: (_) => const ChangeEmailPage(),
+
+        AppRoutes.changePassword: (_) =>
+            const ChangePasswordPage(),
+
+        AppRoutes.changeEmail: (_) =>
+            const ChangeEmailPage(),
       },
 
       onUnknownRoute: (settings) {
@@ -119,59 +152,116 @@ class MyApp extends StatelessWidget {
 
 // ================= AUTH CHECKER =================
 
-class AuthChecker extends StatelessWidget {
+class AuthChecker extends StatefulWidget {
   const AuthChecker({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: checkUserRole(),
-      builder: (context, snapshot) {
-        // Loading State
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+  State<AuthChecker> createState() => _AuthCheckerState();
+}
 
-        // Jika user tidak ditemukan atau belum login
-        if (!snapshot.hasData || snapshot.data == null) {
-          return const WelcomePage();
-        }
+class _AuthCheckerState extends State<AuthChecker> {
+  final supabase = Supabase.instance.client;
 
-        final role = snapshot.data;
+  bool loading = true;
 
-        // Arahkan ke halaman sesuai Role
-        if (role == 'mentor') {
-          return const MentorLandingPage();
-        }
+  Widget currentPage = const Scaffold(
+    body: Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
 
-        // Default Role: Client
-        return const HomePage();
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    checkAuth();
   }
 
-  Future<String?> checkUserRole() async {
-    final supabase = Supabase.instance.client;
-    final session = supabase.auth.currentSession;
-
-    if (session == null) return null;
-
-    final uid = session.user.id;
-
+  Future<void> checkAuth() async {
     try {
-      // Nama tabel disesuaikan menjadi 'appuser' sesuai ERD
+      final session = supabase.auth.currentSession;
+
+      // ================= BELUM LOGIN =================
+      if (session == null) {
+        currentPage = const WelcomePage();
+
+        setState(() {
+          loading = false;
+        });
+
+        return;
+      }
+
+      final uid = session.user.id;
+
+      debugPrint("LOGIN UID = $uid");
+
+      // ================= GET USER ROLE =================
+      // IMPORTANT:
+      // GANTI user_id JIKA NAMA KOLOM DATABASE BERBEDA
       final response = await supabase
           .from('appuser')
           .select('role')
           .eq('id', uid)
-          .single();
+          .maybeSingle();
 
-      return response['role'];
+      debugPrint("ROLE RESPONSE = $response");
+
+      // ================= USER TIDAK DITEMUKAN =================
+      if (response == null) {
+        await supabase.auth.signOut();
+
+        currentPage = const WelcomePage();
+
+        setState(() {
+          loading = false;
+        });
+
+        return;
+      }
+
+      final role = response['role'];
+
+      debugPrint("ROLE = $role");
+
+      // ================= MENTOR =================
+      if (role == 'mentor') {
+        currentPage = const MentorLandingPage();
+      }
+
+      // ================= CLIENT =================
+      else if (role == 'client') {
+        currentPage = const HomePage();
+      }
+
+      // ================= ROLE TIDAK VALID =================
+      else {
+        await supabase.auth.signOut();
+
+        currentPage = const WelcomePage();
+      }
     } catch (e) {
-      debugPrint('AuthChecker Error: $e');
-      return null;
+      debugPrint("AUTH ERROR = $e");
+
+      currentPage = const WelcomePage();
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return currentPage;
   }
 }
