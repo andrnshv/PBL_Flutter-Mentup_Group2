@@ -67,10 +67,8 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFFD4B2F7),
       ),
 
-      // ================= ENTRY POINT =================
-      home: const AuthChecker(),
+      home: const AuthGate(),
 
-      // ================= ROUTES =================
       routes: {
         // AUTH
         AppRoutes.login: (_) => const LoginPage(),
@@ -86,12 +84,18 @@ class MyApp extends StatelessWidget {
             const ClientVerificationPage(),
 
         // MENTOR
-        AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
+        AppRoutes.mentorCV: (_) =>
+            const MentorCvUploadPage(),
+
         AppRoutes.mentorLanding: (_) =>
             const MentorLandingPage(),
-        AppRoutes.mentorTips: (_) => const ArticlePage(),
+
+        AppRoutes.mentorTips: (_) =>
+            const ArticlePage(),
+
         AppRoutes.bookingRequest: (_) =>
             const BookingRequestPage(),
+
         AppRoutes.bookingDetail: (_) =>
             const BookingDetailPage(),
 
@@ -110,7 +114,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.manageSlot: (_) =>
             const ManageSlotPage(),
 
-        AppRoutes.transactions: (_) => const Scaffold(
+        AppRoutes.transactions: (_) =>
+            const Scaffold(
               body: Center(
                 child: Text("Transactions"),
               ),
@@ -125,7 +130,8 @@ class MyApp extends StatelessWidget {
         AppRoutes.settingsAccount: (_) =>
             const SettingsPage(),
 
-        AppRoutes.faq: (_) => const FaqPage(),
+        AppRoutes.faq: (_) =>
+            const FaqPage(),
 
         AppRoutes.changePassword: (_) =>
             const ChangePasswordPage(),
@@ -143,19 +149,20 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ================= AUTH CHECKER =================
+// ================= AUTH GATE =================
 
-class AuthChecker extends StatefulWidget {
-  const AuthChecker({super.key});
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
 
   @override
-  State<AuthChecker> createState() => _AuthCheckerState();
+  State<AuthGate> createState() =>
+      _AuthGateState();
 }
 
-class _AuthCheckerState extends State<AuthChecker> {
+class _AuthGateState extends State<AuthGate> {
   final supabase = Supabase.instance.client;
 
-  bool loading = true;
+  bool isLoading = true;
 
   Widget currentPage = const Scaffold(
     body: Center(
@@ -166,19 +173,36 @@ class _AuthCheckerState extends State<AuthChecker> {
   @override
   void initState() {
     super.initState();
-    checkAuth();
+
+    initAuth();
   }
 
-  Future<void> checkAuth() async {
-    try {
-      final session = supabase.auth.currentSession;
+  Future<void> initAuth() async {
+    debugPrint(
+      "========== AUTH START ==========",
+    );
 
-      // ================= BELUM LOGIN =================
+    try {
+      // Delay supaya restore session selesai
+      await Future.delayed(
+        const Duration(seconds: 1),
+      );
+
+      final session =
+          supabase.auth.currentSession;
+
+      debugPrint("SESSION = $session");
+
+      // ================= SESSION NULL =================
       if (session == null) {
+        debugPrint(
+          "STATUS = SESSION NULL",
+        );
+
         currentPage = const WelcomePage();
 
         setState(() {
-          loading = false;
+          isLoading = false;
         });
 
         return;
@@ -186,27 +210,37 @@ class _AuthCheckerState extends State<AuthChecker> {
 
       final uid = session.user.id;
 
-      debugPrint("LOGIN UID = $uid");
+      debugPrint("USER ID = $uid");
 
-      // ================= GET USER ROLE =================
-      // IMPORTANT:
-      // GANTI user_id JIKA NAMA KOLOM DATABASE BERBEDA
+      debugPrint(
+        "EMAIL = ${session.user.email}",
+      );
+
+      // ================= QUERY DATABASE =================
+      debugPrint(
+        "QUERY ROLE FROM DATABASE...",
+      );
+
       final response = await supabase
           .from('appuser')
-          .select('role')
+          .select()
           .eq('id', uid)
           .maybeSingle();
 
-      debugPrint("ROLE RESPONSE = $response");
+      debugPrint(
+        "DATABASE RESPONSE = $response",
+      );
 
-      // ================= USER TIDAK DITEMUKAN =================
+      // ================= USER NOT FOUND =================
       if (response == null) {
-        await supabase.auth.signOut();
+        debugPrint(
+          "STATUS = USER NOT FOUND",
+        );
 
         currentPage = const WelcomePage();
 
         setState(() {
-          loading = false;
+          isLoading = false;
         });
 
         return;
@@ -218,36 +252,57 @@ class _AuthCheckerState extends State<AuthChecker> {
 
       // ================= MENTOR =================
       if (role == 'mentor') {
-        currentPage = const MentorLandingPage();
+        debugPrint(
+          "REDIRECT = MENTOR",
+        );
+
+        currentPage =
+            const MentorLandingPage();
       }
 
       // ================= CLIENT =================
-      else if (role == 'client') {
+      else if (role == 'klien') {
+        debugPrint(
+          "REDIRECT = CLIENT",
+        );
+
         currentPage = const HomePage();
       }
 
-      // ================= ROLE TIDAK VALID =================
+      // ================= UNKNOWN ROLE =================
       else {
-        await supabase.auth.signOut();
+        debugPrint(
+          "STATUS = UNKNOWN ROLE",
+        );
 
         currentPage = const WelcomePage();
       }
-    } catch (e) {
-      debugPrint("AUTH ERROR = $e");
+    } catch (e, stack) {
+      debugPrint(
+        "========== AUTH ERROR ==========",
+      );
+
+      debugPrint("$e");
+
+      debugPrint("$stack");
 
       currentPage = const WelcomePage();
     }
 
+    debugPrint(
+      "========== AUTH END ==========",
+    );
+
     if (!mounted) return;
 
     setState(() {
-      loading = false;
+      isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (loading) {
+    if (isLoading) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
