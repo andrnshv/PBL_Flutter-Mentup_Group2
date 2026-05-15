@@ -1,152 +1,162 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Package Kamera/Galeri
+import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import '../../services/supabase_service.dart';
 
 class EditProfileController {
-  // Deklarasi semua controller
-  late TextEditingController nameController;
-  late TextEditingController usernameController;
-  late TextEditingController phoneController;
-  late TextEditingController headlineController;
-  late TextEditingController addressController;
-  late TextEditingController bioController;
+  // ================= TEXT =================
+  final nameController = TextEditingController();
+  final usernameController = TextEditingController();
+  final phoneController = TextEditingController();
+  final keahlianController = TextEditingController();
+  final addressController = TextEditingController();
+  final bioController = TextEditingController();
+  final categoryController = TextEditingController();
+  final universityController = TextEditingController();
 
-  // Controller baru
-  late TextEditingController categoryController;
-  late TextEditingController universityController;
+  // ================= DROPDOWN =================
+  List<String> categories = [];
+  List<String> universities = [];
 
-  // Variabel untuk Dropdown
   String? selectedCategory;
   String? selectedUniversity;
-  
-  // List Pilihan (Bisa ditambah sesuai kebutuhan)
-  final List<String> categories = ["Statistics", "Web Dev", "UI/UX Design", "Mobile Dev", "Database", "English", "Lainnya"];
-  final List<String> universities = ["Universitas Tadulako", "Institut Teknologi Bandung", "Universitas Indonesia", "Universitas Gadjah Mada", "Lainnya"];
 
-  // Variabel penampung File (Foto & CV)
-  File? profileImage;
+  // ================= FILE =================
   Uint8List? profileImageBytes;
-  File? cvDocument;
+  File? profileImageFile;
+
   Uint8List? cvDocumentBytes;
+  File? cvDocumentFile;
+
   String? cvFileName;
 
-  bool _isDataLoaded = false;
+  String? currentFotoUrl;
+  String? currentCvUrl;
+
   final ImagePicker _picker = ImagePicker();
 
-  // Fungsi untuk menerima data dari halaman sebelumnya
-  void loadData(Map<String, dynamic>? args) {
-    if (_isDataLoaded) return; // Mencegah load ulang saat hot reload
+  // ================= LOAD PROFILE =================
+  Future<void> loadProfile() async {
+    final user = SupabaseService.currentUser;
 
-    if (args != null) {
-      nameController = TextEditingController(text: args['name']);
-      usernameController = TextEditingController(text: args['username']);
-      phoneController = TextEditingController(text: args['phone']);
-      headlineController = TextEditingController(text: args['headline']);
-      addressController = TextEditingController(text: args['address']);
-      bioController = TextEditingController(text: args['bio']);
-      profileImageBytes = args['imageBytes'];
-      cvFileName = args['cvFileName']; // Tangkap nama file CV
-      cvDocumentBytes = args['cvDocumentBytes'];
-      
-      // Inisialisasi Kategori
-      String initialCat = args['category'] ?? "";
-      if (categories.contains(initialCat)) {
-        selectedCategory = initialCat;
-        categoryController = TextEditingController();
-      } else if (initialCat.isNotEmpty) {
-        selectedCategory = "Lainnya";
-        categoryController = TextEditingController(text: initialCat);
-      } else {
-        categoryController = TextEditingController();
-      }
+    debugPrint("🟡 LOAD PROFILE START");
 
-      // Inisialisasi Universitas
-      String initialUni = args['university'] ?? "";
-      if (universities.contains(initialUni)) {
-        selectedUniversity = initialUni;
-        universityController = TextEditingController();
-      } else if (initialUni.isNotEmpty) {
-        selectedUniversity = "Lainnya";
-        universityController = TextEditingController(text: initialUni);
-      } else {
-        universityController = TextEditingController();
-      }
-
-    } else {
-      // Jika kosong, inisiasi controller kosong
-      nameController = TextEditingController();
-      usernameController = TextEditingController();
-      phoneController = TextEditingController();
-      headlineController = TextEditingController();
-      addressController = TextEditingController();
-      bioController = TextEditingController();
+    if (user == null) {
+      debugPrint("❌ USER NULL");
+      return;
     }
 
-    _isDataLoaded = true;
+    debugPrint("🟢 USER ID => ${user.id}");
+
+    final appuser = await SupabaseService.db
+        .from('appuser')
+        .select()
+        .eq('id', user.id)
+        .single();
+
+    debugPrint("🟢 APPUSER => $appuser");
+
+    final bio = await SupabaseService.db
+        .from('bio_profil')
+        .select()
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    debugPrint("🟢 BIO => $bio");
+
+    final cv = await SupabaseService.db
+        .from('mentor_cv')
+        .select()
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    debugPrint("🟢 CV RAW => $cv");
+
+    nameController.text = appuser['nama_lengkap'] ?? '';
+    usernameController.text = appuser['username'] ?? '';
+
+    phoneController.text = bio?['nomor_hp'] ?? '';
+    addressController.text = bio?['alamat'] ?? '';
+    bioController.text = bio?['bio'] ?? '';
+
+    currentFotoUrl = bio?['foto_url'];
+    currentCvUrl = cv?['cv_url'];
+
+    debugPrint("🟢 FOTO URL => $currentFotoUrl");
+    debugPrint("🟢 CV URL => $currentCvUrl");
+
+    final keahlian = bio?['keahlian'] ?? '';
+    final universitas = bio?['universitas'] ?? '';
+
+    selectedCategory = keahlian.isNotEmpty ? keahlian : null;
+    selectedUniversity = universitas.isNotEmpty ? universitas : null;
+
+    debugPrint("🟡 LOAD PROFILE DONE");
   }
 
-  // --- FUNGSI AMBIL FOTO (KAMERA / GALERI) ---
+  // ================= SAVE PROFILE =================
+  Future<bool> saveProfile() async {
+    try {
+      final user = SupabaseService.currentUser;
+      if (user == null) return false;
+
+      await SupabaseService.db.from('bio_profil').upsert({
+        'user_id': user.id,
+        'alamat': addressController.text.trim(),
+        'bio': bioController.text.trim(),
+        'foto_url': currentFotoUrl,
+      }, onConflict: 'id');
+
+      return true;
+    } catch (e) {
+      debugPrint("SAVE ERROR => $e");
+      return false;
+    }
+  }
+
+  // ================= PICK IMAGE =================
   Future<void> pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-      if (pickedFile != null) {
-        // Membaca foto sebagai Bytes (Cara paling aman untuk Web dan Mobile)
-        profileImageBytes = await pickedFile.readAsBytes();
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 80,
+    );
 
-        // Tetap simpan File-nya (opsional, berguna nanti saat di-run di Mobile)
-        profileImage = File(pickedFile.path);
+    if (picked != null) {
+      profileImageBytes = await picked.readAsBytes();
+      if (!kIsWeb) profileImageFile = File(picked.path);
 
-        print("Foto sukses dipilih! Path/Blob: ${pickedFile.path}");
-      }
-    } catch (e) {
-      print("Gagal mengambil foto: $e");
+      debugPrint("📸 IMAGE PICKED => ${picked.path}");
     }
   }
 
-  // --- FUNGSI AMBIL FILE PDF (FILE EXPLORER / DRIVE) ---
+  // ================= PICK CV =================
   Future<void> pickDocument() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'], // Hanya izinkan PDF
-        withData: true, // <--- KUNCI PENTING UNTUK FLUTTER WEB
-      );
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+      withData: true,
+    );
 
-      if (result != null) {
-        // Ambil nama file-nya untuk ditampilkan di UI
-        cvFileName = result.files.single.name;
+    if (result != null) {
+      cvFileName = result.files.single.name;
+      cvDocumentBytes = result.files.single.bytes;
 
-        // Simpan datanya sebagai Bytes (Aman untuk Web & Mobile)
-        cvDocumentBytes = result.files.single.bytes;
-
-        // Kalau jalan di Mobile, kita tetap bisa simpan format File-nya
-        if (result.files.single.path != null) {
-          cvDocument = File(result.files.single.path!);
-        }
-
-        print("CV berhasil dipilih: $cvFileName");
+      if (!kIsWeb && result.files.single.path != null) {
+        cvDocumentFile = File(result.files.single.path!);
       }
-    } catch (e) {
-      print("Gagal mengambil dokumen: $e");
+
+      debugPrint("📄 CV PICKED => $cvFileName");
     }
   }
 
-  // Fungsi untuk menyimpan data (Nantinya untuk dikirim ke Database)
-  void saveProfile() {
-    print("Menyimpan data...");
-    print("Nama: ${nameController.text}");
-    print("Bio: ${bioController.text}");
-    // Nanti logika API / Database ditaruh di sini
-  }
-
-  // Jangan lupa buang sampah memori
   void dispose() {
     nameController.dispose();
     usernameController.dispose();
     phoneController.dispose();
-    headlineController.dispose();
+    keahlianController.dispose();
     addressController.dispose();
     bioController.dispose();
     categoryController.dispose();
