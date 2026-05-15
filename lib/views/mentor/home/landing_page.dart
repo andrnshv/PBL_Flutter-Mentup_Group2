@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../routes/app_routes.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MentorLandingPage extends StatefulWidget {
   const MentorLandingPage({super.key});
@@ -10,6 +11,21 @@ class MentorLandingPage extends StatefulWidget {
 
 class _MentorLandingPageState extends State<MentorLandingPage> {
   int _selectedIndex = 0;
+
+//memanggil nama user dari metadata Supabase
+   String getUserName() {
+    final user =
+        Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      return 'User';
+    }
+
+    final nama =
+        user.userMetadata?['nama_lengkap'];
+
+    return nama ?? 'User';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -315,11 +331,14 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
 
   // ==================== WIDGET HELPERS ====================
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
+    Widget _buildHeader() {
+  final userName = getUserName();
+
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Flexible(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -330,33 +349,48 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                 color: Colors.grey[600],
               ),
             ),
-            const Text(
-              "Welcome Lovie ✨",
-              style: TextStyle(
+
+            Text(
+              "Welcome $userName ✨",
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontFamily: 'Nunito',
-                fontSize: 25,
+                fontSize: 21,
                 fontWeight: FontWeight.w800,
                 color: Colors.black87,
               ),
             ),
           ],
         ),
-        Row(
-          children: [
-            _buildIconButton(
-              Icons.calendar_today_outlined,
-              onTap: () => Navigator.pushNamed(context, '/my_schedule'),
+      ),
+
+      const SizedBox(width: 10),
+
+      Row(
+        children: [
+          _buildIconButton(
+            Icons.calendar_today_outlined,
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/my_schedule',
             ),
-            const SizedBox(width: 12),
-            _buildIconButton(
-              Icons.star_rate_outlined,
-              onTap: () => Navigator.pushNamed(context, '/client_reviews'),
+          ),
+
+          const SizedBox(width: 12),
+
+          _buildIconButton(
+            Icons.star_rate_outlined,
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/client_reviews',
             ),
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      ),
+    ],
+  );
+}
 
   // Perubahan: Menambahkan parameter onTap pada _buildIconButton
   Widget _buildIconButton(IconData icon, {VoidCallback? onTap}) {
