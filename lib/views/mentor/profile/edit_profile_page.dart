@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_mentup/controller/mentor/edit_profile_controller.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart'; // Wajib ditambahin buat format input
 import 'package:cherry_toast/cherry_toast.dart';
 import 'package:cherry_toast/resources/arrays.dart';
+import '../../../controller/mentor/edit_profile_controller.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -15,18 +15,23 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final EditProfileController _controller = EditProfileController();
 
-  // Muted Tech Color Palette
   final Color primaryPurple = const Color(0xFF7E7BB9);
   final Color primaryBlue = const Color(0xFF6D92CB);
   final Color bgGray = const Color(0xFFF8F9FB);
   final Color textDark = const Color(0xFF2D3436);
 
+  bool _isLoading = true;
+  bool _isSaving = false;
+
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-    _controller.loadData(args);
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await _controller.loadProfile();
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -37,9 +42,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bgGray,
-      // Supaya gradasi header bisa mulus sampai ke ujung atas layar (status bar)
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -66,20 +76,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            // --- HEADER & FOTO PROFIL ---
             Stack(
               children: [
-                // 1. Background Gradasi
                 Container(
                   height: 230,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Color(0xFFCDB4DB),
+                        const Color(0xFFCDB4DB),
                         primaryPurple,
                         primaryBlue,
-                        Color(0xFFCDB4DB),
+                        const Color(0xFFCDB4DB),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -90,27 +98,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                   ),
                 ),
-                // 2. Foto Profil & Kamera
-                // Menggunakan margin agar posisinya turun, tapi tetap "diakui" ada di dalam layar
                 Container(
-                  margin: const EdgeInsets.only(
-                    top: 175,
-                  ), // 230 (tinggi gradasi) - 55 (setengah ukuran foto)
+                  margin: const EdgeInsets.only(top: 175),
                   alignment: Alignment.topCenter,
                   child: _buildProfileImage(),
                 ),
               ],
             ),
-
-            // Jarak tambahan sedikit saja karena fotonya sekarang sudah memakan ruang
             const SizedBox(height: 20),
-
-            // --- BAGIAN FORM ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
                 children: [
-                  // Section: Informasi Dasar
                   _buildFormSection(
                     title: "Personal Information",
                     icon: Icons.badge_outlined,
@@ -133,26 +132,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Section: Identitas Mentor
                   _buildFormSection(
                     title: "Your Profile",
                     icon: Icons.auto_awesome_outlined,
                     children: [
                       _buildCustomField(
-                        "Headline",
-                        _controller.headlineController,
+                        "Keahlian",
+                        _controller.keahlianController,
                         Icons.work_outline,
                       ),
-                      // ==========================================
-                      // MULAI REVISI: DROPDOWN UI MATCHING & JARAK DITAMBAH
-                      // ==========================================
-                      const SizedBox(height: 20), // Jarak atas dilebihin
-
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
-                        value: _controller.selectedCategory,
+                        initialValue: _controller.selectedCategory,
                         items: _controller.categories
                             .map(
                               (cat) => DropdownMenuItem(
@@ -168,8 +160,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               ),
                             )
                             .toList(),
-                        onChanged: (val) =>
-                            setState(() => _controller.selectedCategory = val),
+                        onChanged: (val) {
+                          setState(() {
+                            _controller.selectedCategory = val;
+                          });
+                        },
                         icon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: Colors.grey,
@@ -182,20 +177,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor:
-                              Colors.white, // Menyamakan warna latar form lain
+                          fillColor: Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide:
-                                BorderSide.none, // Menghilangkan garis outline
+                            borderSide: BorderSide.none,
                           ),
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF7E7BB9,
-                              ).withOpacity(0.1), // Background ikon
+                              color: const Color(0xFF7E7BB9).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -206,8 +197,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                         ),
                       ),
-
-                      // Munculkan TextField tambahan JIKA milih "Lainnya"
                       if (_controller.selectedCategory == "Lainnya") ...[
                         const SizedBox(height: 20),
                         _buildCustomField(
@@ -216,13 +205,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           Icons.edit,
                         ),
                       ],
-
-                      const SizedBox(
-                        height: 20,
-                      ), // Jarak antar dropdown dilebihin
-
+                      const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
-                        value: _controller.selectedUniversity,
+                        initialValue: _controller.selectedUniversity,
                         items: _controller.universities
                             .map(
                               (uni) => DropdownMenuItem(
@@ -238,9 +223,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                               ),
                             )
                             .toList(),
-                        onChanged: (val) => setState(
-                          () => _controller.selectedUniversity = val,
-                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _controller.selectedUniversity = val;
+                          });
+                        },
                         icon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
                           color: Colors.grey,
@@ -253,20 +240,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                             fontSize: 14,
                           ),
                           filled: true,
-                          fillColor:
-                              Colors.white, // Menyamakan warna latar form lain
+                          fillColor: Colors.white,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide:
-                                BorderSide.none, // Menghilangkan garis outline
+                            borderSide: BorderSide.none,
                           ),
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF7E7BB9,
-                              ).withOpacity(0.1), // Background ikon
+                              color: const Color(0xFF7E7BB9).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -277,8 +260,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                         ),
                       ),
-
-                      // Munculkan TextField tambahan JIKA milih "Lainnya"
                       if (_controller.selectedUniversity == "Lainnya") ...[
                         const SizedBox(height: 20),
                         _buildCustomField(
@@ -287,12 +268,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           Icons.edit,
                         ),
                       ],
-
-                      const SizedBox(
-                        height: 5,
-                      ), // Jarak sebelum Bimble Location
-                      // ==========================================
-                      // AKHIR REVISI
+                      const SizedBox(height: 5),
                       _buildCustomField(
                         "Bimble Location",
                         _controller.addressController,
@@ -306,19 +282,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 20),
-
-                  // Section: Dokumen (CV)
                   _buildFormSection(
                     title: "Curriculum Vitae (CV)",
                     icon: Icons.folder_open_rounded,
                     children: [_buildCVTile()],
                   ),
-
                   const SizedBox(height: 40),
-
-                  // Tombol Simpan
                   _buildSaveButton(),
                   const SizedBox(height: 50),
                 ],
@@ -330,8 +300,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Desain Foto Profil
   Widget _buildProfileImage() {
+    final bool hasLocalImage = _controller.profileImageBytes != null;
+    final bool hasNetworkImage =
+        _controller.currentFotoUrl != null && _controller.currentFotoUrl!.isNotEmpty;
+
+    ImageProvider? imageProvider;
+
+    if (hasLocalImage) {
+      imageProvider = MemoryImage(_controller.profileImageBytes!);
+    } else if (hasNetworkImage) {
+      imageProvider = NetworkImage(_controller.currentFotoUrl!);
+    }
+
     return Stack(
       alignment: Alignment.bottomRight,
       children: [
@@ -351,20 +332,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: CircleAvatar(
             radius: 50,
             backgroundColor: Colors.white,
-            backgroundImage: _controller.profileImageBytes != null
-                ? MemoryImage(_controller.profileImageBytes!)
-                      as ImageProvider // Jika ada foto (Support Web & Mobile)
-                : const AssetImage(
-                    'assets/mentor.png',
-                  ), // Jika belum, pakai avatar bawaan
-            // Path asli kamu
+            backgroundImage: imageProvider,
+            child: imageProvider == null
+                ? Icon(
+                    Icons.person,
+                    size: 48,
+                    color: Colors.grey.shade400,
+                  )
+                : null,
           ),
         ),
-        // Tombol Kamera Mini
         GestureDetector(
-          onTap: () {
-            _showImagePickerBottomSheet(context);
-          },
+          onTap: () => _showImagePickerBottomSheet(context),
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -389,7 +368,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Wrapper untuk setiap card form
   Widget _buildFormSection({
     required String title,
     required IconData icon,
@@ -433,7 +411,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Desain Input Field yang elegan dan tulisan jelas
   Widget _buildCustomField(
     String label,
     TextEditingController controller,
@@ -447,9 +424,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
-        inputFormatters: isNumber
-            ? [FilteringTextInputFormatter.digitsOnly]
-            : [],
+        inputFormatters:
+            isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
         style: TextStyle(
           fontFamily: 'Nunito',
           fontSize: 14,
@@ -464,17 +440,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             fontSize: 13,
           ),
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          prefixIcon: Icon(
-            icon,
-            color: primaryPurple.withOpacity(0.5),
-            size: 20,
-          ),
+          prefixIcon: Icon(icon, color: primaryPurple.withOpacity(0.5), size: 20),
           filled: true,
           fillColor: bgGray,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: Colors.grey[200]!),
@@ -491,8 +461,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Desain bagian CV
   Widget _buildCVTile() {
+    final String displayText = _controller.cvFileName ??
+    (_controller.currentCvUrl != null && _controller.currentCvUrl!.isNotEmpty
+        ? _controller.currentCvUrl!.split('/').last
+        : "Belum ada CV");
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -501,41 +475,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.redAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.picture_as_pdf_rounded,
-              color: Colors.redAccent,
-              size: 24,
-            ),
-          ),
+          const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              _controller.cvFileName ??
-                  "cv_lovie_terbaru.pdf", // Tampilkan nama file baru jika ada
-              style: TextStyle(
+              displayText,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Colors.black87,
               ),
-              overflow: TextOverflow
-                  .ellipsis, // Biar kalau namanya kepanjangan jadi titik-titik
             ),
           ),
           TextButton(
             onPressed: () async {
-              await _controller.pickDocument(); // Buka file explorer
-              setState(() {}); // Refresh layar agar nama PDF-nya berubah
+              await _controller.pickDocument();
+              if (mounted) setState(() {});
             },
             child: Text(
               "Change",
-              style: TextStyle(color: primaryBlue, fontWeight: FontWeight.w800),
+              style: TextStyle(color: primaryBlue),
             ),
           ),
         ],
@@ -543,7 +503,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  // Desain Tombol Simpan
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
@@ -566,88 +525,88 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           elevation: 0,
         ),
-        onPressed: () {
-          // --- LOGIKA GAGAL (VALIDASI) ---
-          // Contoh: Mencegah user menyimpan jika nama kosong
-          if (_controller.nameController.text.trim().isEmpty) {
-            CherryToast.error(
-              title: const Text(
-                "Save Failed",
+        onPressed: _isSaving ? null : _handleSave,
+        child: _isSaving
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "Save Changes",
                 style: TextStyle(
                   fontFamily: 'Nunito',
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
                 ),
               ),
-              description: const Text(
-                "Name cannot be empty!",
-                style: TextStyle(fontFamily: 'Nunito'),
-              ),
-              animationType: AnimationType.fromTop,
-              toastPosition: Position.top,
-              autoDismiss: true,
-            ).show(context);
-            return; // Hentikan proses simpan
-          }
-
-          _controller.saveProfile();
-
-          // Logika untuk menentukan nilai yang disimpan
-          String finalCat = _controller.selectedCategory == "Lainnya"
-              ? _controller.categoryController.text
-              : (_controller.selectedCategory ?? "");
-
-          String finalUni = _controller.selectedUniversity == "Lainnya"
-              ? _controller.universityController.text
-              : (_controller.selectedUniversity ?? "");
-
-          // --- LOGIKA BERHASIL ---
-          CherryToast.success(
-            title: const Text(
-              "Profile Updated",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            description: const Text(
-              "Your profile has been successfully saved!",
-              style: TextStyle(fontFamily: 'Nunito'),
-            ),
-            animationType: AnimationType.fromTop,
-            toastPosition: Position.top,
-            autoDismiss: true,
-            // Setelah toast tertutup otomatis, baru pindah halaman dan bawa data
-            onToastClosed: () {
-              Navigator.pop(context, {
-                'name': _controller.nameController.text,
-                'username': _controller.usernameController.text,
-                'headline': _controller.headlineController.text,
-                'bio': _controller.bioController.text,
-                'phone': _controller.phoneController.text,
-                'address': _controller.addressController.text,
-                'imageBytes': _controller.profileImageBytes,
-                'cvFileName': _controller.cvFileName,
-                'cvDocumentBytes': _controller.cvDocumentBytes,
-                'category': finalCat,
-                'university': finalUni,
-              });
-            },
-          ).show(context);
-        },
-        child: const Text(
-          "Save Changes",
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
       ),
     );
   }
 
-  // FUNGSI BOTTOM SHEET YANG SUDAH DILENGKAPI 3 OPSI
+  Future<void> _handleSave() async {
+    if (_controller.nameController.text.trim().isEmpty) {
+      CherryToast.error(
+        title: const Text(
+          "Save Failed",
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        description: const Text(
+          "Name cannot be empty!",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final success = await _controller.saveProfile();
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (success) {
+      CherryToast.success(
+        title: const Text(
+          "Profile Updated",
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        description: const Text(
+          "Your profile has been successfully saved!",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+        onToastClosed: () => Navigator.pop(context),
+      ).show(context);
+    } else {
+      CherryToast.error(
+        title: const Text(
+          "Save Failed",
+          style: TextStyle(
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        description: const Text(
+          "Failed to save profile. Try again.",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+    }
+  }
+
   void _showImagePickerBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -661,7 +620,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Garis kecil di atas bottom sheet (biar estetik)
               Container(
                 width: 40,
                 height: 4,
@@ -680,8 +638,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Opsi 1: Kamera
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -689,10 +645,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    Icons.camera_alt_rounded,
-                    color: Colors.blue[700],
-                  ),
+                  child: Icon(Icons.camera_alt_rounded, color: Colors.blue[700]),
                 ),
                 title: const Text(
                   "Take a picture",
@@ -703,14 +656,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 onTap: () async {
                   Navigator.pop(context);
-                  await _controller.pickImage(
-                    ImageSource.camera,
-                  ); // BUKA KAMERA
-                  setState(() {}); // Refresh layar
+                  await _controller.pickImage(ImageSource.camera);
+                  if (mounted) setState(() {});
                 },
               ),
-
-              // Opsi 2: Galeri
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -724,7 +673,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                 ),
                 title: const Text(
-                  "Choose from galery",
+                  "Choose from gallery",
                   style: TextStyle(
                     fontFamily: 'Nunito',
                     fontWeight: FontWeight.w600,
@@ -732,14 +681,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 ),
                 onTap: () async {
                   Navigator.pop(context);
-                  await _controller.pickImage(
-                    ImageSource.gallery,
-                  ); // BUKA GALERI
-                  setState(() {}); // Refresh layar
+                  await _controller.pickImage(ImageSource.gallery);
+                  if (mounted) setState(() {});
                 },
               ),
-
-              // Opsi 3: File Explorer / Google Drive
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(8),
@@ -759,9 +704,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  // Nanti diisi logika package file_picker
+                  await _controller.pickImage(ImageSource.gallery);
+                  if (mounted) setState(() {});
                 },
               ),
               const SizedBox(height: 10),
