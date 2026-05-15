@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../routes/app_routes.dart';
-import 'dart:typed_data';
+import '../../../controller/mentor/profile_controller.dart';
+import '../../../models/mentor/profile_model.dart';
 
 class MentorMainProfilePage extends StatefulWidget {
   const MentorMainProfilePage({super.key});
@@ -10,36 +11,47 @@ class MentorMainProfilePage extends StatefulWidget {
 }
 
 class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
-  // Tambahkan 3 variabel ini (isi dengan teks bawaan kamu)
-  String name = "Lovie Jechonia";
-  String username = "@loviejechonia";
-  String headline = "Data Analyst";
-  String bio =
-      "\"Just a data analyst who loves making statistics easier to understand and helping others improve their English skills.";
-  // TAMBAHKAN 2 VARIABEL INI:
-  String phone = "08123456789";
-  String address = "Kota Malang";
-  // Tambahkan variabel di State
-  String category = "Statistics";
-  String university = "Politeknik Negeri Malang";
+  final MentorProfileController _controller = MentorProfileController();
 
-  // VARIABEL BARU UNTUK NAMPUNG FOTO BARU
-  Uint8List? profileImageBytes;
 
-  String? cvFileName;
-  Uint8List? cvDocumentBytes;
+  MentorProfileModel? _profile;
+  bool _isLoading = true;
 
-  String experience = "0";
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+Future<void> _loadProfile() async {
+  final profile = await _controller.getProfile();
+  debugPrint('PROFILE RESULT: $profile'); // <-- tambah ini
+  debugPrint('NAMA: ${profile?.namaLengkap}');
+  debugPrint('USERNAME: ${profile?.username}');
+  debugPrint('BIO: ${profile?.bio}');
+  if (mounted) {
+    setState(() {
+      _profile  = profile;
+      _isLoading = false;
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            _buildHeaderProfile(context), // Header diperbarui dengan gradasi
+            _buildHeaderProfile(context),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               child: Column(
@@ -96,7 +108,6 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                     ],
                   ),
                   const SizedBox(height: 25),
-                  // --- TAMBAHKAN SECTION REPUTATION DI SINI ---
                   _buildMenuSection(
                     title: "Reputation",
                     items: [
@@ -105,10 +116,8 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                         Icons.star_rounded,
                         "Client Reviews",
                         "See what they said about your class!",
-                        const Color(
-                          0xFFE9C46A,
-                        ), // Warna Gold Muted (50% intensity)
-                        "/client_reviews", // Ganti dengan rute ulasanmu nanti
+                        const Color(0xFFE9C46A),
+                        AppRoutes.clientReviews,
                       ),
                     ],
                   ),
@@ -123,49 +132,13 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
                         "Update photo & CV",
                         const Color(0xFF5B62CC),
                         AppRoutes.editProfile,
-                        // TAMBAHKAN ONTAP INI:
                         onTap: () async {
-                          final result = await Navigator.pushNamed(
+                          await Navigator.pushNamed(
                             context,
                             AppRoutes.editProfile,
-                            arguments: {
-                              'name': name,
-                              'username': username,
-                              'headline': headline,
-                              'bio': bio,
-                              'phone': phone,
-                              'address': address,
-                              'imageBytes': profileImageBytes,
-                              'cvFileName':
-                                  cvFileName, // Kirim CV yang ada sekarang
-                              'cvDocumentBytes': cvDocumentBytes,
-                              'category': category,
-                              'university': university,
-                            },
                           );
-
-                          // Cek di DEBUG CONSOLE VS Code saat kamu klik Save!
-                          print("Data dari halaman Edit: $result");
-
-                          if (result != null &&
-                              result is Map<String, dynamic>) {
-                            setState(() {
-                              name = result['name'] ?? name;
-                              username = result['username'] ?? username;
-                              headline = result['headline'] ?? headline;
-                              bio = result['bio'] ?? bio;
-                              phone =
-                                  result['phone'] ??
-                                  phone; // <--- Tambahkan ini
-                              address = result['address'] ?? address;
-                              profileImageBytes = result['imageBytes'];
-                              cvFileName =
-                                  result['cvFileName']; // Terima CV baru
-                              cvDocumentBytes = result['cvDocumentBytes'];
-                              category = result['category'];
-                              university = result['university'];
-                            });
-                          }
+                          // Reload setelah kembali dari edit
+                          _loadProfile();
                         },
                       ),
                       _buildMenuItem(
@@ -189,11 +162,12 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
   }
 
   Widget _buildHeaderProfile(BuildContext context) {
+    final profile = _profile;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 50, 24, 30),
       decoration: const BoxDecoration(
-        // GRADIENT BACKGROUND
         gradient: LinearGradient(
           colors: [Color(0xFFCDB4DB), Color(0xFFA7C7E7)],
           begin: Alignment.topLeft,
@@ -235,21 +209,28 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 3),
-              image: profileImageBytes != null
-                  ? DecorationImage(
-                      image: MemoryImage(profileImageBytes!),
+            ),
+            child: ClipOval(
+              child: profile?.fotoUrl != null && profile!.fotoUrl!.isNotEmpty
+                  ? Image.network(
+                      profile.fotoUrl!,
                       fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/mentor.png',
+                        fit: BoxFit.cover,
+                      ),
                     )
-                  : const DecorationImage(
-                      image: AssetImage('assets/mentor.png'),
-                      fit: BoxFit.cover,
-                    ),
+                  : Image.asset('assets/mentor.png', fit: BoxFit.cover),
             ),
           ),
+
           const SizedBox(height: 12),
 
+          // NAMA
           Text(
-            name,
+            profile?.namaLengkap.isNotEmpty == true
+                ? profile!.namaLengkap
+                : 'Mentor',
             style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 22,
@@ -257,8 +238,12 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
               color: Colors.white,
             ),
           ),
+
+          // USERNAME
           Text(
-            username,
+            profile?.username.isNotEmpty == true
+                ? '@${profile!.username}'
+                : '',
             style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 13,
@@ -266,41 +251,42 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          Text(
-            headline,
-            style: const TextStyle(
-              fontFamily: 'Nunito',
-              fontSize: 13,
-              color: Colors.white70,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
 
           const SizedBox(height: 15),
 
-          // CHIP UNIVERSITAS & KATEGORI
+          // CHIP UNIVERSITAS & KEAHLIAN
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildSmallInfoChip(Icons.school_rounded, university),
-              const SizedBox(width: 10),
-              _buildSmallInfoChip(Icons.verified_user_rounded, category),
+              if (profile?.universitas.isNotEmpty == true)
+                _buildSmallInfoChip(
+                  Icons.school_rounded,
+                  profile!.universitas,
+                ),
+              if (profile?.universitas.isNotEmpty == true &&
+                  profile?.keahlian.isNotEmpty == true)
+                const SizedBox(width: 10),
+              if (profile?.keahlian.isNotEmpty == true)
+                _buildSmallInfoChip(
+                  Icons.verified_user_rounded,
+                  profile!.keahlian,
+                ),
             ],
           ),
 
           const SizedBox(height: 15),
 
-          // CAPTION BIO (Sekarang menggunakan putih transparan agar senada)
+          // BIO
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(
-                0.2,
-              ), // Mengganti grey menjadi white transparan
+              color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              bio,
+              profile?.bio.isNotEmpty == true
+                  ? profile!.bio
+                  : 'No bio yet.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontFamily: 'Nunito',
@@ -316,7 +302,6 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
     );
   }
 
-  // --- HELPER UNTUK MEMBUAT CHIP INFO (Taruh di bawah _buildHeaderProfile) ---
   Widget _buildSmallInfoChip(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -365,7 +350,10 @@ class _MentorMainProfilePageState extends State<MentorMainProfilePage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+              ),
             ],
           ),
           child: Column(children: items),
