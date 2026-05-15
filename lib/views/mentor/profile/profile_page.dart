@@ -161,8 +161,13 @@ Future<void> _loadProfile() async {
     );
   }
 
-  Widget _buildHeaderProfile(BuildContext context) {
+    Widget _buildHeaderProfile(BuildContext context) {
     final profile = _profile;
+
+    final ImageProvider? imageProvider =
+        (profile?.fotoUrl != null && profile!.fotoUrl!.isNotEmpty)
+            ? NetworkImage(profile.fotoUrl!)
+            : null;
 
     return Container(
       width: double.infinity,
@@ -202,7 +207,7 @@ Future<void> _loadProfile() async {
             ],
           ),
 
-          // FOTO PROFIL
+          // FOTO PROFIL (UPDATED PATTERN)
           Container(
             width: 100,
             height: 100,
@@ -210,17 +215,16 @@ Future<void> _loadProfile() async {
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 3),
             ),
-            child: ClipOval(
-              child: profile?.fotoUrl != null && profile!.fotoUrl!.isNotEmpty
-                  ? Image.network(
-                      profile.fotoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Image.asset(
-                        'assets/mentor.png',
-                        fit: BoxFit.cover,
-                      ),
+            child: CircleAvatar(
+              backgroundColor: Colors.grey.shade200,
+              backgroundImage: imageProvider,
+              child: imageProvider == null
+                  ? const Icon(
+                      Icons.person,
+                      size: 40,
+                      color: Colors.grey,
                     )
-                  : Image.asset('assets/mentor.png', fit: BoxFit.cover),
+                  : null,
             ),
           ),
 
@@ -230,7 +234,7 @@ Future<void> _loadProfile() async {
           Text(
             profile?.namaLengkap.isNotEmpty == true
                 ? profile!.namaLengkap
-                : 'Mentor',
+                : '',
             style: const TextStyle(
               fontFamily: 'Nunito',
               fontSize: 22,
