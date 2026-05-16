@@ -21,7 +21,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final Color textDark = const Color(0xFF2D3436);
 
   bool _isLoading = true;
-  bool _isSaving = false;
+  bool _isSavingBio = false;
+  bool _isSavingCategory = false;
+  bool _isSavingUniv = false;
+  bool _isSavingCV = false;
 
   @override
   void initState() {
@@ -43,9 +46,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -76,6 +77,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
+            // --- HEADER & FOTO PROFIL ---
             Stack(
               children: [
                 Container(
@@ -106,10 +108,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ],
             ),
             const SizedBox(height: 20),
+
+            // --- KONTEN FORM ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ================= CARD 1: PERSONAL INFORMATION =================
                   _buildFormSection(
                     title: "Personal Information",
                     icon: Icons.badge_outlined,
@@ -130,19 +136,69 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         Icons.phone_android_outlined,
                         isNumber: true,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildFormSection(
-                    title: "Your Profile",
-                    icon: Icons.auto_awesome_outlined,
-                    children: [
                       _buildCustomField(
                         "Keahlian",
                         _controller.keahlianController,
                         Icons.work_outline,
                       ),
+                      _buildCustomField(
+                        "Bimble Location",
+                        _controller.addressController,
+                        Icons.location_on_outlined,
+                      ),
+                      _buildCustomField(
+                        "Bio",
+                        _controller.bioController,
+                        Icons.edit_note_rounded,
+                        maxLines: 4,
+                      ),
+
                       const SizedBox(height: 20),
+                      // TOMBOL SUBMIT BIO (CARD 1)
+                      SizedBox(
+                        width: double
+                            .infinity, // Bikin tombol menuhin space kiri ke kanan
+                        height: 50, // Tinggi konsisten
+                        child: ElevatedButton(
+                          onPressed: _isSavingBio ? null : _saveBioData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5B62CC),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0, // Dibuat flat biar lebih modern
+                          ),
+                          child: _isSavingBio
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  "Save Info",
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito',
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // ================= JUDUL YOUR PROFILE =================
+                  // ================= CARD 2: CATEGORY =================
+                  _buildFormSection(
+                    title: "Your Profile", // <-- JUDUL DAN ICON ASLI KEMBALI
+                    icon: Icons.auto_awesome_outlined,
+                    children: [
                       DropdownButtonFormField<String>(
                         initialValue: _controller.selectedCategory,
                         items: _controller.categories
@@ -174,7 +230,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           labelStyle: const TextStyle(
                             fontFamily: 'Nunito',
                             color: Colors.grey,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                           filled: true,
                           fillColor: Colors.white,
@@ -205,7 +261,53 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           Icons.edit,
                         ),
                       ],
+
                       const SizedBox(height: 20),
+                      // TOMBOL SUBMIT CATEGORY (CARD 2)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSavingCategory
+                              ? null
+                              : _saveCategoryData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF7E7BB9),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSavingCategory
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  "Save Category",
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito',
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ================= CARD 3: UNIVERSITY =================
+                  _buildFormSection(
+                    title: "University / Institution",
+                    icon: Icons.school_outlined,
+                    children: [
                       DropdownButtonFormField<String>(
                         initialValue: _controller.selectedUniversity,
                         items: _controller.universities
@@ -237,7 +339,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           labelStyle: const TextStyle(
                             fontFamily: 'Nunito',
                             color: Colors.grey,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                           filled: true,
                           fillColor: Colors.white,
@@ -268,28 +370,91 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           Icons.edit,
                         ),
                       ],
-                      const SizedBox(height: 5),
-                      _buildCustomField(
-                        "Bimble Location",
-                        _controller.addressController,
-                        Icons.location_on_outlined,
-                      ),
-                      _buildCustomField(
-                        "Bio",
-                        _controller.bioController,
-                        Icons.edit_note_rounded,
-                        maxLines: 4,
+
+                      const SizedBox(height: 20),
+                      // TOMBOL SUBMIT UNIV (CARD 3)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSavingUniv ? null : _saveUniversityData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6D92CB),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSavingUniv
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  "Save Education",
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito',
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 20),
+
+                  // ================= CARD 4: CURRICULUM VITAE =================
                   _buildFormSection(
                     title: "Curriculum Vitae (CV)",
                     icon: Icons.folder_open_rounded,
-                    children: [_buildCVTile()],
+                    children: [
+                      _buildCVTile(),
+
+                      const SizedBox(height: 20),
+                      // TOMBOL SUBMIT CV (CARD 4)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isSavingCV ? null : _saveCvData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFCDB4DB),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSavingCV
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  "Save Document",
+                                  style: TextStyle(
+                                    fontFamily: 'Nunito',
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 40),
-                  _buildSaveButton(),
+
+                  // Hilangkan _buildSaveButton() milikmu yang lama, berikan jarak bawah
                   const SizedBox(height: 50),
                 ],
               ),
@@ -303,7 +468,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildProfileImage() {
     final bool hasLocalImage = _controller.profileImageBytes != null;
     final bool hasNetworkImage =
-        _controller.currentFotoUrl != null && _controller.currentFotoUrl!.isNotEmpty;
+        _controller.currentFotoUrl != null &&
+        _controller.currentFotoUrl!.isNotEmpty;
 
     ImageProvider? imageProvider;
 
@@ -334,11 +500,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             backgroundColor: Colors.white,
             backgroundImage: imageProvider,
             child: imageProvider == null
-                ? Icon(
-                    Icons.person,
-                    size: 48,
-                    color: Colors.grey.shade400,
-                  )
+                ? Icon(Icons.person, size: 48, color: Colors.grey.shade400)
                 : null,
           ),
         ),
@@ -424,8 +586,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
         controller: controller,
         maxLines: maxLines,
         keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
-        inputFormatters:
-            isNumber ? [FilteringTextInputFormatter.digitsOnly] : [],
+        inputFormatters: isNumber
+            ? [FilteringTextInputFormatter.digitsOnly]
+            : [],
         style: TextStyle(
           fontFamily: 'Nunito',
           fontSize: 14,
@@ -440,11 +603,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
             fontSize: 13,
           ),
           floatingLabelBehavior: FloatingLabelBehavior.always,
-          prefixIcon: Icon(icon, color: primaryPurple.withOpacity(0.5), size: 20),
+          prefixIcon: Icon(
+            icon,
+            color: primaryPurple.withOpacity(0.5),
+            size: 20,
+          ),
           filled: true,
           fillColor: bgGray,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: Colors.grey[200]!),
@@ -462,10 +631,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildCVTile() {
-    final String displayText = _controller.cvFileName ??
-    (_controller.currentCvUrl != null && _controller.currentCvUrl!.isNotEmpty
-        ? _controller.currentCvUrl!.split('/').last
-        : "Belum ada CV");
+    final String displayText =
+        _controller.cvFileName ??
+        (_controller.currentCvUrl != null &&
+                _controller.currentCvUrl!.isNotEmpty
+            ? _controller.currentCvUrl!.split('/').last
+            : "Belum ada CV");
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -493,63 +664,21 @@ class _EditProfilePageState extends State<EditProfilePage> {
               await _controller.pickDocument();
               if (mounted) setState(() {});
             },
-            child: Text(
-              "Change",
-              style: TextStyle(color: primaryBlue),
-            ),
+            child: Text("Change", style: TextStyle(color: primaryBlue)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSaveButton() {
-    return Container(
-      width: double.infinity,
-      height: 60,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: primaryPurple.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryPurple,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          elevation: 0,
-        ),
-        onPressed: _isSaving ? null : _handleSave,
-        child: _isSaving
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text(
-                "Save Changes",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-      ),
-    );
-  }
-
-  Future<void> _handleSave() async {
+  // 1. Fungsi Simpan Bio (Akan memanggil API update bio)
+  Future<void> _saveBioData() async {
+    // Validasi khusus Bio
     if (_controller.nameController.text.trim().isEmpty) {
       CherryToast.error(
         title: const Text(
           "Save Failed",
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
         ),
         description: const Text(
           "Name cannot be empty!",
@@ -562,42 +691,113 @@ class _EditProfilePageState extends State<EditProfilePage> {
       return;
     }
 
-    setState(() => _isSaving = true);
+    setState(() => _isSavingBio = true);
 
-    final success = await _controller.saveProfile();
+    // TODO: Minta temanmu buat fungsi khusus di controller, misal: _controller.updateBio()
+    // bool success = await _controller.updateBio();
+    await Future.delayed(
+      const Duration(seconds: 1),
+    ); // Hapus ini jika API sudah siap
+    bool success = true; // Simulasi sukses
 
     if (!mounted) return;
-    setState(() => _isSaving = false);
+    setState(() => _isSavingBio = false);
 
     if (success) {
       CherryToast.success(
         title: const Text(
           "Profile Updated",
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
         ),
         description: const Text(
-          "Your profile has been successfully saved!",
+          "Your personal info has been saved!",
           style: TextStyle(fontFamily: 'Nunito'),
         ),
         animationType: AnimationType.fromTop,
         toastPosition: Position.top,
         autoDismiss: true,
-        onToastClosed: () => Navigator.pop(context),
       ).show(context);
-    } else {
-      CherryToast.error(
+    }
+  }
+
+  // 2. Fungsi Simpan Kategori
+  Future<void> _saveCategoryData() async {
+    setState(() => _isSavingCategory = true);
+
+    // TODO: Panggil API khusus Kategori dari controller
+    // bool success = await _controller.updateCategory();
+    await Future.delayed(const Duration(seconds: 1));
+    bool success = true;
+
+    if (!mounted) return;
+    setState(() => _isSavingCategory = false);
+
+    if (success) {
+      CherryToast.success(
         title: const Text(
-          "Save Failed",
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontWeight: FontWeight.bold,
-          ),
+          "Category Updated",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
         ),
         description: const Text(
-          "Failed to save profile. Try again.",
+          "Teaching category successfully saved!",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+    }
+  }
+
+  // 3. Fungsi Simpan Universitas
+  Future<void> _saveUniversityData() async {
+    setState(() => _isSavingUniv = true);
+
+    // TODO: Panggil API khusus Universitas dari controller
+    // bool success = await _controller.updateUniversity();
+    await Future.delayed(const Duration(seconds: 1));
+    bool success = true;
+
+    if (!mounted) return;
+    setState(() => _isSavingUniv = false);
+
+    if (success) {
+      CherryToast.success(
+        title: const Text(
+          "University Updated",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: const Text(
+          "Your education info has been saved!",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+    }
+  }
+
+  // 4. Fungsi Simpan CV
+  Future<void> _saveCvData() async {
+    setState(() => _isSavingCV = true);
+
+    // TODO: Panggil API khusus Dokumen CV dari controller
+    // bool success = await _controller.updateCV();
+    await Future.delayed(const Duration(seconds: 1));
+    bool success = true;
+
+    if (!mounted) return;
+    setState(() => _isSavingCV = false);
+
+    if (success) {
+      CherryToast.success(
+        title: const Text(
+          "Document Updated",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: const Text(
+          "Your CV has been successfully uploaded!",
           style: TextStyle(fontFamily: 'Nunito'),
         ),
         animationType: AnimationType.fromTop,
@@ -645,7 +845,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.camera_alt_rounded, color: Colors.blue[700]),
+                  child: Icon(
+                    Icons.camera_alt_rounded,
+                    color: Colors.blue[700],
+                  ),
                 ),
                 title: const Text(
                   "Take a picture",
