@@ -34,7 +34,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _loadData() async {
     await _controller.loadProfile();
-    if (mounted) setState(() => _isLoading = false);
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -137,11 +142,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         isNumber: true,
                       ),
                       _buildCustomField(
-                        "Keahlian",
-                        _controller.keahlianController,
-                        Icons.work_outline,
-                      ),
-                      _buildCustomField(
                         "Bimble Location",
                         _controller.addressController,
                         Icons.location_on_outlined,
@@ -200,67 +200,80 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: Icons.auto_awesome_outlined,
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: _controller.selectedCategory,
-                        items: _controller.categories
-                            .map(
-                              (cat) => DropdownMenuItem(
-                                value: cat,
-                                child: Text(
-                                  cat,
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito',
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
+                      isExpanded: true,
+                      value: _controller.categories.contains(
+                              _controller.selectedCategory,
                             )
-                            .toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _controller.selectedCategory = val;
-                          });
-                        },
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
+                          ? _controller.selectedCategory
+                          : null,
+
+                      items: _controller.categories.map((cat) {
+
+                        return DropdownMenuItem<String>(
+                          value: cat,
+                          child: Text(
+                            cat,
+                            style: const TextStyle(
+                              fontFamily: 'Nunito',
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        );
+
+                      }).toList(),
+
+                      onChanged: (val) {
+                        setState(() {
+                          _controller.selectedCategory = val;
+                          // reset input manual
+                          if (val != 'Lainnya') {
+                            _controller.categoryController.clear();
+                          }
+                        });
+                      },
+
+                      decoration: InputDecoration(
+                        labelText: "Teaching Category",
+                        labelStyle: const TextStyle(
+                          fontFamily: 'Nunito',
                           color: Colors.grey,
+                          fontSize: 12,
                         ),
-                        decoration: InputDecoration(
-                          labelText: "Teaching Category",
-                          labelStyle: const TextStyle(
-                            fontFamily: 'Nunito',
-                            color: Colors.grey,
-                            fontSize: 12,
+                        filled: true,
+                        fillColor: Colors.white,
+
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+
+                        prefixIcon: Container(
+                          margin: const EdgeInsets.all(8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF7E7BB9)
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
                           ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                          prefixIcon: Container(
-                            margin: const EdgeInsets.all(8),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF7E7BB9).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.category_rounded,
-                              color: Color(0xFF7E7BB9),
-                              size: 20,
-                            ),
+                          child: const Icon(
+                            Icons.category_rounded,
+                            color: Color(0xFF7E7BB9),
+                            size: 20,
                           ),
                         ),
                       ),
-                      if (_controller.selectedCategory == "Lainnya") ...[
-                        const SizedBox(height: 20),
-                        _buildCustomField(
-                          "Enter specific category",
-                          _controller.categoryController,
-                          Icons.edit,
-                        ),
-                      ],
+                    ),
+                      if (_controller.selectedCategory == 'Lainnya') ...[
+
+                      const SizedBox(height: 20),
+
+                      _buildCustomField(
+                        "Enter specific category",
+                        _controller.categoryController,
+                        Icons.edit,
+                      ),
+                    ],
 
                       const SizedBox(height: 20),
                       // TOMBOL SUBMIT CATEGORY (CARD 2)
@@ -309,31 +322,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     icon: Icons.school_outlined,
                     children: [
                       DropdownButtonFormField<String>(
-                        initialValue: _controller.selectedUniversity,
-                        items: _controller.universities
-                            .map(
-                              (uni) => DropdownMenuItem(
-                                value: uni,
-                                child: Text(
-                                  uni,
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito',
-                                    fontSize: 14,
-                                    color: Colors.black87,
-                                  ),
-                                ),
+                        isExpanded: true,
+                        value: _controller.universities.contains(
+                                _controller.selectedUniversity,
+                              )
+                            ? _controller.selectedUniversity
+                            : null,
+
+                        items: _controller.universities.map((uni) {
+
+                          return DropdownMenuItem<String>(
+                            value: uni,
+                            child: Text(
+                              uni,
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
+                                fontSize: 14,
+                                color: Colors.black87,
                               ),
-                            )
-                            .toList(),
+                            ),
+                          );
+
+                        }).toList(),
+
                         onChanged: (val) {
-                          setState(() {
-                            _controller.selectedUniversity = val;
-                          });
-                        },
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Colors.grey,
-                        ),
+                        setState(() {
+                          _controller.selectedUniversity = val;
+                          if (val != 'Lainnya') {
+                            _controller.universityController.clear();
+                          }
+                        });
+                      },
+
                         decoration: InputDecoration(
                           labelText: "University / Campus",
                           labelStyle: const TextStyle(
@@ -343,15 +363,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                           filled: true,
                           fillColor: Colors.white,
+
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
                           ),
+
                           prefixIcon: Container(
                             margin: const EdgeInsets.all(8),
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF7E7BB9).withOpacity(0.1),
+                              color: const Color(0xFF7E7BB9)
+                                  .withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
@@ -362,7 +385,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           ),
                         ),
                       ),
-                      if (_controller.selectedUniversity == "Lainnya") ...[
+                      if (_controller.selectedUniversity == 'Lainnya') ...[
                         const SizedBox(height: 20),
                         _buildCustomField(
                           "Enter university name",
@@ -672,140 +695,98 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   // 1. Fungsi Simpan Bio (Akan memanggil API update bio)
-  Future<void> _saveBioData() async {
-    // Validasi khusus Bio
-    if (_controller.nameController.text.trim().isEmpty) {
-      CherryToast.error(
-        title: const Text(
-          "Save Failed",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
-        ),
-        description: const Text(
-          "Name cannot be empty!",
-          style: TextStyle(fontFamily: 'Nunito'),
-        ),
-        animationType: AnimationType.fromTop,
-        toastPosition: Position.top,
-        autoDismiss: true,
-      ).show(context);
-      return;
-    }
+      Future<void> _saveBioData() async {
 
-    setState(() => _isSavingBio = true);
+        if (_controller.nameController.text
+            .trim()
+            .isEmpty) {
 
-    // TODO: Minta temanmu buat fungsi khusus di controller, misal: _controller.updateBio()
-    // bool success = await _controller.updateBio();
-    await Future.delayed(
-      const Duration(seconds: 1),
-    ); // Hapus ini jika API sudah siap
-    bool success = true; // Simulasi sukses
+          CherryToast.error(
+            title: const Text("Save Failed"),
+            description: const Text(
+              "Name cannot be empty!",
+            ),
+          ).show(context);
 
-    if (!mounted) return;
-    setState(() => _isSavingBio = false);
+          return;
+        }
 
-    if (success) {
-      CherryToast.success(
-        title: const Text(
-          "Profile Updated",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
-        ),
-        description: const Text(
-          "Your personal info has been saved!",
-          style: TextStyle(fontFamily: 'Nunito'),
-        ),
-        animationType: AnimationType.fromTop,
-        toastPosition: Position.top,
-        autoDismiss: true,
-      ).show(context);
-    }
-  }
+        setState(() => _isSavingBio = true);
+
+        bool success =
+            await _controller.saveBioData();
+
+        if (!mounted) return;
+
+        setState(() => _isSavingBio = false);
+
+        if (success) {
+
+          CherryToast.success(
+            title: const Text("Profile Updated"),
+            description: const Text(
+              "Your personal info has been saved!",
+            ),
+          ).show(context);
+        }
+      }
 
   // 2. Fungsi Simpan Kategori
-  Future<void> _saveCategoryData() async {
-    setState(() => _isSavingCategory = true);
+      Future<void> _saveCategoryData() async {
+      setState(() => _isSavingCategory = true);
 
-    // TODO: Panggil API khusus Kategori dari controller
-    // bool success = await _controller.updateCategory();
-    await Future.delayed(const Duration(seconds: 1));
-    bool success = true;
+      bool success =
+          await _controller.saveCategory();
 
-    if (!mounted) return;
-    setState(() => _isSavingCategory = false);
-
-    if (success) {
-      CherryToast.success(
-        title: const Text(
-          "Category Updated",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
-        ),
-        description: const Text(
-          "Teaching category successfully saved!",
-          style: TextStyle(fontFamily: 'Nunito'),
-        ),
-        animationType: AnimationType.fromTop,
-        toastPosition: Position.top,
-        autoDismiss: true,
-      ).show(context);
+      if (!mounted) return;
+      setState(() => _isSavingCategory = false);
+      if (success) {
+        CherryToast.success(
+          title: const Text("Category Updated"),
+          description: const Text(
+            "Teaching category successfully saved!",
+          ),
+        ).show(context);
+      }
     }
-  }
 
   // 3. Fungsi Simpan Universitas
-  Future<void> _saveUniversityData() async {
-    setState(() => _isSavingUniv = true);
+        Future<void> _saveUniversityData() async {
+        setState(() => _isSavingUniv = true);
 
-    // TODO: Panggil API khusus Universitas dari controller
-    // bool success = await _controller.updateUniversity();
-    await Future.delayed(const Duration(seconds: 1));
-    bool success = true;
+        bool success =
+            await _controller.saveUniversity();
 
-    if (!mounted) return;
-    setState(() => _isSavingUniv = false);
-
-    if (success) {
-      CherryToast.success(
-        title: const Text(
-          "University Updated",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
-        ),
-        description: const Text(
-          "Your education info has been saved!",
-          style: TextStyle(fontFamily: 'Nunito'),
-        ),
-        animationType: AnimationType.fromTop,
-        toastPosition: Position.top,
-        autoDismiss: true,
-      ).show(context);
-    }
-  }
+        if (!mounted) return;
+        setState(() => _isSavingUniv = false);
+        if (success) {
+          CherryToast.success(
+            title: const Text("University Updated"),
+            description: const Text(
+              "Your education info has been saved!",
+            ),
+          ).show(context);
+        }
+      }
 
   // 4. Fungsi Simpan CV
-  Future<void> _saveCvData() async {
-    setState(() => _isSavingCV = true);
+    Future<void> _saveCvData() async {
+      setState(() => _isSavingCV = true);
 
-    // TODO: Panggil API khusus Dokumen CV dari controller
-    // bool success = await _controller.updateCV();
-    await Future.delayed(const Duration(seconds: 1));
-    bool success = true;
+      bool success =
+          await _controller.saveCvData();
 
-    if (!mounted) return;
-    setState(() => _isSavingCV = false);
-
-    if (success) {
-      CherryToast.success(
-        title: const Text(
-          "Document Updated",
-          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
-        ),
-        description: const Text(
-          "Your CV has been successfully uploaded!",
-          style: TextStyle(fontFamily: 'Nunito'),
-        ),
-        animationType: AnimationType.fromTop,
-        toastPosition: Position.top,
-        autoDismiss: true,
-      ).show(context);
+      if (!mounted) return;
+      setState(() => _isSavingCV = false);
+      if (success) {
+        CherryToast.success(
+          title: const Text("Document Updated"),
+          description: const Text(
+            "Your CV has been successfully uploaded!",
+          ),
+        ).show(context);
+      }
     }
-  }
 
   void _showImagePickerBottomSheet(BuildContext context) {
     showModalBottomSheet(
