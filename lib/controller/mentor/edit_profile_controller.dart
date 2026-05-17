@@ -183,9 +183,16 @@ Future<void> loadProfile() async {
     try {
       if (appUserId == null) return false;
 
-      // Ambil email dari auth user
       final authUser = SupabaseService.currentUser;
       final email = authUser?.email ?? '';
+
+      // Upload foto dulu kalau ada perubahan
+      if (profileImageBytes != null) {
+        final uploadedUrl = await uploadProfileImage();
+        if (uploadedUrl != null) {
+          currentFotoUrl = uploadedUrl; // update url lokal
+        }
+      }
 
       final existing = await SupabaseService.db
           .from('bio_profil')
@@ -195,11 +202,11 @@ Future<void> loadProfile() async {
 
       final data = {
         'user_id'  : appUserId,
-        'email'    : email,        // <-- tambah ini
+        'email'    : email,
         'nomor_hp' : phoneController.text.trim(),
         'alamat'   : addressController.text.trim(),
         'bio'      : bioController.text.trim(),
-        'foto_url' : currentFotoUrl,
+        'foto_url' : currentFotoUrl,  // url hasil upload
       };
 
       if (existing == null) {
@@ -217,6 +224,50 @@ Future<void> loadProfile() async {
     } catch (e) {
       debugPrint("SAVE BIO ERROR => $e");
       return false;
+    }
+  }
+
+  // =========================================================
+  // LOAD Profile Image
+  // =========================================================
+    Future<String?> uploadProfileImage() async {
+    debugPrint("=== UPLOAD IMAGE START ===");
+    debugPrint("profileImageBytes: ${profileImageBytes?.length} bytes");
+    debugPrint("appUserId: $appUserId");
+
+    try {
+      if (profileImageBytes == null) {
+        debugPrint("NO IMAGE BYTES, return currentFotoUrl: $currentFotoUrl");
+        return currentFotoUrl;
+      }
+
+      final fileName = 'avatar_${appUserId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final filePath = '$appUserId/$fileName';
+      debugPrint("FILE NAME => $fileName");
+      debugPrint("FILE PATH => $filePath");
+
+      await SupabaseService.db.storage
+          .from('foto-profil')
+          .uploadBinary(
+            filePath,
+            profileImageBytes!,
+          );
+
+      debugPrint("UPLOAD BINARY SUCCESS");
+
+      final publicUrl = SupabaseService.db.storage
+          .from('foto-profil')
+          .getPublicUrl(filePath);
+
+      debugPrint("PUBLIC URL => $publicUrl");
+      debugPrint("=== UPLOAD IMAGE DONE ===");
+
+      return publicUrl;
+
+    } catch (e) {
+      debugPrint("=== UPLOAD IMAGE ERROR ===");
+      debugPrint("ERROR => $e");
+      return null;
     }
   }
 
