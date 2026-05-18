@@ -98,11 +98,7 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (cvStatus == null) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/mentor_cv',
-          (_) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/mentor_cv', (_) => false);
       } else if (cvStatus == 'approved') {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -110,18 +106,10 @@ class _LoginPageState extends State<LoginPage> {
           (_) => false,
         );
       } else {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/mentor_cv',
-          (_) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/mentor_cv', (_) => false);
       }
     } else {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/landing',
-        (_) => false,
-      );
+      Navigator.pushNamedAndRemoveUntil(context, '/landing', (_) => false);
     }
 
     setState(() {
@@ -138,20 +126,16 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFCDB4DB),
-              Color(0xFFF5B3CE),
-              Color(0xFFA7C7E7),
-            ],
+            colors: [Color(0xFFCDB4DB), Color(0xFFF5B3CE), Color(0xFFA7C7E7)],
           ),
         ),
         child: Column(
           children: [
-            const SizedBox(height: 60),
+            const SizedBox(height: 50),
 
             _buildBackButton(),
 
-            const SizedBox(height: 50),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.30),
 
             Expanded(
               child: Container(
@@ -198,7 +182,8 @@ class _LoginPageState extends State<LoginPage> {
                         isPassword: true,
                       ),
 
-                      _buildForgotSection(),
+                      // REVISI: Memanggil fungsi yang sudah dihilangkan forgot password-nya
+                      _buildRememberSection(),
 
                       const SizedBox(height: 30),
 
@@ -246,10 +231,7 @@ class _LoginPageState extends State<LoginPage> {
         child: CircleAvatar(
           backgroundColor: Colors.white24,
           child: IconButton(
-            icon: const Icon(
-              Icons.arrow_back,
-              color: Colors.black,
-            ),
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
             onPressed: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
@@ -284,43 +266,59 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ================= REMEMBER =================
-  Widget _buildForgotSection() {
+  // REVISI: Ganti fungsi _buildForgotSection() kamu dengan ini (Forgot Password Dihapus)
+  Widget _buildRememberSection() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.start, // Diubah agar rata ke kiri
       children: [
-        Row(
-          children: [
-            Checkbox(
-              value: _rememberMe,
-              shape: const CircleBorder(),
-              onChanged: (val) {
-                setState(() {
-                  _rememberMe = val!;
-                });
-              },
-            ),
-            const Text("Remember me"),
-          ],
+        Checkbox(
+          value: _rememberMe,
+          activeColor: Colors.blue,
+          shape: const CircleBorder(),
+          onChanged: (val) {
+            setState(() {
+              _rememberMe = val!;
+            });
+          },
         ),
-        TextButton(
-          onPressed: () {},
-          child: const Text("Forgot password?"),
-        ),
+        const Text("Remember me"),
       ],
     );
   }
 
   // ================= LOGIN =================
   Widget _buildLoginButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
       height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF8B5C5), Color(0xFFB5D8F7)],
+        ),
+      ),
       child: ElevatedButton(
         onPressed: _isLoading ? null : _login,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              Colors.transparent, // Jadikan transparan agar gradient terlihat
+          shadowColor: Colors.transparent, // Hilangkan bayangan bawaan
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              15,
+            ), // Samakan dengan radius Container
+          ),
+        ),
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text("Log In"),
+            : const Text(
+                "Log In",
+                style: TextStyle(
+                  color: Colors.white, // <-- Teks Log In jadi putih
+                  fontSize: 18, // <-- Ukuran disamakan dengan tombol Sign Up
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
