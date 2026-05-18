@@ -12,9 +12,8 @@ class _BookingRequestPageState extends State<BookingRequestPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // --- STATE UNTUK FITUR SEARCH, FILTER, & SORT ---
+  // --- STATE UNTUK FITUR SEARCH & SORT (Filter Kategori Dihapus) ---
   String _searchQuery = "";
-  String _selectedCategory = "All"; // Default: Menampilkan semua kategori
   bool _isAscending = true;
 
   final Color primary = const Color(0xFF6C63FF);
@@ -54,7 +53,6 @@ class _BookingRequestPageState extends State<BookingRequestPage>
       "status": "Accepted",
       "color": const Color(0xFFA7C7E7),
     },
-    // --- INI DATA DUMMY REJECTED BARU ---
     {
       "name": "Riko Saputra",
       "cat": "Mobile Dev",
@@ -73,7 +71,7 @@ class _BookingRequestPageState extends State<BookingRequestPage>
     _tabController = TabController(length: 3, vsync: this);
   }
 
-  // --- LOGIKA UTAMA: SEARCHING, FILTERING, & SORTING ---
+  // --- LOGIKA UTAMA: SEARCHING & SORTING ---
   List<Map<String, dynamic>> _getFilteredList(String status) {
     // 1. Filter berdasarkan status Tab (Pending/Accepted/Rejected)
     var list = _allRequests.where((item) => item['status'] == status).toList();
@@ -85,12 +83,7 @@ class _BookingRequestPageState extends State<BookingRequestPage>
       }).toList();
     }
 
-    // 3. Filter berdasarkan Kategori (Statistics, Web Dev, dll)
-    if (_selectedCategory != "All") {
-      list = list.where((item) => item['cat'] == _selectedCategory).toList();
-    }
-
-    // 4. Sorting berdasarkan Nama (A-Z atau Z-A)
+    // 3. Sorting berdasarkan Nama (A-Z atau Z-A)
     list.sort((a, b) {
       int cmp = a['name'].compareTo(b['name']);
       return _isAscending ? cmp : -cmp;
@@ -119,7 +112,7 @@ class _BookingRequestPageState extends State<BookingRequestPage>
       ),
       body: Column(
         children: [
-          // --- BARIS SEARCH, FILTER KATEGORI, & SORT ---
+          // --- BARIS SEARCH & SORT ---
           _buildActionControlBar(),
 
           // --- TABBAR MODERN ---
@@ -206,31 +199,6 @@ class _BookingRequestPageState extends State<BookingRequestPage>
                   prefixIcon: Icon(Icons.search_rounded, color: primary),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 10),
-
-          // Tombol Filter Kategori (Menu Popup)
-          PopupMenuButton<String>(
-            onSelected: (value) => setState(() => _selectedCategory = value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: "All", child: Text("All Categories")),
-              const PopupMenuItem(
-                value: "Statistics",
-                child: Text("Statistics"),
-              ),
-              const PopupMenuItem(
-                value: "Web Development",
-                child: Text("Web Dev"),
-              ),
-              const PopupMenuItem(value: "UI/UX Design", child: Text("UI/UX")),
-              const PopupMenuItem(value: "Database", child: Text("Database")),
-            ],
-            child: _buildIconButton(
-              _selectedCategory == "All"
-                  ? Icons.filter_list_rounded
-                  : Icons.filter_alt_rounded,
-              _selectedCategory != "All",
             ),
           ),
           const SizedBox(width: 10),
