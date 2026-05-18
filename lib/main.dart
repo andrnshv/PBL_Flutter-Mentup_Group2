@@ -33,6 +33,7 @@ import 'views/mentor/booking/booking_detail_page.dart';
 import 'views/mentor/booking/booking_request_page.dart';
 import 'views/mentor/review/teaching_proof_page.dart';
 import 'views/mentor/review/clients_review_page.dart';
+import 'views/mentor/history/mentor_transactions_page.dart';
 
 // ROUTES
 import 'routes/app_routes.dart';
@@ -45,9 +46,7 @@ void main() async {
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-    authOptions: const FlutterAuthClientOptions(
-      autoRefreshToken: true,
-    ),
+    authOptions: const FlutterAuthClientOptions(autoRefreshToken: true),
   );
 
   runApp(const MyApp());
@@ -80,70 +79,46 @@ class MyApp extends StatelessWidget {
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
-        AppRoutes.clientVerification: (_) =>
-            const ClientVerificationPage(),
+        AppRoutes.clientVerification: (_) => const ClientVerificationPage(),
 
         // MENTOR
-        AppRoutes.mentorCV: (_) =>
-            const MentorCvUploadPage(),
+        AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
 
-        AppRoutes.mentorLanding: (_) =>
-            const MentorLandingPage(),
+        AppRoutes.mentorLanding: (_) => const MentorLandingPage(),
 
-        AppRoutes.mentorTips: (_) =>
-            const ArticlePage(),
+        AppRoutes.mentorTips: (_) => const ArticlePage(),
 
-        AppRoutes.bookingRequest: (_) =>
-            const BookingRequestPage(),
+        AppRoutes.bookingRequest: (_) => const BookingRequestPage(),
 
-        AppRoutes.bookingDetail: (_) =>
-            const BookingDetailPage(),
+        AppRoutes.bookingDetail: (_) => const BookingDetailPage(),
 
-        AppRoutes.mentorProfile: (_) =>
-            const MentorMainProfilePage(),
+        AppRoutes.mentorProfile: (_) => const MentorMainProfilePage(),
 
-        AppRoutes.editProfile: (_) =>
-            const EditProfilePage(),
+        AppRoutes.editProfile: (_) => const EditProfilePage(),
 
-        AppRoutes.editRates: (_) =>
-            const ServiceRatesPage(),
+        AppRoutes.editRates: (_) => const ServiceRatesPage(),
 
-        AppRoutes.mySchedule: (_) =>
-            const MySchedulePage(),
+        AppRoutes.mySchedule: (_) => const MySchedulePage(),
 
-        AppRoutes.manageSlot: (_) =>
-            const ManageSlotPage(),
+        AppRoutes.manageSlot: (_) => const ManageSlotPage(),
 
-        AppRoutes.transactions: (_) =>
-            const Scaffold(
-              body: Center(
-                child: Text("Transactions"),
-              ),
-            ),
+        AppRoutes.transactions: (_) => const MentorTransactionsPage(),
 
-        AppRoutes.teachingForm: (_) =>
-            const TeachingProofPage(),
+        AppRoutes.teachingForm: (_) => const TeachingProofPage(),
 
-        AppRoutes.clientReviews: (_) =>
-            const ClientReviewsPage(),
+        AppRoutes.clientReviews: (_) => const ClientReviewsPage(),
 
-        AppRoutes.settingsAccount: (_) =>
-            const SettingsPage(),
+        AppRoutes.settingsAccount: (_) => const SettingsPage(),
 
-        AppRoutes.faq: (_) =>
-            const FaqPage(),
+        AppRoutes.faq: (_) => const FaqPage(),
 
-        AppRoutes.changePassword: (_) =>
-            const ChangePasswordPage(),
+        AppRoutes.changePassword: (_) => const ChangePasswordPage(),
 
-        AppRoutes.changeEmail: (_) =>
-            const ChangeEmailPage(),
+        AppRoutes.changeEmail: (_) => const ChangeEmailPage(),
       },
 
       onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (_) => const WelcomePage(),
-        );
+        return MaterialPageRoute(builder: (_) => const WelcomePage());
       },
     );
   }
@@ -155,8 +130,7 @@ class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  State<AuthGate> createState() =>
-      _AuthGateState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
 class _AuthGateState extends State<AuthGate> {
@@ -165,9 +139,7 @@ class _AuthGateState extends State<AuthGate> {
   bool isLoading = true;
 
   Widget currentPage = const Scaffold(
-    body: Center(
-      child: CircularProgressIndicator(),
-    ),
+    body: Center(child: CircularProgressIndicator()),
   );
 
   @override
@@ -178,26 +150,19 @@ class _AuthGateState extends State<AuthGate> {
   }
 
   Future<void> initAuth() async {
-    debugPrint(
-      "========== AUTH START ==========",
-    );
+    debugPrint("========== AUTH START ==========");
 
     try {
       // Delay supaya restore session selesai
-      await Future.delayed(
-        const Duration(seconds: 1),
-      );
+      await Future.delayed(const Duration(seconds: 1));
 
-      final session =
-          supabase.auth.currentSession;
+      final session = supabase.auth.currentSession;
 
       debugPrint("SESSION = $session");
 
       // ================= SESSION NULL =================
       if (session == null) {
-        debugPrint(
-          "STATUS = SESSION NULL",
-        );
+        debugPrint("STATUS = SESSION NULL");
 
         currentPage = const WelcomePage();
 
@@ -212,14 +177,10 @@ class _AuthGateState extends State<AuthGate> {
 
       debugPrint("USER ID = $uid");
 
-      debugPrint(
-        "EMAIL = ${session.user.email}",
-      );
+      debugPrint("EMAIL = ${session.user.email}");
 
       // ================= QUERY DATABASE =================
-      debugPrint(
-        "QUERY ROLE FROM DATABASE...",
-      );
+      debugPrint("QUERY ROLE FROM DATABASE...");
 
       final response = await supabase
           .from('appuser')
@@ -227,15 +188,11 @@ class _AuthGateState extends State<AuthGate> {
           .eq('id', uid)
           .maybeSingle();
 
-      debugPrint(
-        "DATABASE RESPONSE = $response",
-      );
+      debugPrint("DATABASE RESPONSE = $response");
 
       // ================= USER NOT FOUND =================
       if (response == null) {
-        debugPrint(
-          "STATUS = USER NOT FOUND",
-        );
+        debugPrint("STATUS = USER NOT FOUND");
 
         currentPage = const WelcomePage();
 
@@ -252,35 +209,24 @@ class _AuthGateState extends State<AuthGate> {
 
       // ================= MENTOR =================
       if (role == 'mentor') {
-        debugPrint(
-          "REDIRECT = MENTOR",
-        );
+        debugPrint("REDIRECT = MENTOR");
 
-        currentPage =
-            const MentorLandingPage();
+        currentPage = const MentorLandingPage();
       }
-
       // ================= CLIENT =================
       else if (role == 'klien') {
-        debugPrint(
-          "REDIRECT = CLIENT",
-        );
+        debugPrint("REDIRECT = CLIENT");
 
         currentPage = const HomePage();
       }
-
       // ================= UNKNOWN ROLE =================
       else {
-        debugPrint(
-          "STATUS = UNKNOWN ROLE",
-        );
+        debugPrint("STATUS = UNKNOWN ROLE");
 
         currentPage = const WelcomePage();
       }
     } catch (e, stack) {
-      debugPrint(
-        "========== AUTH ERROR ==========",
-      );
+      debugPrint("========== AUTH ERROR ==========");
 
       debugPrint("$e");
 
@@ -289,9 +235,7 @@ class _AuthGateState extends State<AuthGate> {
       currentPage = const WelcomePage();
     }
 
-    debugPrint(
-      "========== AUTH END ==========",
-    );
+    debugPrint("========== AUTH END ==========");
 
     if (!mounted) return;
 
@@ -303,11 +247,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return currentPage;

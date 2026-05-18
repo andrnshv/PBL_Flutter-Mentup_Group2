@@ -16,9 +16,8 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // --- STATE UNTUK FITUR SEARCH, FILTER, SORT, & EXPAND ---
+  // --- STATE UNTUK FITUR SEARCH, SORT, & EXPAND (Filter Kategori Dihapus) ---
   String _searchQuery = "";
-  String _selectedCategory = "All";
   bool _isAscending = true;
   String? _expandedSessionId;
 
@@ -79,9 +78,8 @@ class _TeachingProofPageState extends State<TeachingProofPage>
       final matchesSearch = item['name'].toLowerCase().contains(
         _searchQuery.toLowerCase(),
       );
-      final matchesCat =
-          _selectedCategory == "All" || item['cat'] == _selectedCategory;
-      return matchesStatus && matchesSearch && matchesCat;
+      // Filter kategori sudah dihapus di sini
+      return matchesStatus && matchesSearch;
     }).toList();
 
     filtered.sort((a, b) {
@@ -136,6 +134,7 @@ class _TeachingProofPageState extends State<TeachingProofPage>
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
       child: Row(
         children: [
+          // Input Search
           Expanded(
             child: Container(
               height: 48,
@@ -173,68 +172,9 @@ class _TeachingProofPageState extends State<TeachingProofPage>
           ),
           const SizedBox(width: 12),
 
-          PopupMenuButton<String>(
-            onSelected: (val) => setState(() => _selectedCategory = val),
-            color: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            offset: const Offset(0, 55),
-            itemBuilder: (context) =>
-                ["All", "Statistics", "Web Development", "UI/UX Design"]
-                    .map(
-                      (cat) => PopupMenuItem(
-                        value: cat,
-                        child: Text(
-                          cat,
-                          style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontWeight: _selectedCategory == cat
-                                ? FontWeight.w900
-                                : FontWeight.w600,
-                            color: _selectedCategory == cat
-                                ? primaryColor
-                                : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-            child: Stack(
-              alignment: Alignment.topRight,
-              children: [
-                Container(
-                  height: 48,
-                  width: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(Icons.tune_rounded, color: primaryColor),
-                ),
-                if (_selectedCategory != "All")
-                  Container(
-                    margin: const EdgeInsets.all(10),
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      color: Colors.redAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          // Tombol Filter Kategori sudah dihapus dari sini
 
-          const SizedBox(width: 12),
-
+          // Tombol Sortir (Naik/Turun)
           GestureDetector(
             onTap: () => setState(() => _isAscending = !_isAscending),
             child: Container(
@@ -443,11 +383,9 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     }
   }
 
-  // --- REVISI: FUNGSI GALERI ---
   Widget _buildUploadZone() {
     return GestureDetector(
       onTap: () async {
-        // PERUBAHAN DI SINI: Dari ImageSource.camera menjadi ImageSource.gallery
         final XFile? photo = await _picker.pickImage(
           source: ImageSource.gallery,
         );
@@ -475,7 +413,6 @@ class _TeachingProofPageState extends State<TeachingProofPage>
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Ikon dan Teks disesuaikan untuk Galeri
                   Icon(
                     Icons.add_photo_alternate_rounded,
                     color: primaryColor,
@@ -590,7 +527,6 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
-  // REVISI: Terima map session lalu pass namanya sebagai argument
   Widget _buildViewOnlyStatus(Map<String, dynamic> session) {
     bool isDone = session['status'] == "Completed";
     return Column(
@@ -632,7 +568,6 @@ class _TeachingProofPageState extends State<TeachingProofPage>
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: OutlinedButton.icon(
               onPressed: () {
-                // REVISI PENTING: Melempar Argumen Nama Mahasiswa
                 Navigator.pushNamed(
                   context,
                   AppRoutes.clientReviews,
