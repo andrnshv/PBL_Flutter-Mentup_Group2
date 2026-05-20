@@ -13,27 +13,87 @@ class ServiceRatesPage extends StatefulWidget {
 
 class _ServiceRatesPageState extends State<ServiceRatesPage> {
   final ServiceRatesController _controller = ServiceRatesController();
+
   final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'id',
     symbol: 'Rp ',
     decimalDigits: 0,
   );
 
-  // Palette 4 Warna (Lavender, Pink, Blue, Light Blue)
   final Color lavender = const Color(0xFFCDB4DB);
   final Color gradientPink = const Color(0xFFF8B5C5);
   final Color gradientBlue = const Color(0xFFB5D8F7);
   final Color lightBlue = const Color(0xFFA7C7E7);
-
   final Color primaryPurple = const Color(0xFF7E7BB9);
   final Color bgGray = const Color(0xFFF8F9FB);
+
+  bool _isPageLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // Simulasi memuat tarif yang sudah ada sebelumnya dari backend
-    // Idealnya ini diisi oleh _controller dari database
-    _controller.currentRate = 50000; // Contoh tarif saat ini
+    _loadRate();
+  }
+
+  Future<void> _loadRate() async {
+    await _controller.fetchCurrentRate();
+    if (mounted) {
+      setState(() => _isPageLoading = false);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (_controller.rateController.text.trim().isEmpty) {
+      CherryToast.warning(
+        title: const Text(
+          "Rate is Empty",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: const Text(
+          "Please enter your new service rate.",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final error = await _controller.saveRate();
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (error != null) {
+      CherryToast.error(
+        title: const Text(
+          "Failed to Update",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: Text(error, style: const TextStyle(fontFamily: 'Nunito')),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+    } else {
+      CherryToast.success(
+        title: const Text(
+          "Rates Updated",
+          style: TextStyle(fontFamily: 'Nunito', fontWeight: FontWeight.bold),
+        ),
+        description: const Text(
+          "Your service rates have been successfully saved!",
+          style: TextStyle(fontFamily: 'Nunito'),
+        ),
+        animationType: AnimationType.fromTop,
+        toastPosition: Position.top,
+        autoDismiss: true,
+      ).show(context);
+    }
   }
 
   @override
@@ -49,36 +109,39 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
       resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // MEMANGGIL FUNGSI BACKGROUND YANG BARU
           _buildSettingsGradientBackground(),
           Column(
             children: [
               _buildAppBar(context),
               Expanded(
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    SliverFillRemaining(
-                      hasScrollBody: false,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 25,
-                          vertical: 20,
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildAdminNoticeCard(),
-                            const SizedBox(height: 15),
-                            _buildPolicyNoteCard(),
-                            const SizedBox(height: 20),
-                            _buildMainRateCard(),
-                          ],
-                        ),
+                child: _isPageLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    : CustomScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        slivers: [
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 25,
+                                vertical: 20,
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildAdminNoticeCard(),
+                                  const SizedBox(height: 15),
+                                  _buildPolicyNoteCard(),
+                                  const SizedBox(height: 20),
+                                  _buildMainRateCard(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
@@ -233,8 +296,6 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
             ),
           ),
           const SizedBox(height: 25),
-
-          // --- INFO: TARIF SAAT INI ---
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -259,12 +320,16 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _currencyFormat.format(_controller.currentRate),
-                      style: const TextStyle(
+                      _controller.currentRate > 0
+                          ? _currencyFormat.format(_controller.currentRate)
+                          : 'Not set yet',
+                      style: TextStyle(
                         fontFamily: 'Nunito',
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF5B62CC),
+                        color: _controller.currentRate > 0
+                            ? const Color(0xFF5B62CC)
+                            : Colors.grey,
                       ),
                     ),
                   ],
@@ -275,16 +340,20 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1ABC9C).withOpacity(0.1),
+                    color: _controller.currentRate > 0
+                        ? const Color(0xFF1ABC9C).withOpacity(0.1)
+                        : Colors.grey.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    "Active",
+                  child: Text(
+                    _controller.currentRate > 0 ? "Active" : "Not Set",
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1ABC9C),
+                      color: _controller.currentRate > 0
+                          ? const Color(0xFF1ABC9C)
+                          : Colors.grey,
                     ),
                   ),
                 ),
@@ -292,8 +361,6 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
             ),
           ),
           const SizedBox(height: 25),
-
-          // --- FORM: SET TARIF BARU ---
           const Text(
             "Set New Hourly Rate",
             style: TextStyle(
@@ -311,14 +378,13 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
     );
   }
 
-  // REVISI: FUNGSI BACKGROUND BARU SESUAI PERMINTAAN
   Widget _buildSettingsGradientBackground() {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Color(0xFFCDB4DB), // Lavender
-            Color(0xFFA7C7E7), // Light Blue
+            Color(0xFFCDB4DB),
+            Color(0xFFA7C7E7),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -330,7 +396,7 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
             child: Opacity(
               opacity: 0.1,
               child: CustomPaint(
-                painter: LinePatternPainter(), // Pattern dari Settings Page
+                painter: LinePatternPainter(),
               ),
             ),
           ),
@@ -401,14 +467,13 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
     );
   }
 
-  // REVISI: WARNA TOMBOL MENYESUAIKAN PRIMARY PURPLE
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
       height: 55,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: primaryPurple, // Warna solid menyesuaikan tema settings
+        color: _isSaving ? primaryPurple.withOpacity(0.6) : primaryPurple,
         boxShadow: [
           BoxShadow(
             color: primaryPurple.withOpacity(0.3),
@@ -418,52 +483,7 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          // Validasi jika kosong
-          if (_controller.rateController.text.trim().isEmpty) {
-            CherryToast.warning(
-              title: const Text(
-                "Rate is Empty",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              description: const Text(
-                "Please enter your new service rate.",
-                style: TextStyle(fontFamily: 'Nunito'),
-              ),
-              animationType: AnimationType.fromTop,
-              toastPosition: Position.top,
-              autoDismiss: true,
-            ).show(context);
-            return;
-          }
-
-          // Update UI state tarif saat ini (Simulasi backend sukses)
-          setState(() {
-            _controller.calculateEarnings(_controller.rateController.text);
-            _controller.rateController.clear(); // Bersihkan form
-          });
-
-          // Panggil CherryToast untuk success
-          CherryToast.success(
-            title: const Text(
-              "Rates Updated",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            description: const Text(
-              "Your service rates have been successfully saved!",
-              style: TextStyle(fontFamily: 'Nunito'),
-            ),
-            animationType: AnimationType.fromTop,
-            toastPosition: Position.top,
-            autoDismiss: true,
-          ).show(context);
-        },
+        onPressed: _isSaving ? null : _handleSave,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -471,21 +491,29 @@ class _ServiceRatesPageState extends State<ServiceRatesPage> {
             borderRadius: BorderRadius.circular(20),
           ),
         ),
-        child: const Text(
-          "Update Rates",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            fontFamily: 'Nunito',
-          ),
-        ),
+        child: _isSaving
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : const Text(
+                "Update Rates",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  fontFamily: 'Nunito',
+                ),
+              ),
       ),
     );
   }
 }
 
-// CLASS TAMBAHAN UNTUK BACKGROUND LINE PATTERN
 class LinePatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
