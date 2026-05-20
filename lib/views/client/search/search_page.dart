@@ -36,7 +36,10 @@ class _SearchPageState extends State<SearchPage> {
       _controller.fetchCategories(),
       _controller.fetchMentors(),
     ]);
-    if (mounted) setState(() => _isLoading = false);
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -53,7 +56,9 @@ class _SearchPageState extends State<SearchPage> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -80,8 +85,9 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ),
                   ),
+
                   Text(
-                    "Filter Mentor",
+                    "Filter Mentors",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -89,7 +95,9 @@ class _SearchPageState extends State<SearchPage> {
                       color: primaryPurple,
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -100,6 +108,7 @@ class _SearchPageState extends State<SearchPage> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+
                       Text(
                         currencyFormat.format(tempMaxPrice),
                         style: TextStyle(
@@ -110,6 +119,7 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ],
                   ),
+
                   Slider(
                     value: tempMaxPrice.toDouble(),
                     min: 0,
@@ -120,26 +130,34 @@ class _SearchPageState extends State<SearchPage> {
                       setModal(() => tempMaxPrice = value.toInt());
                     },
                   ),
+
                   const SizedBox(height: 10),
+
                   const Text(
-                    "Domisili",
+                    "Location",
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+
                   const SizedBox(height: 8),
+
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade400),
+                      border: Border.all(
+                        color: Colors.grey.shade400,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButton<String>(
                       value: tempAlamat,
-                      isExpanded: true, // ← kunci fix overflow
+                      isExpanded: true,
                       underline: const SizedBox(),
                       items: _controller.uniqueAlamatList.map((dom) {
                         return DropdownMenuItem(
@@ -155,7 +173,9 @@ class _SearchPageState extends State<SearchPage> {
                       },
                     ),
                   ),
+
                   const SizedBox(height: 20),
+
                   Row(
                     children: [
                       Expanded(
@@ -183,7 +203,9 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(width: 12),
+
                       Expanded(
                         flex: 2,
                         child: ElevatedButton(
@@ -193,6 +215,7 @@ class _SearchPageState extends State<SearchPage> {
                               _controller.selectedAlamat = tempAlamat;
                               _controller.applyFilter();
                             });
+
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
@@ -227,10 +250,12 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGray,
+
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
+
         title: const Text(
           "Search Mentors",
           style: TextStyle(
@@ -239,15 +264,24 @@ class _SearchPageState extends State<SearchPage> {
             color: Color(0xFF7E7BB9),
           ),
         ),
+
         actions: [
           IconButton(
-            icon: Icon(Icons.tune_rounded, color: primaryPurple),
+            icon: Icon(
+              Icons.tune_rounded,
+              color: primaryPurple,
+            ),
             onPressed: _isLoading ? null : _openFilter,
           ),
         ],
       ),
+
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: primaryPurple))
+          ? Center(
+              child: CircularProgressIndicator(
+                color: primaryPurple,
+              ),
+            )
           : _controller.errorMessage != null
               ? _buildError()
               : Padding(
@@ -255,12 +289,23 @@ class _SearchPageState extends State<SearchPage> {
                   child: Column(
                     children: [
                       _buildSearchBar(),
+
                       const SizedBox(height: 12),
+
                       _buildCategoryChips(),
+
+                      const SizedBox(height: 18),
+
+                      Expanded(
+                        child: _buildMentorList(),
+                      ),
+
                       const SizedBox(height: 12),
-                      _buildResultCount(),
-                      const SizedBox(height: 8),
-                      Expanded(child: _buildMentorList()),
+
+                      // RESULT
+                      Center(
+                        child: _buildResultCount(),
+                      ),
                     ],
                   ),
                 ),
@@ -276,13 +321,24 @@ class _SearchPageState extends State<SearchPage> {
           _controller.applyFilter();
         });
       },
+
       decoration: InputDecoration(
         hintText: "Search mentors by name...",
-        hintStyle: const TextStyle(fontFamily: 'Nunito'),
-        prefixIcon: Icon(Icons.search_rounded, color: primaryPurple),
+        hintStyle: const TextStyle(
+          fontFamily: 'Nunito',
+        ),
+
+        prefixIcon: Icon(
+          Icons.search_rounded,
+          color: primaryPurple,
+        ),
+
         suffixIcon: _controller.searchQuery.isNotEmpty
             ? IconButton(
-                icon: const Icon(Icons.clear_rounded, size: 18),
+                icon: const Icon(
+                  Icons.clear_rounded,
+                  size: 18,
+                ),
                 onPressed: () {
                   setState(() {
                     _controller.searchTextController.clear();
@@ -292,13 +348,18 @@ class _SearchPageState extends State<SearchPage> {
                 },
               )
             : null,
+
         filled: true,
         fillColor: Colors.white,
+
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -306,13 +367,17 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 38,
+
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _controller.categories.length,
+
         separatorBuilder: (_, __) => const SizedBox(width: 8),
+
         itemBuilder: (context, index) {
           final cat = _controller.categories[index];
           final isSelected = _controller.selectedCategory == cat;
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -320,26 +385,37 @@ class _SearchPageState extends State<SearchPage> {
                 _controller.applyFilter();
               });
             },
+
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+
               decoration: BoxDecoration(
                 color: isSelected ? primaryPurple : Colors.white,
+
                 borderRadius: BorderRadius.circular(20),
+
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha:0.05),
                     blurRadius: 4,
                   ),
                 ],
               ),
+
               child: Text(
                 cat,
                 style: TextStyle(
                   fontFamily: 'Nunito',
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: isSelected ? Colors.white : Colors.grey[700],
+                  color: isSelected
+                      ? Colors.white
+                      : Colors.grey[700],
                 ),
               ),
             ),
@@ -349,15 +425,24 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  // ================= RESULT COUNT TENGAH =================
   Widget _buildResultCount() {
-    return Align(
-      alignment: Alignment.centerLeft,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text(
-        "${_controller.filteredMentors.length} mentor ditemukan",
+        "${_controller.filteredMentors.length} Mentors Found",
         style: TextStyle(
           fontFamily: 'Nunito',
           fontSize: 12,
-          color: Colors.grey[500],
+          fontWeight: FontWeight.bold,
+          color: Colors.grey[600],
         ),
       ),
     );
@@ -369,10 +454,16 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off_rounded, size: 60, color: Colors.grey[300]),
+            Icon(
+              Icons.search_off_rounded,
+              size: 60,
+              color: Colors.grey[300],
+            ),
+
             const SizedBox(height: 12),
+
             Text(
-              "Mentor tidak ditemukan",
+              "No Mentors Found",
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 15,
@@ -380,8 +471,9 @@ class _SearchPageState extends State<SearchPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             Text(
-              "Coba ubah filter atau kata kunci",
+              "Try changing the filter or keyword",
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 12,
@@ -397,7 +489,9 @@ class _SearchPageState extends State<SearchPage> {
       physics: const BouncingScrollPhysics(),
       itemCount: _controller.filteredMentors.length,
       itemBuilder: (context, index) {
-        return _buildMentorCard(_controller.filteredMentors[index]);
+        return _buildMentorCard(
+          _controller.filteredMentors[index],
+        );
       },
     );
   }
@@ -405,43 +499,48 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildMentorCard(MentorSearchModel mentor) {
     return GestureDetector(
       onTap: () {
-  showDialog(
-    context: context,
-    builder: (_) => AlertDialog(
-      title: const Text("Mentor"),
-      content: Text(mentor.namaLengkap),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("OK"),
-        ),
-      ],
-    ),
-  );
-},
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Mentor"),
+            content: Text(mentor.namaLengkap),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      },
+
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
+
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
+
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha:0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
+
         child: Row(
           children: [
-            // Foto profil
             CircleAvatar(
               radius: 28,
-              backgroundColor: primaryPurple.withOpacity(0.15),
+              backgroundColor: primaryPurple.withValues(alpha:0.15),
+
               backgroundImage: mentor.fotoUrl != null
                   ? NetworkImage(mentor.fotoUrl!)
                   : null,
+
               child: mentor.fotoUrl == null
                   ? Text(
                       mentor.namaLengkap.isNotEmpty
@@ -456,8 +555,9 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   : null,
             ),
+
             const SizedBox(width: 14),
-            // Info mentor
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,13 +570,17 @@ class _SearchPageState extends State<SearchPage> {
                       fontSize: 15,
                     ),
                   ),
+
                   const SizedBox(height: 3),
+
                   if (mentor.categoryName != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: primaryPurple.withOpacity(0.1),
+                        color: primaryPurple.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -489,15 +593,23 @@ class _SearchPageState extends State<SearchPage> {
                         ),
                       ),
                     ),
+
                   const SizedBox(height: 4),
+
                   Row(
                     children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 12, color: Colors.grey[400]),
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 12,
+                        color: Colors.grey[400],
+                      ),
+
                       const SizedBox(width: 2),
+
                       Flexible(
                         child: Text(
-                          mentor.alamat ?? 'Lokasi tidak tersedia',
+                          mentor.alamat ??
+                              'Location unavailable',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontFamily: 'Nunito',
@@ -508,11 +620,15 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 4),
+
                   Text(
                     mentor.pricePerSession != null
-                        ? currencyFormat.format(mentor.pricePerSession)
-                        : 'Harga belum diset',
+                        ? currencyFormat.format(
+                            mentor.pricePerSession,
+                          )
+                        : 'Price not set',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 13,
@@ -525,11 +641,16 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-            // Rating
+
             if (mentor.rating != null)
               Column(
                 children: [
-                  const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
+                  const Icon(
+                    Icons.star_rounded,
+                    color: Colors.amber,
+                    size: 18,
+                  ),
+
                   Text(
                     mentor.rating!.toStringAsFixed(1),
                     style: const TextStyle(
@@ -551,24 +672,35 @@ class _SearchPageState extends State<SearchPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.wifi_off_rounded, size: 60, color: Colors.grey[300]),
+          Icon(
+            Icons.wifi_off_rounded,
+            size: 60,
+            color: Colors.grey[300],
+          ),
+
           const SizedBox(height: 12),
+
           Text(
-            "Gagal memuat data",
+            "Failed to Load Data",
             style: TextStyle(
               fontFamily: 'Nunito',
               fontWeight: FontWeight.bold,
               color: Colors.grey[500],
             ),
           ),
+
           const SizedBox(height: 8),
+
           ElevatedButton.icon(
             onPressed: () {
               setState(() => _isLoading = true);
               _initData();
             },
+
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text("Coba lagi"),
+
+            label: const Text("Retry"),
+
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryPurple,
               foregroundColor: Colors.white,

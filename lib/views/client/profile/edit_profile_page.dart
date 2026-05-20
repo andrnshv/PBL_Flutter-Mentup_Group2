@@ -15,7 +15,8 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final EditProfileController _controller = EditProfileController();
 
-  final Color primary = const Color(0xFF6C63FF);
+  final Color primaryPurple = const Color(0xFFB58AE3);
+  final Color primaryBlue = const Color(0xFF8FA8F8);
 
   final nameController = TextEditingController();
   final addressController = TextEditingController();
@@ -78,6 +79,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       networkImage = null;
       isPhotoDeleted = true;
     });
+
     Navigator.pop(context);
   }
 
@@ -138,6 +140,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile updated")),
       );
+
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -150,173 +153,326 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FB),
+      backgroundColor: const Color(0xFFF5F5F5),
+
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // HEADER (UNCHANGED STYLE)
-            Container(
-              height: 240,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFB993D6), Color(0xFF8CA6DB)],
-                ),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(40),
-                ),
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
+            // ================= HEADER =================
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  height: 190,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFCEA7E8),
+                        Color(0xFF94A9F4),
+                      ],
                     ),
-                    const Expanded(
-                      child: Text(
-                        "Edit Profile",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
+                    ),
+                  ),
+
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.arrow_back_ios_new,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+
+                          const Expanded(
+                            child: Center(
+                              child: Text(
+                                "Edit Profile",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(width: 36),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ================= PROFILE IMAGE =================
+                Positioned(
+                  bottom: -55,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: CircleAvatar(
+                            radius: 48,
+                            backgroundColor: Colors.grey.shade200,
+
+                            backgroundImage: selectedImage != null
+                                ? FileImage(selectedImage!)
+                                : (networkImage != null &&
+                                        networkImage!.isNotEmpty)
+                                    ? NetworkImage(networkImage!)
+                                        as ImageProvider
+                                    : null,
+
+                            child: (selectedImage == null &&
+                                    (networkImage == null ||
+                                        networkImage!.isEmpty))
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 45,
+                                    color: Colors.grey,
+                                  )
+                                : null,
+                          ),
+                        ),
+
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: showPhotoOptions,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    primaryPurple,
+                                    primaryBlue,
+                                  ],
+                                ),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 75),
+
+            // ================= CARD =================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFDFDFD),
+                  borderRadius: BorderRadius.circular(25),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ===== TITLE =====
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEDE7FA),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: primaryPurple,
+                            size: 18,
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        const Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Personal Information",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+
+                            SizedBox(height: 2),
+
+                            Text(
+                              "Update your account details",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // ===== FULL NAME =====
+                    const Text(
+                      "Full Name",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    _buildInput(
+                      controller: nameController,
+                      icon: Icons.person_outline,
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // ===== ADDRESS =====
+                    const Text(
+                      "Address",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    _buildInput(
+                      controller: addressController,
+                      icon: Icons.location_on_outlined,
+                      maxLines: 2,
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // ===== ABOUT =====
+                    const Text(
+                      "About",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    _buildInput(
+                      controller: bioController,
+                      icon: Icons.info_outline,
+                      maxLines: 3,
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // ===== BUTTON =====
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: saveProfile,
+
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                primaryPurple,
+                                primaryBlue,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+
+                          child: const Center(
+                            child: Text(
+                              "Save Changes",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 48),
                   ],
                 ),
               ),
             ),
 
-            Transform.translate(
-              offset: const Offset(0, -60),
-              child: Column(
-                children: [
-                  // PROFILE IMAGE (FIXED SAFE IMAGE HANDLING)
-                  Stack(
-                    children: [
-CircleAvatar(
-  radius: 60,
-  backgroundColor: Colors.white,
-  child: CircleAvatar(
-    radius: 56,
-    backgroundColor: Colors.grey.shade200,
-
-    backgroundImage: selectedImage != null
-        ? FileImage(selectedImage!)
-        : (networkImage != null && networkImage!.isNotEmpty)
-            ? NetworkImage(networkImage!) as ImageProvider
-            : null,
-
-    child: (selectedImage == null &&
-            (networkImage == null || networkImage!.isEmpty))
-        ? const Icon(
-            Icons.person,
-            size: 50,
-            color: Colors.grey,
-          )
-        : null,
-  ),
-),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: showPhotoOptions,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFB993D6), Color(0xFF8CA6DB)],
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // FORM CARD (UNCHANGED STRUCTURE)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 20,
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildInput(
-                            label: "Full Name",
-                            controller: nameController,
-                            icon: Icons.person,
-                          ),
-                          const SizedBox(height: 15),
-                          _buildInput(
-                            label: "Alamat",
-                            controller: addressController,
-                            icon: Icons.location_on,
-                          ),
-                          const SizedBox(height: 15),
-                          _buildInput(
-                            label: "About",
-                            controller: bioController,
-                            icon: Icons.info,
-                            maxLines: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  // SAVE BUTTON (UNCHANGED STYLE)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton.icon(
-                        onPressed: saveProfile,
-                        icon: const Icon(Icons.save),
-                        label: const Text("Save Changes"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-                ],
-              ),
-            ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -324,7 +480,6 @@ CircleAvatar(
   }
 
   Widget _buildInput({
-    required String label,
     required TextEditingController controller,
     required IconData icon,
     int maxLines = 1,
@@ -332,14 +487,42 @@ CircleAvatar(
     return TextField(
       controller: controller,
       maxLines: maxLines,
+
       decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: primary),
+        prefixIcon: Icon(
+          icon,
+          color: primaryPurple,
+          size: 20,
+        ),
+
         filled: true,
-        fillColor: const Color(0xFFF5F6FA),
+        fillColor: const Color(0xFFF5F5F7),
+
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Colors.grey.shade300,
+          ),
+        ),
+
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: Colors.grey.shade300,
+          ),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: primaryPurple,
+            width: 1.2,
+          ),
         ),
       ),
     );
