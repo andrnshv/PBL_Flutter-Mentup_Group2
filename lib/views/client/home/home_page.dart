@@ -7,7 +7,11 @@ import '../search/search_page.dart';
 import '../History/History_page.dart';
 import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
-import '../profile/mentor_profile_page.dart';
+// MentorProfilePage sekarang butuh mentorId (String), bukan MentorModel.
+// Top Mentors di HomePage masih pakai DummyData yang tidak punya userId Supabase.
+// TODO: setelah HomePage migrasi ke Supabase, ganti dengan:
+//   MentorProfilePage(mentorId: mentor.userId)
+// import '../profile/mentor_profile_page.dart';
 import '../data/dummy_data.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/supabase_service.dart';
@@ -20,9 +24,9 @@ class HomePage extends StatefulWidget {
 }
 
 class _LandingPageState extends State<HomePage> {
-  int     _selectedIndex = 0;
-  String  _namaUser      = '';
-  bool    _loadingUser   = true;
+  int _selectedIndex = 0;
+  String _namaUser = '';
+  bool _loadingUser = true;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
@@ -54,9 +58,9 @@ class _LandingPageState extends State<HomePage> {
 
       if (mounted) {
         setState(() {
-          _namaUser    = data['nama_lengkap'] ?? '';
+          _namaUser = data['nama_lengkap'] ?? '';
           _loadingUser = false;
-          _pages[0]    = _homeContent(); // rebuild dengan nama baru
+          _pages[0] = _homeContent();
         });
       }
     } catch (_) {
@@ -77,7 +81,7 @@ class _LandingPageState extends State<HomePage> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
             ),
           ],
@@ -113,7 +117,6 @@ class _LandingPageState extends State<HomePage> {
                     backgroundImage: AssetImage("assets/profile.jpg"),
                   ),
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,28 +141,19 @@ class _LandingPageState extends State<HomePage> {
                       ],
                     ),
                   ),
-
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CalendarPage()),
-                      );
-                    },
-                    child: _circleIcon(Icons.calendar_today),
-                  ),
-
-                  const SizedBox(width: 10),
-
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const NotificationPage(),
-                        ),
-                      );
-                    },
+                            builder: (_) => const CalendarPage())),
+                    child: _circleIcon(Icons.calendar_today),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationPage())),
                     child: _circleIcon(Icons.notifications),
                   ),
                 ],
@@ -174,12 +168,12 @@ class _LandingPageState extends State<HomePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [primary, primary.withValues(alpha: 0.75)],
+                    colors: [primary, primary.withOpacity(0.75)],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: primary.withValues(alpha: 0.25),
+                      color: primary.withOpacity(0.25),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -191,14 +185,11 @@ class _LandingPageState extends State<HomePage> {
                       width: 55,
                       height: 55,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: Colors.white.withOpacity(0.18),
                         borderRadius: BorderRadius.circular(18),
                       ),
-                      child: const Icon(
-                        Icons.verified_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
+                      child: const Icon(Icons.verified_rounded,
+                          color: Colors.white, size: 30),
                     ),
                     const SizedBox(width: 16),
                     const Expanded(
@@ -208,19 +199,17 @@ class _LandingPageState extends State<HomePage> {
                           Text(
                             "Session Finished 🎉",
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                            ),
+                                color: Colors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800),
                           ),
                           SizedBox(height: 6),
                           Text(
                             "Please verify your mentoring session with the mentor.",
                             style: TextStyle(
-                              color: Colors.white70,
-                              height: 1.4,
-                              fontSize: 13,
-                            ),
+                                color: Colors.white70,
+                                height: 1.4,
+                                fontSize: 13),
                           ),
                         ],
                       ),
@@ -232,12 +221,9 @@ class _LandingPageState extends State<HomePage> {
                         foregroundColor: primary,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 14,
-                        ),
+                            horizontal: 18, vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
+                            borderRadius: BorderRadius.circular(18)),
                       ),
                       onPressed: () {
                         final mentor = DummyData.mentors[0];
@@ -255,10 +241,8 @@ class _LandingPageState extends State<HomePage> {
                           },
                         );
                       },
-                      child: const Text(
-                        "Verify",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      child: const Text("Verify",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -274,9 +258,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                    ),
+                        color: Colors.black.withOpacity(0.05), blurRadius: 10),
                   ],
                 ),
                 child: Row(
@@ -285,7 +267,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withValues(alpha: 0.1),
+                        color: primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.lightbulb, color: primary),
@@ -295,10 +277,8 @@ class _LandingPageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Level Up Your Skills 🚀",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          Text("Level Up Your Skills 🚀",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           SizedBox(height: 4),
                           Text(
                             "Keep learning today to unlock better opportunities tomorrow.",
@@ -321,9 +301,7 @@ class _LandingPageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                    ),
+                        color: Colors.black.withOpacity(0.05), blurRadius: 10),
                   ],
                 ),
                 child: Row(
@@ -332,7 +310,7 @@ class _LandingPageState extends State<HomePage> {
                       width: 45,
                       height: 45,
                       decoration: BoxDecoration(
-                        color: primary.withValues(alpha: 0.1),
+                        color: primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.schedule, color: primary),
@@ -342,16 +320,12 @@ class _LandingPageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Today Session",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          Text("Today Session",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           SizedBox(height: 4),
                           Text("Session with Albert"),
-                          Text(
-                            "11:00 - 12:30",
-                            style: TextStyle(color: Colors.grey),
-                          ),
+                          Text("11:00 - 12:30",
+                              style: TextStyle(color: Colors.grey)),
                         ],
                       ),
                     ),
@@ -362,13 +336,9 @@ class _LandingPageState extends State<HomePage> {
               const SizedBox(height: 25),
 
               /// MAP
-              const Text(
-                "Nearby Mentors",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-
+              const Text("Nearby Mentors",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Stack(
@@ -376,10 +346,8 @@ class _LandingPageState extends State<HomePage> {
                     SizedBox(
                       height: 180,
                       child: GoogleMap(
-                        initialCameraPosition: const CameraPosition(
-                          target: _center,
-                          zoom: 14,
-                        ),
+                        initialCameraPosition:
+                            const CameraPosition(target: _center, zoom: 14),
                         zoomControlsEnabled: false,
                       ),
                     ),
@@ -388,17 +356,14 @@ class _LandingPageState extends State<HomePage> {
                       left: 10,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
+                          color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text(
-                          "2 Mentors Nearby",
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
+                        child: const Text("2 Mentors Nearby",
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 12)),
                       ),
                     ),
                   ],
@@ -407,11 +372,8 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              const Text(
-                "Top Mentors",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-
+              const Text("Top Mentors",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
               SizedBox(
@@ -422,13 +384,13 @@ class _LandingPageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     return GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                MentorProfilePage(mentor: mentors[index]),
-                          ),
-                        );
+                        // TODO: aktifkan setelah HomePage migrasi ke Supabase
+                        // dan DummyData diganti dengan data real yang punya userId.
+                        // Navigator.push(context, MaterialPageRoute(
+                        //   builder: (_) => MentorProfilePage(
+                        //     mentorId: mentors[index].userId,
+                        //   ),
+                        // ));
                       },
                       child: Container(
                         width: 200,
@@ -448,7 +410,7 @@ class _LandingPageState extends State<HomePage> {
                                 gradient: LinearGradient(
                                   colors: [
                                     Colors.transparent,
-                                    Colors.black.withValues(alpha: 0.7),
+                                    Colors.black.withOpacity(0.7),
                                   ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
@@ -470,16 +432,13 @@ class _LandingPageState extends State<HomePage> {
                                   Text(
                                     mentors[index].name,
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                   Text(
                                     mentors[index].category,
                                     style: const TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
+                                        color: Colors.white70, fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -494,11 +453,8 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              const Text(
-                "What They Say 💬",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-
+              const Text("What They Say 💬",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
               SizedBox(
@@ -539,10 +495,8 @@ class _LandingPageState extends State<HomePage> {
   Widget _circleIcon(IconData icon) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
+      decoration:
+          const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
       child: Icon(icon, size: 18, color: Colors.deepPurple),
     );
   }
@@ -551,17 +505,15 @@ class _LandingPageState extends State<HomePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
+        color: Colors.black.withOpacity(0.6),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         children: [
           const Icon(Icons.star, color: Colors.amber, size: 14),
           const SizedBox(width: 4),
-          Text(
-            rating.toString(),
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-          ),
+          Text(rating.toString(),
+              style: const TextStyle(color: Colors.white, fontSize: 12)),
         ],
       ),
     );
@@ -601,10 +553,7 @@ class _LandingPageState extends State<HomePage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -615,10 +564,8 @@ class _LandingPageState extends State<HomePage> {
               CircleAvatar(radius: 18, backgroundImage: AssetImage(image)),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                child: Text(name,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               Row(
                 children: [
