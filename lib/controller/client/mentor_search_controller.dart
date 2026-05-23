@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart'; // Ditambahkan untuk tipe data LatLng
 import '../../models/client/mentor_search_model.dart';
 
-// Nama diubah jadi MentorSearchController untuk hindari konflik
-// dengan SearchController milik Flutter Material
 class MentorSearchController {
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -20,6 +19,16 @@ class MentorSearchController {
   String selectedAlamat = 'All';
 
   final TextEditingController searchTextController = TextEditingController();
+
+  // Koordinat fallback dipindah ke sini agar Model kamu tetap bersih
+  static const Map<String, LatLng> cityCoordinates = {
+    'Malang City': LatLng(-7.9653, 112.6214),
+    'Malang': LatLng(-7.9653, 112.6214),
+    'Surabaya': LatLng(-7.2575, 112.7521),
+    'Jakarta': LatLng(-6.2088, 106.8456),
+    'Bandung': LatLng(-6.9175, 107.6191),
+    'Yogyakarta': LatLng(-7.7956, 110.3695),
+  };
 
   Future<void> fetchCategories() async {
     try {
@@ -44,9 +53,7 @@ class MentorSearchController {
     errorMessage = null;
 
     try {
-      final response = await _supabase
-          .from('appuser')
-          .select('''
+      final response = await _supabase.from('appuser').select('''
             id,
             nama_lengkap,
             bio_profil!inner(
@@ -57,8 +64,7 @@ class MentorSearchController {
               categories(category_name)
             ),
             service_rates(price_per_session)
-          ''')
-          .eq('role', 'mentor');
+          ''').eq('role', 'mentor');
 
       allMentors = (response as List)
           .map((e) => MentorSearchModel.fromJson(e as Map<String, dynamic>))
@@ -78,9 +84,8 @@ class MentorSearchController {
 
   void applyFilter() {
     filteredMentors = allMentors.where((mentor) {
-      final matchSearch = mentor.namaLengkap
-          .toLowerCase()
-          .contains(searchQuery.toLowerCase());
+      final matchSearch =
+          mentor.namaLengkap.toLowerCase().contains(searchQuery.toLowerCase());
 
       final matchCategory = selectedCategory == 'All' ||
           (mentor.categoryName?.toLowerCase() ==
@@ -100,9 +105,6 @@ class MentorSearchController {
   }
 
   /// Ekstrak nama kota dari alamat panjang.
-  /// Contoh: "Jl. Soekarno Hatta, Malang City" → "Malang City"
-  /// Strategi: ambil segment terakhir setelah koma, trim spasi.
-  /// Jika tidak ada koma, pakai seluruh alamat.
   static String _extractCity(String alamat) {
     final parts = alamat.split(',');
     return parts.last.trim();
