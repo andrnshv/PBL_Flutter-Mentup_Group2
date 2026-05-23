@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoding/geocoding.dart';
+
+// MENGGUNAKAN RELATIVE IMPORT SUPAYA TIDAK ERROR PATH PACKAGE
 import '../../../controller/client/mentor_search_controller.dart';
 import '../../../models/client/mentor_search_model.dart';
 import '../profile/mentor_profile_page.dart';
@@ -13,6 +17,10 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final MentorSearchController _controller = MentorSearchController();
+  GoogleMapController? _mapController;
+
+  // Menyimpan hasil konversi alamat teks ke Marker koordinat secara dinamis
+  Set<Marker> _mapMarkers = {};
 
   final currencyFormat = NumberFormat.currency(
     locale: 'id_ID',
@@ -21,9 +29,12 @@ class _SearchPageState extends State<SearchPage> {
   );
 
   bool _isLoading = true;
+  bool _isMapView = false;
 
   final Color primaryPurple = const Color(0xFF7E7BB9);
   final Color bgGray = const Color(0xFFF8F9FB);
+  final LatLng _defaultCenter =
+      const LatLng(-7.9425, 112.6131); // Default Malang
 
   @override
   void initState() {
@@ -37,15 +48,81 @@ class _SearchPageState extends State<SearchPage> {
       _controller.fetchMentors(),
     ]);
 
+    // Menghasilkan marker awal berdasarkan alamat mentor yang masuk list
+    await _generateMarkersFromAddresses();
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  // Mengubah teks alamat menjadi Pin Koordinat di Google Maps secara real-time
+  Future<void> _generateMarkersFromAddresses() async {
+    final Set<Marker> temporaryMarkers = {};
+
+    for (final mentor in _controller.filteredMentors) {
+      if (mentor.alamat == null || mentor.alamat!.isEmpty) continue;
+
+      try {
+        // Menggunakan package geocoding untuk translate text ke koordinat lat/lng
+        List<Location> locations = await locationFromAddress(mentor.alamat!);
+
+        if (locations.isNotEmpty) {
+          final targetLoc = locations.first;
+          final latLng = LatLng(targetLoc.latitude, targetLoc.longitude);
+
+          temporaryMarkers.add(
+            Marker(
+              markerId: MarkerId(mentor.userId),
+              position: latLng,
+              infoWindow: InfoWindow(
+                title: mentor.namaLengkap,
+                snippet: mentor.categoryName ?? 'Mentor',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          MentorProfilePage(mentorId: mentor.userId),
+                    ),
+                  );
+                },
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueViolet),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint("Gagal mengubah alamat mentor ${mentor.namaLengkap}: $e");
+      }
+    }
+
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _mapMarkers = temporaryMarkers;
+      });
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _animateToSelectedCity(String city) {
+    if (_mapController == null || !mounted) return;
+
+    LatLng targetCoords = _defaultCenter;
+    double zoomLevel = 12.0;
+
+    if (city != 'All' &&
+        MentorSearchController.cityCoordinates.containsKey(city)) {
+      targetCoords = MentorSearchController.cityCoordinates[city]!;
+      zoomLevel = 13.5;
+    }
+
+    try {
+      _mapController!.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: targetCoords, zoom: zoomLevel),
+        ),
+      );
+    } catch (e) {
+      debugPrint("Gagal menggeser kamera: $e");
+    }
   }
 
   void _openFilter() {
@@ -56,9 +133,7 @@ class _SearchPageState extends State<SearchPage> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -85,9 +160,8 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ),
                   ),
-
                   Text(
-                    "Filter Mentors",
+                    "Filter Mentor",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
@@ -95,20 +169,15 @@ class _SearchPageState extends State<SearchPage> {
                       color: primaryPurple,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         "Max Price",
                         style: TextStyle(
-                          fontFamily: 'Nunito',
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontFamily: 'Nunito', fontWeight: FontWeight.bold),
                       ),
-
                       Text(
                         currencyFormat.format(tempMaxPrice),
                         style: TextStyle(
@@ -119,7 +188,6 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ],
                   ),
-
                   Slider(
                     value: tempMaxPrice.toDouble(),
                     min: 0,
@@ -130,29 +198,19 @@ class _SearchPageState extends State<SearchPage> {
                       setModal(() => tempMaxPrice = value.toInt());
                     },
                   ),
-
                   const SizedBox(height: 10),
-
                   const Text(
-                    "Location",
+                    "Domisili",
                     style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                    ),
+                        fontFamily: 'Nunito', fontWeight: FontWeight.bold),
                   ),
-
                   const SizedBox(height: 8),
-
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.grey.shade400,
-                      ),
+                      border: Border.all(color: Colors.grey.shade400),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: DropdownButton<String>(
@@ -162,10 +220,7 @@ class _SearchPageState extends State<SearchPage> {
                       items: _controller.uniqueAlamatList.map((dom) {
                         return DropdownMenuItem(
                           value: dom,
-                          child: Text(
-                            dom,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          child: Text(dom, overflow: TextOverflow.ellipsis),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -173,9 +228,7 @@ class _SearchPageState extends State<SearchPage> {
                       },
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   Row(
                     children: [
                       Expanded(
@@ -203,20 +256,34 @@ class _SearchPageState extends State<SearchPage> {
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
                       Expanded(
                         flex: 2,
                         child: ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _controller.maxPrice = tempMaxPrice;
-                              _controller.selectedAlamat = tempAlamat;
-                              _controller.applyFilter();
-                            });
-
+                          onPressed: () async {
+                            setState(() => _isLoading = true);
                             Navigator.pop(context);
+
+                            _controller.maxPrice = tempMaxPrice;
+                            _controller.selectedAlamat = tempAlamat;
+                            _controller.applyFilter();
+
+                            // 1. Re-generate marker terlebih dahulu saat loading
+                            await _generateMarkersFromAddresses();
+
+                            // 2. Matikan loading screen terlebih dahulu agar widget GoogleMap dirender ulang
+                            if (mounted) {
+                              setState(() => _isLoading = false);
+                            }
+
+                            // 3. Berikan delay super singkat (100ms) agar GoogleMap selesai menginisialisasi controller barunya
+                            await Future.delayed(
+                                const Duration(milliseconds: 100));
+
+                            // 4. Baru geser kamera ke kota tujuan dengan aman
+                            if (_isMapView) {
+                              _animateToSelectedCity(tempAlamat);
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryPurple,
@@ -250,12 +317,10 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGray,
-
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
-
         title: const Text(
           "Search Mentors",
           style: TextStyle(
@@ -264,24 +329,26 @@ class _SearchPageState extends State<SearchPage> {
             color: Color(0xFF7E7BB9),
           ),
         ),
-
         actions: [
           IconButton(
             icon: Icon(
-              Icons.tune_rounded,
+              _isMapView ? Icons.list_rounded : Icons.map_rounded,
               color: primaryPurple,
             ),
+            onPressed: _isLoading
+                ? null
+                : () {
+                    setState(() => _isMapView = !_isMapView);
+                  },
+          ),
+          IconButton(
+            icon: Icon(Icons.tune_rounded, color: primaryPurple),
             onPressed: _isLoading ? null : _openFilter,
           ),
         ],
       ),
-
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: primaryPurple,
-              ),
-            )
+          ? Center(child: CircularProgressIndicator(color: primaryPurple))
           : _controller.errorMessage != null
               ? _buildError()
               : Padding(
@@ -289,22 +356,14 @@ class _SearchPageState extends State<SearchPage> {
                   child: Column(
                     children: [
                       _buildSearchBar(),
-
                       const SizedBox(height: 12),
-
                       _buildCategoryChips(),
-
-                      const SizedBox(height: 18),
-
-                      Expanded(
-                        child: _buildMentorList(),
-                      ),
-
                       const SizedBox(height: 12),
-
-                      // RESULT
-                      Center(
-                        child: _buildResultCount(),
+                      _buildResultCount(),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child:
+                            _isMapView ? _buildMapView() : _buildMentorList(),
                       ),
                     ],
                   ),
@@ -315,51 +374,35 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildSearchBar() {
     return TextField(
       controller: _controller.searchTextController,
-      onChanged: (value) {
-        setState(() {
-          _controller.searchQuery = value;
-          _controller.applyFilter();
-        });
+      onChanged: (value) async {
+        _controller.searchQuery = value;
+        _controller.applyFilter();
+        await _generateMarkersFromAddresses();
+        setState(() {});
       },
-
       decoration: InputDecoration(
         hintText: "Search mentors by name...",
-        hintStyle: const TextStyle(
-          fontFamily: 'Nunito',
-        ),
-
-        prefixIcon: Icon(
-          Icons.search_rounded,
-          color: primaryPurple,
-        ),
-
+        hintStyle: const TextStyle(fontFamily: 'Nunito'),
+        prefixIcon: Icon(Icons.search_rounded, color: primaryPurple),
         suffixIcon: _controller.searchQuery.isNotEmpty
             ? IconButton(
-                icon: const Icon(
-                  Icons.clear_rounded,
-                  size: 18,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _controller.searchTextController.clear();
-                    _controller.searchQuery = '';
-                    _controller.applyFilter();
-                  });
+                icon: const Icon(Icons.clear_rounded, size: 18),
+                onPressed: () async {
+                  _controller.searchTextController.clear();
+                  _controller.searchQuery = '';
+                  _controller.applyFilter();
+                  await _generateMarkersFromAddresses();
+                  setState(() {});
                 },
               )
             : null,
-
         filled: true,
         fillColor: Colors.white,
-
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
         ),
-
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 14,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
       ),
     );
   }
@@ -367,55 +410,38 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildCategoryChips() {
     return SizedBox(
       height: 38,
-
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _controller.categories.length,
-
         separatorBuilder: (_, __) => const SizedBox(width: 8),
-
         itemBuilder: (context, index) {
           final cat = _controller.categories[index];
           final isSelected = _controller.selectedCategory == cat;
-
           return GestureDetector(
-            onTap: () {
-              setState(() {
-                _controller.selectedCategory = cat;
-                _controller.applyFilter();
-              });
+            onTap: () async {
+              _controller.selectedCategory = cat;
+              _controller.applyFilter();
+              await _generateMarkersFromAddresses();
+              setState(() {});
             },
-
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: isSelected ? primaryPurple : Colors.white,
-
                 borderRadius: BorderRadius.circular(20),
-
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha:0.05),
-                    blurRadius: 4,
-                  ),
+                      color: Colors.black.withOpacity(0.05), blurRadius: 4),
                 ],
               ),
-
               child: Text(
                 cat,
                 style: TextStyle(
                   fontFamily: 'Nunito',
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
-                  color: isSelected
-                      ? Colors.white
-                      : Colors.grey[700],
+                  color: isSelected ? Colors.white : Colors.grey[700],
                 ),
               ),
             ),
@@ -425,25 +451,37 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  // ================= RESULT COUNT TENGAH =================
   Widget _buildResultCount() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return Align(
+      alignment: Alignment.centerLeft,
       child: Text(
-        "${_controller.filteredMentors.length} Mentors Found",
+        "${_controller.filteredMentors.length} mentor ditemukan",
         style: TextStyle(
-          fontFamily: 'Nunito',
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.grey[600],
+            fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[500]),
+      ),
+    );
+  }
+
+  Widget _buildMapView() {
+    final initialTarget = _controller.selectedAlamat != 'All' &&
+            MentorSearchModel.cityCoordinates
+                .containsKey(_controller.selectedAlamat)
+        ? MentorSearchModel.cityCoordinates[_controller.selectedAlamat]!
+        : _defaultCenter;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: initialTarget,
+          zoom: _controller.selectedAlamat != 'All' ? 13.5 : 12.0,
         ),
+        markers: _mapMarkers,
+        onMapCreated: (controller) {
+          _mapController = controller;
+        },
+        myLocationButtonEnabled: false,
+        zoomControlsEnabled: true,
       ),
     );
   }
@@ -454,30 +492,15 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 60,
-              color: Colors.grey[300],
-            ),
-
+            Icon(Icons.search_off_rounded, size: 60, color: Colors.grey[300]),
             const SizedBox(height: 12),
-
             Text(
-              "No Mentors Found",
+              "Mentor tidak ditemukan",
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 15,
                 color: Colors.grey[400],
                 fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            Text(
-              "Try changing the filter or keyword",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 12,
-                color: Colors.grey[400],
               ),
             ),
           ],
@@ -489,9 +512,7 @@ class _SearchPageState extends State<SearchPage> {
       physics: const BouncingScrollPhysics(),
       itemCount: _controller.filteredMentors.length,
       itemBuilder: (context, index) {
-        return _buildMentorCard(
-          _controller.filteredMentors[index],
-        );
+        return _buildMentorCard(_controller.filteredMentors[index]);
       },
     );
   }
@@ -499,48 +520,34 @@ class _SearchPageState extends State<SearchPage> {
   Widget _buildMentorCard(MentorSearchModel mentor) {
     return GestureDetector(
       onTap: () {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text("Mentor"),
-            content: Text(mentor.namaLengkap),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MentorProfilePage(mentorId: mentor.userId),
           ),
         );
       },
-
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
-
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
-
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.04),
+              color: Colors.black.withOpacity(0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-
         child: Row(
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: primaryPurple.withValues(alpha:0.15),
-
-              backgroundImage: mentor.fotoUrl != null
-                  ? NetworkImage(mentor.fotoUrl!)
-                  : null,
-
+              backgroundColor: primaryPurple.withOpacity(0.15),
+              backgroundImage:
+                  mentor.fotoUrl != null ? NetworkImage(mentor.fotoUrl!) : null,
               child: mentor.fotoUrl == null
                   ? Text(
                       mentor.namaLengkap.isNotEmpty
@@ -555,9 +562,7 @@ class _SearchPageState extends State<SearchPage> {
                     )
                   : null,
             ),
-
             const SizedBox(width: 14),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,22 +570,17 @@ class _SearchPageState extends State<SearchPage> {
                   Text(
                     mentor.namaLengkap,
                     style: const TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                    ),
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15),
                   ),
-
                   const SizedBox(height: 3),
-
                   if (mentor.categoryName != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: primaryPurple.withValues(alpha:0.1),
+                        color: primaryPurple.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -593,42 +593,29 @@ class _SearchPageState extends State<SearchPage> {
                         ),
                       ),
                     ),
-
                   const SizedBox(height: 4),
-
                   Row(
                     children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 12,
-                        color: Colors.grey[400],
-                      ),
-
+                      Icon(Icons.location_on_outlined,
+                          size: 12, color: Colors.grey[400]),
                       const SizedBox(width: 2),
-
                       Flexible(
                         child: Text(
-                          mentor.alamat ??
-                              'Location unavailable',
+                          mentor.alamat ?? 'Lokasi tidak tersedia',
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontSize: 11,
-                            color: Colors.grey[500],
-                          ),
+                              fontFamily: 'Nunito',
+                              fontSize: 11,
+                              color: Colors.grey[500]),
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     mentor.pricePerSession != null
-                        ? currencyFormat.format(
-                            mentor.pricePerSession,
-                          )
-                        : 'Price not set',
+                        ? currencyFormat.format(mentor.pricePerSession)
+                        : 'Harga belum diset',
                     style: TextStyle(
                       fontFamily: 'Nunito',
                       fontSize: 13,
@@ -641,23 +628,16 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-
             if (mentor.rating != null)
               Column(
                 children: [
-                  const Icon(
-                    Icons.star_rounded,
-                    color: Colors.amber,
-                    size: 18,
-                  ),
-
+                  const Icon(Icons.star_rounded, color: Colors.amber, size: 18),
                   Text(
                     mentor.rating!.toStringAsFixed(1),
                     style: const TextStyle(
-                      fontFamily: 'Nunito',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
+                        fontFamily: 'Nunito',
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13),
                   ),
                 ],
               ),
@@ -672,41 +652,28 @@ class _SearchPageState extends State<SearchPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.wifi_off_rounded,
-            size: 60,
-            color: Colors.grey[300],
-          ),
-
+          Icon(Icons.wifi_off_rounded, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 12),
-
           Text(
-            "Failed to Load Data",
+            "Gagal memuat data",
             style: TextStyle(
-              fontFamily: 'Nunito',
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[500],
-            ),
+                fontFamily: 'Nunito',
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[500]),
           ),
-
           const SizedBox(height: 8),
-
           ElevatedButton.icon(
             onPressed: () {
               setState(() => _isLoading = true);
               _initData();
             },
-
             icon: const Icon(Icons.refresh_rounded),
-
-            label: const Text("Retry"),
-
+            label: const Text("Coba lagi"),
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryPurple,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
