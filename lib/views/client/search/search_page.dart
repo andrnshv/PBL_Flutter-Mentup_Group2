@@ -455,7 +455,7 @@ class _SearchPageState extends State<SearchPage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Text(
-        "${_controller.filteredMentors.length} mentor ditemukan",
+        "${_controller.filteredMentors.length} mentor(s) found",
         style: TextStyle(
             fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[500]),
       ),
@@ -495,7 +495,7 @@ class _SearchPageState extends State<SearchPage> {
             Icon(Icons.search_off_rounded, size: 60, color: Colors.grey[300]),
             const SizedBox(height: 12),
             Text(
-              "Mentor tidak ditemukan",
+              "Mentor not found",
               style: TextStyle(
                 fontFamily: 'Nunito',
                 fontSize: 15,
