@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../../controller/mentor/schedule_controller.dart';
+import '../../../models/mentor/schedule_model.dart';
 import '../../../routes/app_routes.dart';
 
 class MySchedulePage extends StatefulWidget {
@@ -10,76 +12,51 @@ class MySchedulePage extends StatefulWidget {
 }
 
 class _MySchedulePageState extends State<MySchedulePage> {
+  final MyScheduleController _controller = MyScheduleController();
+
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  DateTime _focusedDay  = DateTime.now();
+  DateTime _selectedDay = DateTime.now();
 
-  // Palet Warna Mentup
-  final Color primaryColor = const Color(0xFF5B62CC);
-  final Color backgroundColor = const Color(
-    0xFFF4F6FA,
-  ); // Sedikit lebih soft dari F8F9FB
+  bool _isPageLoading = true;
 
-  // Fitur Search & Sort
-  String _searchQuery = "";
-  bool _isAscending = true;
-
-  // Data Dummy dengan tambahan 'color' agar lebih hidup
-  final List<Map<String, dynamic>> _dailySessions = [
-    {
-      "name": "Budi Santoso",
-      "time": "13:00 - 15:00",
-      "category": "Web Dev",
-      "type": "Offline",
-      "link": "Library Central Park",
-      "isDone": true,
-      "color": const Color(0xFFA7C7E7), // Biru
-    },
-    {
-      "name": "Aiska Rahma",
-      "time": "09:00 - 11:00",
-      "category": "Statistics",
-      "type": "Online",
-      "link": "https://zoom.us/j/123456789",
-      "isDone": false,
-      "color": const Color(0xFFF5B3CE), // Pink
-    },
-    {
-      "name": "Citra Kirana",
-      "time": "15:30 - 17:00",
-      "category": "UI/UX Design",
-      "type": "Online",
-      "link": "https://meet.google.com/abc",
-      "isDone": false,
-      "color": const Color(0xFFCDB4DB), // Ungu
-    },
-  ];
+  static const Color _primary    = Color(0xFF5B62CC);
+  static const Color _bgColor    = Color(0xFFF4F6FA);
 
   @override
   void initState() {
     super.initState();
-    _selectedDay = _focusedDay;
+    // Tunggu frame pertama selesai sebelum setState
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadForDate(_selectedDay);
+    });
   }
 
-  // Fungsi Filter & Sorting
-  List<Map<String, dynamic>> get _filteredAndSortedSessions {
-    var filtered = _dailySessions.where((session) {
-      final name = session['name'].toString().toLowerCase();
-      return name.contains(_searchQuery.toLowerCase());
-    }).toList();
+  /// Load jadwal untuk tanggal yang dipilih
+  Future<void> _loadForDate(DateTime date) async {
+    if (!mounted) return;
+    setState(() => _isPageLoading = true);
+    await _controller.fetchSchedulesForDate(date);
+    if (mounted) setState(() => _isPageLoading = false);
+  }
 
-    filtered.sort((a, b) {
-      int comparison = a['name'].toString().compareTo(b['name'].toString());
-      return _isAscending ? comparison : -comparison;
-    });
-
-    return filtered;
+  /// Refresh seluruh data (untuk dot marker kalender)
+  Future<void> _loadAll() async {
+    await _controller.fetchSchedules();
+    if (mounted) setState(() {});
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: _bgColor,
       appBar: AppBar(
         title: const Text(
           "My Schedule",
@@ -92,216 +69,21 @@ class _MySchedulePageState extends State<MySchedulePage> {
       ),
       body: Column(
         children: [
-          // --- BAGIAN KALENDER ---
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            padding: const EdgeInsets.only(bottom: 15, top: 5),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: primaryColor.withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: TableCalendar(
-              firstDay: DateTime.utc(2024, 1, 1),
-              lastDay: DateTime.utc(2030, 12, 31),
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onFormatChanged: (format) =>
-                  setState(() => _calendarFormat = format),
-              daysOfWeekStyle: DaysOfWeekStyle(
-                weekdayStyle: const TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black54,
-                ),
-                weekendStyle: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red[300],
-                ),
-              ),
-              calendarStyle: CalendarStyle(
-                selectedDecoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [primaryColor.withOpacity(0.8), primaryColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: primaryColor.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                todayDecoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                todayTextStyle: TextStyle(
-                  color: primaryColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                titleTextStyle: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-                leftChevronIcon: Icon(
-                  Icons.chevron_left_rounded,
-                  color: Colors.black87,
-                ),
-                rightChevronIcon: Icon(
-                  Icons.chevron_right_rounded,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-          ),
+          // ── KALENDER ──────────────────────────────────────
+          _buildCalendar(),
 
-          // --- BAGIAN DAFTAR SESI ---
+          // ── DAFTAR SESI ───────────────────────────────────
           Expanded(
-            child: Container(
+            child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Schedule Details",
-                        style: TextStyle(
-                          fontFamily: 'Nunito',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      // Tombol Manage Slot yang lebih "Pop"
-                      InkWell(
-                        onTap: () =>
-                            Navigator.pushNamed(context, AppRoutes.manageSlot),
-                        borderRadius: BorderRadius.circular(20),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.tune_rounded,
-                                size: 16,
-                                color: primaryColor,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                "Manage Slot",
-                                style: TextStyle(
-                                  fontFamily: 'Nunito',
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildListHeader(),
                   const SizedBox(height: 15),
-
-                  // Kotak Search & Sort (Lebih soft tanpa border keras)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                            decoration: InputDecoration(
-                              hintText: "Search client name...",
-                              hintStyle: TextStyle(
-                                fontFamily: 'Nunito',
-                                fontSize: 14,
-                                color: Colors.grey[400],
-                              ),
-                              border: InputBorder.none,
-                              prefixIcon: Icon(
-                                Icons.search_rounded,
-                                size: 22,
-                                color: Colors.grey[400],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        height: 48,
-                        width: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            _isAscending
-                                ? Icons.sort_by_alpha_rounded
-                                : Icons.sort_rounded,
-                            color: primaryColor,
-                            size: 22,
-                          ),
-                          onPressed: () =>
-                              setState(() => _isAscending = !_isAscending),
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildSearchAndSort(),
                   const SizedBox(height: 20),
-
                   Expanded(child: _buildSessionList()),
                 ],
               ),
@@ -312,10 +94,303 @@ class _MySchedulePageState extends State<MySchedulePage> {
     );
   }
 
-  Widget _buildSessionList() {
-    final displayList = _filteredAndSortedSessions;
+  // ─────────────────────────────────────────────────────────
+  // KALENDER
+  // ─────────────────────────────────────────────────────────
+  Widget _buildCalendar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.only(bottom: 15, top: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: _primary.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: TableCalendar(
+        firstDay: DateTime.utc(2024, 1, 1),
+        lastDay: DateTime.utc(2030, 12, 31),
+        focusedDay: _focusedDay,
+        calendarFormat: _calendarFormat,
+        selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
 
-    if (displayList.isEmpty) {
+        // Dot marker pada tanggal yang punya jadwal
+        eventLoader: (day) {
+          final normalized = DateTime(day.year, day.month, day.day);
+          return _controller.scheduledDates.contains(normalized) ? [true] : [];
+        },
+
+        onDaySelected: (selectedDay, focusedDay) {
+          setState(() {
+            _selectedDay = selectedDay;
+            _focusedDay  = focusedDay;
+          });
+          _loadForDate(selectedDay);
+        },
+
+        onFormatChanged: (format) =>
+            setState(() => _calendarFormat = format),
+
+        calendarBuilders: CalendarBuilders(
+          // Dot di bawah tanggal yang ada jadwal
+          markerBuilder: (context, day, events) {
+            if (events.isEmpty) return const SizedBox();
+            return Positioned(
+              bottom: 4,
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: _primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            );
+          },
+        ),
+
+        daysOfWeekStyle: DaysOfWeekStyle(
+          weekdayStyle: const TextStyle(
+            fontFamily: 'Nunito', fontWeight: FontWeight.bold,
+            color: Colors.black54,
+          ),
+          weekendStyle: TextStyle(
+            fontFamily: 'Nunito', fontWeight: FontWeight.bold,
+            color: Colors.red[300],
+          ),
+        ),
+        calendarStyle: CalendarStyle(
+          selectedDecoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF7E7BB9), _primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: _primary.withOpacity(0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          todayDecoration: BoxDecoration(
+            color: _primary.withOpacity(0.15),
+            shape: BoxShape.circle,
+          ),
+          todayTextStyle: const TextStyle(
+            color: _primary, fontWeight: FontWeight.bold,
+          ),
+        ),
+        headerStyle: const HeaderStyle(
+          formatButtonVisible: false,
+          titleCentered: true,
+          titleTextStyle: TextStyle(
+            fontFamily: 'Nunito', fontWeight: FontWeight.w900, fontSize: 18,
+          ),
+          leftChevronIcon:
+              Icon(Icons.chevron_left_rounded, color: Colors.black87),
+          rightChevronIcon:
+              Icon(Icons.chevron_right_rounded, color: Colors.black87),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // LIST HEADER
+  // ─────────────────────────────────────────────────────────
+  Widget _buildListHeader() {
+    // Format tanggal yang dipilih: "Monday, 20 April 2026"
+    final weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    final months   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final label =
+        '${weekdays[_selectedDay.weekday - 1]}, '
+        '${_selectedDay.day} ${months[_selectedDay.month - 1]} '
+        '${_selectedDay.year}';
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Schedule Details",
+              style: TextStyle(
+                fontFamily: 'Nunito', fontSize: 18, fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+
+        // Tombol Manage Slot
+        InkWell(
+          onTap: () => Navigator.pushNamed(context, AppRoutes.manageSlot),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 16, color: _primary),
+                const SizedBox(width: 5),
+                const Text(
+                  "Manage Slot",
+                  style: TextStyle(
+                    fontFamily: 'Nunito', color: _primary,
+                    fontWeight: FontWeight.bold, fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // SEARCH + SORT
+  // ─────────────────────────────────────────────────────────
+  Widget _buildSearchAndSort() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03), blurRadius: 10,
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _controller.searchController,
+              onChanged: (value) {
+                setState(() {
+                  _controller.searchQuery = value;
+                  _controller.applyFilter();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search client name...",
+                hintStyle: TextStyle(
+                  fontFamily: 'Nunito', fontSize: 14, color: Colors.grey[400],
+                ),
+                border: InputBorder.none,
+                prefixIcon: Icon(
+                  Icons.search_rounded, size: 22, color: Colors.grey[400],
+                ),
+                suffixIcon: _controller.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          setState(() {
+                            _controller.searchController.clear();
+                            _controller.searchQuery = '';
+                            _controller.applyFilter();
+                          });
+                        },
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          height: 48,
+          width: 48,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03), blurRadius: 10,
+              ),
+            ],
+          ),
+          child: IconButton(
+            icon: Icon(
+              _controller.isAscending
+                  ? Icons.sort_by_alpha_rounded
+                  : Icons.sort_rounded,
+              color: _primary, size: 22,
+            ),
+            onPressed: () {
+              setState(() {
+                _controller.isAscending = !_controller.isAscending;
+                _controller.applyFilter();
+              });
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // SESSION LIST
+  // ─────────────────────────────────────────────────────────
+  Widget _buildSessionList() {
+    // Loading spinner
+    if (_isPageLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: _primary),
+      );
+    }
+
+    // Error state
+    if (_controller.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off_rounded, size: 50, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              _controller.errorMessage!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[500], fontFamily: 'Nunito'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () => _loadForDate(_selectedDay),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text("Retry"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Empty state
+    if (_controller.filteredSchedules.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -327,26 +402,31 @@ class _MySchedulePageState extends State<MySchedulePage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 20,
+                    color: Colors.black.withOpacity(0.05), blurRadius: 20,
                   ),
                 ],
               ),
               child: Icon(
-                Icons.event_busy_rounded,
-                size: 40,
-                color: Colors.grey[300],
+                Icons.event_busy_rounded, size: 40, color: Colors.grey[300],
               ),
             ),
             const SizedBox(height: 15),
             Text(
-              "No sessions found",
+              _controller.searchQuery.isNotEmpty
+                  ? "No sessions found"
+                  : "No sessions on this day",
               style: TextStyle(
-                fontFamily: 'Nunito',
-                color: Colors.grey[500],
+                fontFamily: 'Nunito', color: Colors.grey[500],
                 fontWeight: FontWeight.bold,
               ),
             ),
+            if (_controller.searchQuery.isEmpty)
+              Text(
+                "Tap 'Manage Slot' to add a schedule",
+                style: TextStyle(
+                  fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[400],
+                ),
+              ),
           ],
         ),
       );
@@ -354,161 +434,249 @@ class _MySchedulePageState extends State<MySchedulePage> {
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      itemCount: displayList.length,
+      itemCount: _controller.filteredSchedules.length,
       itemBuilder: (context, index) {
-        final session = displayList[index];
-        final Color accentColor = session['color'];
-
-        return GestureDetector(
-          // --- NAVIGASI KE DETAIL ---
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.bookingDetail,
-              arguments: {
-                'name': session['name'],
-                'cat':
-                    session['category'], // Menyesuaikan key 'cat' di Detail Page
-                'color': session['color'],
-                'time': session['time'],
-                'date': "Selected Date", // Nanti bisa ambil dari _selectedDay
-                'location': session['link'],
-                'note': "This session is already accepted and scheduled.",
-                'totalPrice': "Paid", // Status untuk jadwal yang sudah jalan
-                'hours': 2,
-                'sessionsPerWeek': 2,
-                'days': ['Mon', 'Wed'],
-                'months': 1,
-              },
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: accentColor.withOpacity(0.08),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    width: 6,
-                    decoration: BoxDecoration(
-                      color: accentColor,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                session['time'].split(" - ")[0],
-                                style: const TextStyle(
-                                  fontFamily: 'Nunito',
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Container(
-                                height: 15,
-                                width: 2,
-                                color: Colors.grey[200],
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                              ),
-                              Text(
-                                session['time'].split(" - ")[1],
-                                style: TextStyle(
-                                  fontFamily: 'Nunito',
-                                  color: Colors.grey[500],
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  session['name'],
-                                  style: const TextStyle(
-                                    fontFamily: 'Nunito',
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    session['category'],
-                                    style: TextStyle(
-                                      fontFamily: 'Nunito',
-                                      color: accentColor,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: session['isDone']
-                                  ? Colors.green.withOpacity(0.1)
-                                  : accentColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              session['isDone']
-                                  ? Icons.check_circle_rounded
-                                  : (session['type'] == 'Online'
-                                        ? Icons.videocam_rounded
-                                        : Icons.location_on_rounded),
-                              color: session['isDone']
-                                  ? Colors.green
-                                  : accentColor,
-                              size: 20,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        final session     = _controller.filteredSchedules[index];
+        final accentColor = _controller.accentColorFor(index);
+        return _buildSessionCard(session, accentColor);
       },
     );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // SESSION CARD
+  // ─────────────────────────────────────────────────────────
+  Widget _buildSessionCard(MyScheduleModel session, Color accentColor) {
+    final isDone = session.bookingStatus == 'Done';
+
+    // Tentukan icon berdasarkan session type
+    IconData typeIcon;
+    if (isDone) {
+      typeIcon = Icons.check_circle_rounded;
+    } else if (session.sessionType == 'Online') {
+      typeIcon = Icons.videocam_rounded;
+    } else {
+      typeIcon = Icons.location_on_rounded;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.bookingDetail,
+          arguments: {
+            'name':           session.clientName ?? 'Unknown Client',
+            'cat':            'Session',               // kategori dari booking belum di ERD
+            'color':          accentColor,
+            'time':           session.timeRange,
+            'date':           _formatDate(session.availableDate),
+            'location':       session.sessionLink ?? '-',
+            'note':           'Status: ${session.bookingStatus ?? "Pending"}',
+            'totalPrice':     session.bookingStatus == 'Done' ? 'Paid' : 'Pending',
+            'hours':          2,
+            'sessionsPerWeek': 1,
+            'days':           [_dayAbbr(session.availableDate.weekday)],
+            'months':         1,
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: accentColor.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Colored left bar
+              Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    bottomLeft: Radius.circular(20),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      // Waktu
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            session.startTime,
+                            style: const TextStyle(
+                              fontFamily: 'Nunito',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                            ),
+                          ),
+                          if (session.endTime != null) ...[
+                            Container(
+                              height: 15, width: 2,
+                              color: Colors.grey[200],
+                              margin:
+                                  const EdgeInsets.symmetric(vertical: 4),
+                            ),
+                            Text(
+                              session.endTime!,
+                              style: TextStyle(
+                                fontFamily: 'Nunito',
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+
+                      const SizedBox(width: 15),
+
+                      // Info client
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              session.isBooked
+                                  ? (session.clientName ?? 'Unknown Client')
+                                  : 'Available Slot',
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            if (session.isBooked &&
+                                session.bookingStatus != null)
+                              _statusBadge(session.bookingStatus!, accentColor),
+                            if (!session.isBooked)
+                              Text(
+                                'No booking yet',
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontSize: 12,
+                                  color: Colors.grey[400],
+                                ),
+                              ),
+                            // Type: online/offline
+                            if (session.isBooked &&
+                                session.sessionType != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      session.sessionType == 'Online'
+                                          ? Icons.videocam_outlined
+                                          : Icons.location_on_outlined,
+                                      size: 12,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        session.sessionType == 'Online'
+                                            ? (session.sessionLink ?? 'Online')
+                                            : (session.sessionLink ?? 'Offline'),
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontFamily: 'Nunito',
+                                          fontSize: 11,
+                                          color: Colors.grey[400],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+
+                      // Icon status
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isDone
+                              ? Colors.green.withOpacity(0.1)
+                              : accentColor.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          typeIcon,
+                          color: isDone ? Colors.green : accentColor,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────────────────
+  Widget _statusBadge(String status, Color accentColor) {
+    Color color;
+    switch (status) {
+      case 'Accepted': color = Colors.green;   break;
+      case 'Pending':  color = Colors.orange;  break;
+      case 'Rejected': color = Colors.red;     break;
+      case 'Done':     color = Colors.blue;    break;
+      default:         color = accentColor;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontFamily: 'Nunito', fontSize: 11,
+          fontWeight: FontWeight.w900, color: color,
+        ),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    const months = [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _dayAbbr(int weekday) {
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    return days[weekday - 1];
   }
 }
