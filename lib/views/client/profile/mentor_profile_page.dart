@@ -3,10 +3,19 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../controller/client/mentor_profile_controller.dart';
 import '../../../models/client/mentor_profile_model.dart';
+import 'booking_page.dart';
+
+// ================================================================
+//  MENTOR PROFILE PAGE — MentUp
+//  File: lib/views/client/profile/mentor_profile_page.dart
+//
+//  Perubahan dari versi sebelumnya:
+//  - Tombol "Book Session" sudah aktif → navigasi ke BookingPage
+//  - Tombol "See All" reviews sudah aktif
+//  - Jadwal bisa diklik untuk langsung booking (opsional)
+// ================================================================
 
 class MentorProfilePage extends StatefulWidget {
-  /// Hanya butuh userId untuk fetch data lengkap dari Supabase.
-  /// Tidak perlu lagi passing MentorModel / MentorSearchModel.
   final String mentorId;
 
   const MentorProfilePage({super.key, required this.mentorId});
@@ -41,25 +50,19 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
   }
 
   Future<void> _openWhatsApp(String phone) async {
-    // Bersihkan karakter non-digit, pastikan diawali kode negara
     final clean = phone.replaceAll(RegExp(r'\D'), '');
     final url = Uri.parse('https://wa.me/$clean');
     if (await canLaunchUrl(url)) await launchUrl(url);
   }
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'Accepted':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      case 'Done':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
+  // ── Navigasi ke BookingPage ──────────────
+  void _goToBooking(MentorProfileModel mentor) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BookingPage(mentor: mentor),
+      ),
+    );
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -68,9 +71,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: _bgColor,
-        body: Center(
-          child: CircularProgressIndicator(color: _primary),
-        ),
+        body: Center(child: CircularProgressIndicator(color: _primary)),
       );
     }
 
@@ -110,8 +111,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
     }
 
     final mentor = _controller.profileData!;
-    // Anggap available jika ada jadwal yang belum di-booking
-    final bool isAvailable = mentor.schedules.any((s) => !s.isBooked);
+    final isAvailable = mentor.schedules.any((s) => !s.isBooked);
 
     return Scaffold(
       backgroundColor: _bgColor,
@@ -123,7 +123,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
 
             const SizedBox(height: 65),
 
-            // ── NAMA & BADGE ─────────────────────────────────
+            // ── NAMA ─────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -225,31 +225,30 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
+                  // Tombol Message (WhatsApp)
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: mentor.nomorHp != null
                           ? () => _openWhatsApp(mentor.nomorHp!)
-                          : null, // disable jika no HP tidak ada
+                          : null,
                       icon: const Icon(Icons.chat),
                       label: const Text('Message'),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                            borderRadius: BorderRadius.circular(15)),
                       ),
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
+                  // ── TOMBOL BOOK SESSION (sekarang aktif) ──
                   Expanded(
                     child: ElevatedButton(
-                      // TODO: aktifkan navigasi ke BookingPage saat sudah siap
-                      // onPressed: isAvailable
-                      //     ? () => Navigator.push(context,
-                      //         MaterialPageRoute(builder: (_) =>
-                      //             BookingPage(mentorId: mentor.userId)))
-                      //     : null,
-                      onPressed: null, // sementara dinonaktifkan
+                      onPressed: isAvailable
+                          ? () => _goToBooking(mentor) // ← AKTIF
+                          : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor:
                             isAvailable ? _primary : const Color(0xFFE0E0E0),
@@ -261,8 +260,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                         shadowColor: Colors.black.withOpacity(0.2),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                            borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -275,9 +273,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                           Text(
                             isAvailable ? 'Book Session' : 'Not Available',
                             style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                                fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
                       ),
@@ -327,7 +323,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                       'Siap membantu kamu berkembang 🚀',
             ),
 
-            // ── REVIEWS (placeholder) ────────────────────────
+            // ── REVIEWS ──────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Container(
@@ -343,28 +339,22 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Reviews',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
+                        const Text('Reviews',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
                         TextButton(
-                          // TODO: aktifkan navigasi ke MentorReviewsPage
-                          // onPressed: () => Navigator.push(context,
-                          //     MaterialPageRoute(builder: (_) =>
-                          //         MentorReviewsPage(mentorId: mentor.userId))),
-                          onPressed: null, // sementara dinonaktifkan
+                          // TODO: aktifkan saat MentorReviewsPage siap
+                          onPressed: null,
                           child: const Text('See All'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Center(
-                      child: Text(
-                        'Reviews coming soon',
-                        style: TextStyle(color: Colors.grey),
+                    if (mentor.totalReviews == null || mentor.totalReviews == 0)
+                      const Center(
+                        child: Text('Reviews coming soon',
+                            style: TextStyle(color: Colors.grey)),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -383,14 +373,24 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Available Schedules',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Available Schedules',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16)),
+                        // Tombol langsung booking dari jadwal
+                        if (isAvailable)
+                          TextButton.icon(
+                            onPressed: () => _goToBooking(mentor),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Book'),
+                            style:
+                                TextButton.styleFrom(foregroundColor: _primary),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 10),
-
-                    // Filter hanya jadwal yang belum di-booking
                     Builder(builder: (_) {
                       final available =
                           mentor.schedules.where((s) => !s.isBooked).toList();
@@ -411,48 +411,62 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
 
                       return Column(
                         children: available.map((sched) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: _primary.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_month,
-                                    color: _primary),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${sched.availableDate} • ${sched.startTime}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Available',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
+                          final start = sched.startTime.length >= 5
+                              ? sched.startTime.substring(0, 5)
+                              : sched.startTime;
+
+                          return InkWell(
+                            // Klik jadwal → langsung ke booking
+                            onTap: () => _goToBooking(mentor),
+                            borderRadius: BorderRadius.circular(15),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _primary.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_month,
+                                      color: _primary),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${sched.availableDate}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        Text(
+                                          'Mulai $start WIB',
+                                          style: const TextStyle(
+                                              fontSize: 12, color: Colors.grey),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                              ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'Book →',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         }).toList(),
@@ -469,8 +483,6 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // HEADER WIDGET
-  // ─────────────────────────────────────────────────────────────
   Widget _buildHeader(
       BuildContext context, MentorProfileModel mentor, bool isAvailable) {
     return Stack(
@@ -486,8 +498,6 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 const BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
         ),
-
-        // Tombol back
         Positioned(
           top: 40,
           left: 10,
@@ -502,8 +512,6 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
             ),
           ),
         ),
-
-        // Avatar
         Positioned(
           bottom: -50,
           left: 0,
@@ -555,15 +563,12 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
   Widget _infoItem(String title, String value) {
     return Column(
       children: [
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         const SizedBox(height: 4),
         Text(title, style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ],
