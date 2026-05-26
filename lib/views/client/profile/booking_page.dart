@@ -1,868 +1,819 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-import '../../../models/mentor_model.dart';
-import '../map/map_picker_page.dart';
+import '../../../controller/client/booking_controller.dart';
+import '../../../controller/client/payment_controller.dart';
+import '../../../models/client/mentor_profile_model.dart';
+
+// ================================================================
+//  BOOKING PAGE — MentUp
+//  File: lib/views/client/profile/booking_page.dart
+//
+//  Menerima MentorProfileModel langsung dari MentorProfilePage.
+//  Alur: pilih jadwal → isi catatan → review → submit booking ke
+//        Supabase → buat invoice Duitku → buka WebView → verifikasi
+//        → dialog hasil.
+// ================================================================
 
 class BookingPage extends StatefulWidget {
-  final MentorModel mentor;
-  final bool isReschedule;
-  final Map<String, dynamic>? oldData;
+  final MentorProfileModel mentor;
 
-  const BookingPage({
-    super.key,
-    required this.mentor,
-    this.isReschedule = false,
-    this.oldData,
-  });
+  const BookingPage({super.key, required this.mentor});
 
   @override
   State<BookingPage> createState() => _BookingPageState();
 }
 
 class _BookingPageState extends State<BookingPage> {
-  final Color primary = const Color(0xFF6C63FF);
+  // ── warna tema ──────────────────────────────
+  static const Color _primary = Color(0xFF6C63FF);
+  static const Color _bg = Color(0xFFF4F6FA);
 
+  // ── controller ─────────────────────────────
+  final _bookingCtrl = BookingController();
+  final _payCtrl = PaymentController();
+  final _noteCtrl = TextEditingController();
+  final _supabase = Supabase.instance.client;
 
-  List<DateTime> selectedDates = [];
-  DateTime focusedDay = DateTime.now();
+  // ── state form ──────────────────────────────
+  MentorScheduleItem? _selectedSlot; // slot jadwal yang dipilih
 
-  LatLng? selectedLocation;
-  TimeOfDay? selectedTime;
+  // ── status halaman ──────────────────────────
+  // 'form' | 'review' | 'loading' | 'webview'
+  String _status = 'form';
 
-  final TextEditingController noteController =
-      TextEditingController();
+  // ── WebView ─────────────────────────────────
+  WebViewController? _webCtrl;
+  bool _webLoading = false;
 
-  String status = "form";
-
-  int get totalPrice =>
-    widget.mentor.price *
-    selectedDates.length;
+  // ── data payment (disimpan untuk verify) ────
+  String? _bookingId;
+  String? _merchantOrderId;
 
   @override
-  void initState() {
-    super.initState();
-
-    if (widget.isReschedule &&
-        widget.oldData != null) {
-      final data = widget.oldData!;
-
-      selectedDates =
-          List<DateTime>.from(data["dates"] ?? []);
-
-      noteController.text = data["note"] ?? "";
-    }
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
   }
 
+  // ── harga total ─────────────────────────────
+  int get _totalPrice => widget.mentor.pricePerSession ?? 0;
+
+  // ──────────────────────────────────────────
+  //  Slot tersedia (filter yang belum dibooked)
+  // ──────────────────────────────────────────
+  List<MentorScheduleItem> get _availableSlots =>
+      widget.mentor.schedules.where((s) => !s.isBooked).toList();
+
+  // ══════════════════════════════════════════
+  //  BUILD
+  // ══════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: _bg,
       appBar: AppBar(
-        title: Text(
-          widget.isReschedule
-              ? "Reschedule Session"
-              : "Booking Mentor",
-        ),
+        title: const Text('Booking Mentor'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          if (_status == 'webview' && _webCtrl != null)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => _webCtrl!.reload(),
+            ),
+        ],
       ),
-      body: _buildContent(),
+      body: AnimatedBuilder(
+        animation: _payCtrl,
+        builder: (_, __) => _buildBody(),
+      ),
     );
   }
 
-  Widget _buildContent() {
-    switch (status) {
-      case "review":
-        return _buildReview();
-
-      case "pending":
-        return _buildWaiting();
-
-      default:
-        return _buildForm();
+  Widget _buildBody() {
+    // ── WebView aktif ──────────────────────
+    if (_status == 'webview' && _webCtrl != null) {
+      return Stack(children: [
+        WebViewWidget(controller: _webCtrl!),
+        if (_webLoading || _payCtrl.isLoading)
+          const Center(child: CircularProgressIndicator()),
+      ]);
     }
+
+    // ── Loading ────────────────────────────
+    if (_status == 'loading') {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: _primary),
+            SizedBox(height: 16),
+            Text('Menyiapkan pembayaran...',
+                style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    // ── Review ─────────────────────────────
+    if (_status == 'review') return _buildReview();
+
+    // ── Form (default) ─────────────────────
+    return _buildForm();
   }
 
-  /// ================= FORM =================
-
+  // ══════════════════════════════════════════
+  //  FORM — pilih jadwal & isi catatan
+  // ══════════════════════════════════════════
   Widget _buildForm() {
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            /// ================= MENTOR =================
-
+            // ── Card info mentor ──────────
             _card(
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage:
-                      AssetImage(widget.mentor.image),
-                ),
-                title: Text(
-                  widget.mentor.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle:
-                    Text(widget.mentor.category),
+                child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundColor: _primary.withValues(alpha: 0.1),
+                backgroundImage: widget.mentor.fotoUrl != null
+                    ? NetworkImage(widget.mentor.fotoUrl!)
+                    : null,
+                child: widget.mentor.fotoUrl == null
+                    ? Text(
+                        widget.mentor.namaLengkap.isNotEmpty
+                            ? widget.mentor.namaLengkap[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                            color: _primary, fontWeight: FontWeight.bold),
+                      )
+                    : null,
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// ================= CALENDAR =================
-
-            const Text(
-              "Select Mentoring Dates",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
+              title: Text(widget.mentor.namaLengkap,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(
+                widget.mentor.categoryName ?? 'Mentor',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
               ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(20),
-              ),
-              child: TableCalendar(
-                firstDay: DateTime.now(),
-                lastDay: DateTime(2030),
-                focusedDay: focusedDay,
-
-                selectedDayPredicate: (day) {
-                  return selectedDates.any(
-                    (selectedDay) =>
-                        isSameDay(
-                            selectedDay, day),
-                  );
-                },
-
-                onDaySelected:
-                    (selectedDay, focusedDay) {
-                  setState(() {
-                    this.focusedDay =
-                        focusedDay;
-
-                    final exists =
-                        selectedDates.any(
-                      (d) => isSameDay(
-                          d, selectedDay),
-                    );
-
-                    if (exists) {
-                      selectedDates.removeWhere(
-                        (d) => isSameDay(
-                            d, selectedDay),
-                      );
-                    } else {
-                      selectedDates
-                          .add(selectedDay);
-                    }
-                  });
-                },
-
-                calendarStyle: CalendarStyle(
-                  todayDecoration:
-                      BoxDecoration(
-                    color:
-                        primary.withValues(alpha:0.4),
-                    shape: BoxShape.circle,
-                  ),
-
-                  selectedDecoration:
-                      BoxDecoration(
-                    color: primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-
-                headerStyle:
-                    const HeaderStyle(
-                  formatButtonVisible: false,
-                  titleCentered: true,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            if (selectedDates.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    selectedDates.map((date) {
-                  return Chip(
-                    backgroundColor:
-                        primary.withValues(alpha:0.1),
-                    label: Text(
-                      "${date.day}/${date.month}/${date.year}",
-                    ),
-                    deleteIcon: const Icon(
-                      Icons.close,
-                      size: 18,
-                    ),
-                    onDeleted: () {
-                      setState(() {
-                        selectedDates
-                            .remove(date);
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-
-            const SizedBox(height: 20),
-
-            /// ================= TIME =================
-
-            _card(
-              child: ListTile(
-                leading:
-                    const Icon(Icons.access_time),
-
-                title: Text(
-                  selectedTime == null
-                      ? "Select Session Time"
-                      : "Time: ${selectedTime!.format(context)}",
-                ),
-
-                onTap: () async {
-                  final time =
-                      await showTimePicker(
-                    context: context,
-                    initialTime:
-                        selectedTime ??
-                            TimeOfDay.now(),
-                  );
-
-                  if (time != null) {
-                    setState(() {
-                      selectedTime = time;
-                    });
-                  }
-                },
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// ================= LOCATION =================
-
-            _card(
-              child: ListTile(
-                leading:
-                    const Icon(Icons.location_on),
-
-                title: Text(
-                  selectedLocation == null
-                      ? "Select Location"
-                      : "Location selected ✔",
-                ),
-
-                onTap: () async {
-                  final result =
-                      await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const MapPickerPage(),
-                    ),
-                  );
-
-                  if (result != null) {
-                    setState(() {
-                      selectedLocation =
-                          result;
-                    });
-                  }
-                },
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            _input(
-              "Note (optional)",
-              noteController,
-            ),
-
-            const SizedBox(height: 15),
-
-            /// ================= PRICE =================
-
-            _card(
-              child: Padding(
-                padding:
-                    const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-
-                    const Text(
-                      "Price Detail",
-                      style: TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      "Rp ${widget.mentor.price} x ${selectedDates.length} session",
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    const Divider(),
-
-                    Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment
-                              .spaceBetween,
+              trailing: widget.mentor.pricePerSession != null
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-
-                        const Text(
-                          "Total Price",
-                        ),
-
                         Text(
-                          "Rp $totalPrice",
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight.bold,
-                            color: primary,
-                            fontSize: 18,
-                          ),
+                          'Rp ${_formatNumber(widget.mentor.pricePerSession!)}',
+                          style: const TextStyle(
+                              color: _primary, fontWeight: FontWeight.bold),
                         ),
+                        const Text('per sesi',
+                            style: TextStyle(fontSize: 10, color: Colors.grey)),
                       ],
                     )
+                  : null,
+            )),
+
+            const SizedBox(height: 20),
+
+            // ── Pilih Jadwal ──────────────
+            const Text('Pilih Jadwal',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 10),
+
+            if (_availableSlots.isEmpty)
+              _card(
+                  child: const Padding(
+                padding: EdgeInsets.all(20),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.event_busy, color: Colors.grey, size: 36),
+                      SizedBox(height: 8),
+                      Text('Tidak ada jadwal tersedia',
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ))
+            else
+              _card(
+                  child: Column(
+                children: _availableSlots.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final slot = entry.value;
+                  final isSelected = _selectedSlot?.id == slot.id;
+
+                  // Format waktu: "08:00" dari "08:00:00"
+                  final start = slot.startTime.length >= 5
+                      ? slot.startTime.substring(0, 5)
+                      : slot.startTime;
+
+                  return Column(
+                    children: [
+                      InkWell(
+                        onTap: () => setState(() => _selectedSlot = slot),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? _primary.withValues(alpha: 0.08)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  isSelected ? _primary : Colors.grey.shade200,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? _primary
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  Icons.calendar_month,
+                                  size: 18,
+                                  color:
+                                      isSelected ? Colors.white : Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _formatDate(slot.availableDate),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? _primary
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Mulai $start WIB',
+                                      style: const TextStyle(
+                                          fontSize: 12, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(Icons.check_circle,
+                                    color: _primary, size: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (i < _availableSlots.length - 1)
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                    ],
+                  );
+                }).toList(),
+              )),
+
+            const SizedBox(height: 20),
+
+            // ── Catatan ───────────────────
+            const Text('Catatan (opsional)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 10),
+
+            _card(
+                child: TextField(
+              controller: _noteCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Topik yang ingin dipelajari, pertanyaan, dll...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.all(16),
+              ),
+            )),
+
+            const SizedBox(height: 20),
+
+            // ── Ringkasan harga ───────────
+            if (widget.mentor.pricePerSession != null)
+              _card(
+                  child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Rincian Harga',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Harga sesi'),
+                        Text(
+                          'Rp ${_formatNumber(widget.mentor.pricePerSession!)}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total',
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Rp ${_formatNumber(_totalPrice)}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: _primary),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-            ),
+              )),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 24),
 
-            /// ================= BUTTON =================
-
+            // ── Tombol lanjut ─────────────
             ElevatedButton(
-              style:
-                  ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                minimumSize:
-                    const Size.fromHeight(55),
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(
-                          15),
-                ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                minimumSize: const Size.fromHeight(55),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
               ),
-
-              onPressed: () {
-                if (selectedDates
-                        .isNotEmpty &&
-                    selectedTime != null &&
-                    selectedLocation != null) {
-
-                  setState(() {
-                    status = "review";
-                  });
-
-                } else {
-
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Please complete all data",
-                      ),
-                    ),
-                  );
-                }
-              },
-
-              child: Text(
-                widget.isReschedule
-                    ? "Update Schedule"
-                    : "Review Booking",
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight:
-                      FontWeight.bold,
-                ),
+              onPressed: _availableSlots.isEmpty
+                  ? null
+                  : () {
+                      if (_selectedSlot == null) {
+                        _snack('Pilih jadwal terlebih dahulu');
+                        return;
+                      }
+                      setState(() => _status = 'review');
+                    },
+              child: const Text(
+                'Review Booking',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16),
               ),
             ),
+
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  /// ================= REVIEW =================
-
+  // ══════════════════════════════════════════
+  //  REVIEW — konfirmasi sebelum bayar
+  // ══════════════════════════════════════════
   Widget _buildReview() {
+    final slot = _selectedSlot!;
+    final start = slot.startTime.length >= 5
+        ? slot.startTime.substring(0, 5)
+        : slot.startTime;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
+          // ── Header banner ─────────────
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(16),
-
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  primary.withValues(alpha:0.9),
-                  primary.withValues(alpha:0.7),
-                ],
-              ),
-              borderRadius:
-                  BorderRadius.circular(20),
+              gradient: LinearGradient(colors: [
+                _primary.withValues(alpha: 0.9),
+                _primary.withValues(alpha: 0.65),
+              ]),
+              borderRadius: BorderRadius.circular(20),
             ),
-
             child: const Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                Text(
-                  "Booking Summary",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-
+                Text('Ringkasan Booking',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
                 SizedBox(height: 4),
-
-                Text(
-                  "Review your booking",
-                  style: TextStyle(
-                    color: Colors.white70,
-                  ),
-                ),
+                Text('Periksa detail sebelum bayar',
+                    style: TextStyle(color: Colors.white70, fontSize: 13)),
               ],
             ),
           ),
 
           const SizedBox(height: 16),
 
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(20),
-            ),
-
-            child: Padding(
-              padding:
-                  const EdgeInsets.all(18),
-
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-
-                  Row(
+          // ── Detail card ───────────────
+          _card(
+              child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Mentor row
+                Row(children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: _primary.withValues(alpha: 0.1),
+                    backgroundImage: widget.mentor.fotoUrl != null
+                        ? NetworkImage(widget.mentor.fotoUrl!)
+                        : null,
+                    child: widget.mentor.fotoUrl == null
+                        ? Text(
+                            widget.mentor.namaLengkap.isNotEmpty
+                                ? widget.mentor.namaLengkap[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                                color: _primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(widget.mentor.namaLengkap,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(widget.mentor.categoryName ?? 'Mentor',
+                          style: const TextStyle(
+                              color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                ]),
 
-                      CircleAvatar(
-                        radius: 26,
-                        backgroundColor:
-                            primary.withValues(alpha:0.1),
-                        child: Icon(
-                          Icons.person,
-                          color: primary,
-                        ),
-                      ),
+                const SizedBox(height: 16),
+                const Divider(),
 
-                      const SizedBox(width: 12),
+                _reviewRow(Icons.calendar_month, 'Tanggal',
+                    _formatDate(slot.availableDate)),
+                _reviewRow(Icons.schedule, 'Waktu Mulai', '$start WIB'),
+                if (_noteCtrl.text.trim().isNotEmpty)
+                  _reviewRow(
+                      Icons.sticky_note_2, 'Catatan', _noteCtrl.text.trim()),
 
-                      Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment
-                                .start,
+                const SizedBox(height: 16),
+
+                // Harga
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _primary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-
+                          const Text('Harga per sesi'),
                           Text(
-                            widget.mentor.name,
-                            style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight
-                                      .bold,
-                              fontSize: 16,
-                            ),
+                            'Rp ${_formatNumber(widget.mentor.pricePerSession ?? 0)}',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total Bayar',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
                           Text(
-                            widget
-                                .mentor.category,
-                            style:
-                                const TextStyle(
-                              color: Colors.grey,
+                            'Rp ${_formatNumber(_totalPrice)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: _primary,
                             ),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
-
-                  const SizedBox(height: 20),
-
-                  const Divider(),
-
-                  _summaryItem(
-                    Icons.calendar_month,
-                    "Selected Dates",
-                    "${selectedDates.length} Dates",
-                  ),
-
-                  _summaryItem(
-                    Icons.schedule,
-                    "Time",
-                    selectedTime != null
-                        ? selectedTime!
-                            .format(context)
-                        : "-",
-                  ),
-
-                  _summaryItem(
-                    Icons.location_on,
-                    "Location",
-                    selectedLocation ==
-                            null
-                        ? "-"
-                        : "Selected ✔",
-                  ),
-
-                  if (noteController
-                      .text.isNotEmpty)
-                    _summaryItem(
-                      Icons.note,
-                      "Note",
-                      noteController.text,
-                    ),
-
-                  const SizedBox(height: 15),
-
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: selectedDates
-                        .map((date) {
-                      return Container(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-
-                        decoration:
-                            BoxDecoration(
-                          color: primary.withValues(alpha:0.08),
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                                      12),
-                        ),
-
-                        child: Text(
-                          "${date.day}/${date.month}/${date.year}",
-
-                          style: TextStyle(
-                            color: primary,
-                            fontWeight:
-                                FontWeight
-                                    .w600,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Container(
-                    padding:
-                        const EdgeInsets.all(
-                            14),
-
-                    decoration: BoxDecoration(
-                      color:
-                          primary.withValues(alpha:0.05),
-
-                      borderRadius:
-                          BorderRadius
-                              .circular(15),
-                    ),
-
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-
-                      children: [
-
-                        const Text(
-                          "Price Detail",
-                          style: TextStyle(
-                            fontWeight:
-                                FontWeight
-                                    .bold,
-                          ),
-                        ),
-
-                        const SizedBox(
-                            height: 6),
-
-                        Text(
-                          "Rp ${widget.mentor.price} x ${selectedDates.length} session",
-                        ),
-
-                        const SizedBox(
-                            height: 12),
-
-                        Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .spaceBetween,
-
-                          children: [
-
-                            const Text(
-                              "Total Price",
-                              style:
-                                  TextStyle(
-                                fontWeight:
-                                    FontWeight
-                                        .bold,
-                              ),
-                            ),
-
-                            Text(
-                              "Rp $totalPrice",
-
-                              style: TextStyle(
-                                fontWeight:
-                                    FontWeight
-                                        .bold,
-                                fontSize: 18,
-                                color: primary,
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
+          )),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              minimumSize:
-                  const Size.fromHeight(55),
+          // ── Tombol kembali ────────────
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+              side: const BorderSide(color: _primary),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
             ),
-
-            onPressed: () {
-              setState(() {
-                status = "pending";
-              });
-            },
-
-            child: const Text(
-              "Submit Booking",
-
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight:
-                    FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// ================= SUMMARY ITEM =================
-
-  Widget _summaryItem(
-    IconData icon,
-    String title,
-    String value,
-  ) {
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(
-              vertical: 8),
-
-      child: Row(
-        children: [
-
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.grey,
-          ),
-
-          const SizedBox(width: 10),
-
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-          ),
-
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight:
-                  FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// ================= WAITING =================
-
-  Widget _buildWaiting() {
-    return Center(
-      child: Column(
-        mainAxisAlignment:
-            MainAxisAlignment.center,
-        children: [
-
-          const Icon(
-            Icons.schedule,
-            size: 80,
-            color: Colors.orange,
-          ),
-
-          const SizedBox(height: 20),
-
-          const Text(
-            "Booking Submitted",
-
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight:
-                  FontWeight.bold,
-            ),
+            onPressed: () => setState(() => _status = 'form'),
+            child: const Text('Kembali', style: TextStyle(color: _primary)),
           ),
 
           const SizedBox(height: 10),
 
-          const Text(
-            "Your booking request has been sent.\nPlease wait for mentor approval.",
-
-            textAlign: TextAlign.center,
-
-            style: TextStyle(
-              color: Colors.grey,
+          // ── Tombol bayar ──────────────
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              minimumSize: const Size.fromHeight(55),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+            ),
+            onPressed: _submitAndPay,
+            child: const Text(
+              'Bayar Sekarang',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16),
             ),
           ),
 
-          const SizedBox(height: 30),
-
-          ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              minimumSize:
-                  const Size.fromHeight(50),
-            ),
-
-            onPressed: () {
-              Navigator.pop(context);
-            },
-
-            child: const Text(
-              "Back to Home",
-
-              style: TextStyle(
-                color: Colors.white,
-              ),
-            ),
-          )
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  /// ================= UI =================
+  // ══════════════════════════════════════════
+  //  AKSI: Submit booking → Duitku → WebView
+  // ══════════════════════════════════════════
+  Future<void> _submitAndPay() async {
+    setState(() => _status = 'loading');
 
-  Widget _card({
-    required Widget child,
-  }) {
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) throw Exception('User belum login');
+
+      // ── 1. Ambil data klien ─────────────
+      final userRow = await _supabase
+          .from('appuser')
+          .select('nama_lengkap, email')
+          .eq('id', user.id)
+          .single();
+
+      final bioRow = await _supabase
+          .from('bio_profil')
+          .select('nomor_hp')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      final clientName = userRow['nama_lengkap'] as String? ?? 'Klien';
+      final clientEmail = userRow['email'] as String? ?? '';
+      final clientPhone = bioRow?['nomor_hp'] as String? ?? '08100000000';
+
+      // ── 2. Buat booking di Supabase ─────
+      _bookingId = await _bookingCtrl.createBooking(
+        mentorId: widget.mentor.userId,
+        scheduleId: _selectedSlot!.id,
+        notes: _noteCtrl.text.trim(),
+      );
+
+      if (_bookingId == null) {
+        throw Exception('Gagal membuat booking. Silakan coba lagi.');
+      }
+
+      // merchantOrderId: UUID tanpa tanda hubung, max 20 karakter
+      _merchantOrderId = _bookingId!.replaceAll('-', '').substring(0, 20);
+
+      // ── 3. Buat invoice Duitku ──────────
+      final paymentUrl = await _payCtrl.createPayment(
+        bookingId: _bookingId!,
+        amount: _totalPrice,
+        mentorName: widget.mentor.namaLengkap,
+        clientEmail: clientEmail,
+        clientName: clientName,
+        clientPhone: clientPhone,
+      );
+
+      if (paymentUrl == null || paymentUrl.isEmpty) {
+        throw Exception(
+            _payCtrl.errorMessage ?? 'Gagal membuat invoice pembayaran.');
+      }
+
+      // ── 4. Buka WebView ─────────────────
+      _openWebView(paymentUrl);
+    } catch (e) {
+      setState(() => _status = 'review');
+      _snack(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  WebView
+  // ══════════════════════════════════════════
+  void _openWebView(String url) {
+    _webCtrl = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(NavigationDelegate(
+        onPageStarted: (_) => setState(() => _webLoading = true),
+        onPageFinished: (_) => setState(() => _webLoading = false),
+        onNavigationRequest: (req) {
+          // Tangkap deep link mentup:// atau returnUrl
+          if (req.url.startsWith('mentup://') ||
+              req.url.contains('payment/return')) {
+            _handleReturn();
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+      ))
+      ..loadRequest(Uri.parse(url));
+
+    setState(() => _status = 'webview');
+  }
+
+  // ══════════════════════════════════════════
+  //  Handle kembali dari Duitku
+  // ══════════════════════════════════════════
+  Future<void> _handleReturn() async {
+    setState(() {
+      _webCtrl = null;
+      _status = 'loading';
+    });
+
+    final result = await _payCtrl.verifyPayment(
+      bookingId: _bookingId!,
+      merchantOrderId: _merchantOrderId!,
+    );
+
+    if (!mounted) return;
+
+    switch (result) {
+      case 'paid':
+        _showResultDialog(
+          icon: Icons.check_circle_outline,
+          color: Colors.green,
+          title: 'Pembayaran Berhasil!',
+          message: 'Booking kamu sudah dikonfirmasi.\nSelamat belajar! 🎉',
+          onClose: () => Navigator.popUntil(context, (r) => r.isFirst),
+        );
+        break;
+
+      case 'pending':
+        _showResultDialog(
+          icon: Icons.hourglass_top_rounded,
+          color: Colors.orange,
+          title: 'Menunggu Pembayaran',
+          message:
+              'Invoice masih aktif.\nSelesaikan pembayaran sebelum expired.',
+          onClose: () => Navigator.pop(context),
+        );
+        break;
+
+      default:
+        setState(() => _status = 'review');
+        _snack('Pembayaran gagal atau dibatalkan.');
+    }
+  }
+
+  // ══════════════════════════════════════════
+  //  HELPERS
+  // ══════════════════════════════════════════
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  // Format angka ribuan: 50000 → "50.000"
+  String _formatNumber(int n) {
+    return n.toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
+  }
+
+  // Format tanggal: "2025-06-01" → "Minggu, 1 Jun 2025"
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw);
+      const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      const months = [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des'
+      ];
+      final day = days[dt.weekday - 1];
+      return '$day, ${dt.day} ${months[dt.month]} ${dt.year}';
+    } catch (_) {
+      return raw;
+    }
+  }
+
+  Widget _card({required Widget child}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
     );
   }
 
-  Widget _input(
-    String hint,
-    TextEditingController controller,
-  ) {
-    return Container(
-      padding:
-          const EdgeInsets.symmetric(
-              horizontal: 12),
+  Widget _reviewRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(children: [
+        Icon(icon, size: 17, color: Colors.grey),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Text(label, style: const TextStyle(color: Colors.grey))),
+        Flexible(
+            child: Text(value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(fontWeight: FontWeight.w600))),
+      ]),
+    );
+  }
 
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(15),
-      ),
-
-      child: TextField(
-        controller: controller,
-
-        decoration: InputDecoration(
-          hintText: hint,
-          border: InputBorder.none,
+  void _showResultDialog({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+    required VoidCallback onClose,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Icon(icon, color: color, size: 72),
+            const SizedBox(height: 16),
+            Text(title,
+                textAlign: TextAlign.center,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 8),
+          ],
         ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: onClose,
+              child: const Text('OK'),
+            ),
+          ),
+        ],
       ),
     );
   }
