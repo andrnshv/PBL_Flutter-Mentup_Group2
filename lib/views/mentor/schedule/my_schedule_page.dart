@@ -461,24 +461,20 @@ class _MySchedulePageState extends State<MySchedulePage> {
 
     return GestureDetector(
       onTap: () {
+        // Slot belum di-booking → tidak ada detail yang bisa dibuka
+        if (!session.isBooked || session.bookingId == null) return;
+
         Navigator.pushNamed(
           context,
           AppRoutes.bookingDetail,
           arguments: {
-            'name':           session.clientName ?? 'Unknown Client',
-            'cat':            'Session',               // kategori dari booking belum di ERD
-            'color':          accentColor,
-            'time':           session.timeRange,
-            'date':           _formatDate(session.availableDate),
-            'location':       session.sessionLink ?? '-',
-            'note':           'Status: ${session.bookingStatus ?? "Pending"}',
-            'totalPrice':     session.bookingStatus == 'Done' ? 'Paid' : 'Pending',
-            'hours':          2,
-            'sessionsPerWeek': 1,
-            'days':           [_dayAbbr(session.availableDate.weekday)],
-            'months':         1,
+            'bookingId': session.bookingId,
+            'color':     accentColor,
           },
-        );
+        ).then((_) {
+          // Refresh list setelah kembali (status mungkin sudah berubah)
+          _loadForDate(_selectedDay);
+        });
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
