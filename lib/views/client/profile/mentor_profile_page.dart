@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../controller/client/mentor_profile_controller.dart';
 import '../../../models/client/mentor_profile_model.dart';
-// ✅ TAMBAHAN: import BookingPage
 import 'booking_page.dart';
 
 class MentorProfilePage extends StatefulWidget {
@@ -241,12 +240,15 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      // ✅ PERUBAHAN: onPressed sekarang aktif → navigasi ke BookingPage
+                      // ✅ PERBAIKAN: kirim mentorId + mentor ke BookingPage
                       onPressed: isAvailable
                           ? () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => BookingPage(mentor: mentor),
+                                  builder: (_) => BookingPage(
+                                    mentorId: widget.mentorId,
+                                    mentor: mentor,
+                                  ),
                                 ),
                               )
                           : null,
