@@ -25,12 +25,9 @@ class PaymentController extends ChangeNotifier {
       errorMessage = null;
       notifyListeners();
 
-      // merchantOrderId unik
-      final merchantOrderId = bookingId.replaceAll('-', '').substring(0, 20);
+      final merchantOrderId =
+          'MT-${bookingId.replaceAll('-', '')}-${DateTime.now().millisecondsSinceEpoch}';
 
-      // =====================================================
-      // CREATE INVOICE KE DUITKU
-      // =====================================================
       final invoice = await DuitkuService.createInvoice(
         merchantOrderId: merchantOrderId,
         paymentAmount: amount,
@@ -41,9 +38,6 @@ class PaymentController extends ChangeNotifier {
         returnUrl: 'mentup://payment/return',
       );
 
-      // =====================================================
-      // SAVE PAYMENT KE SUPABASE
-      // =====================================================
       await _supabase.from('payments').insert({
         'booking_id': bookingId,
         'amount': amount,
@@ -52,6 +46,7 @@ class PaymentController extends ChangeNotifier {
         'reference': invoice.reference,
         'payment_url': invoice.paymentUrl,
         'payment_method': 'DUITKU',
+        'created_at': DateTime.now().toIso8601String(),
       });
 
       isLoading = false;
@@ -62,66 +57,66 @@ class PaymentController extends ChangeNotifier {
       isLoading = false;
       errorMessage = e.toString();
       notifyListeners();
-
       return null;
     }
   }
 
   // =========================================================
-  // VERIFY PAYMENT
+  // VERIFY PAYMENT (CORE LOGIC FIX HERE)
   // =========================================================
-  Future<String> verifyPayment({
-    required String bookingId,
-    required String merchantOrderId,
-  }) async {
-    try {
-      final result = await DuitkuService.checkTransactionStatus(
-        merchantOrderId: merchantOrderId,
-      );
+Future<String> verifyPayment({
+  required String bookingId,
+  required String merchantOrderId,
+}) async {
+  try {
+    final result = await DuitkuService.checkTransactionStatus(
+      merchantOrderId: merchantOrderId,
+    );
 
-      final status = result.paymentStatus;
+    final status = result.paymentStatus;
 
-      // =====================================================
-      // UPDATE PAYMENTS
-      // =====================================================
-      await _supabase.from('payments').update({
-        'payment_status': status,
-        'paid_at': status == 'paid' ? DateTime.now().toIso8601String() : null,
-      }).eq('merchant_order_id', merchantOrderId);
+    print('================ VERIFY PAYMENT =================');
+    print('bookingId       : $bookingId');
+    print('merchantOrderId : $merchantOrderId');
+    print('statusCode      : ${result.statusCode}');
+    print('status          : $status');
+    print('================================================');
 
-      // =====================================================
-      // UPDATE BOOKINGS
-      // =====================================================
-      await _supabase.from('bookings').update({
-        'booking_status': status == 'paid' ? 'paid' : status,
-      }).eq('id', bookingId);
+    // =====================================================
+    // UPSERT PAYMENT (BASED ON booking_id)
+    // =====================================================
+    await _supabase.from('payments').upsert({
+  'booking_id': bookingId,
+  'merchant_order_id': merchantOrderId,
+  'payment_status': status,
+  'paid_at': status == 'paid'
+      ? DateTime.now().toIso8601String()
+      : null,
+}, onConflict: 'booking_id');
 
-      // =====================================================
-      // INSERT BOOKING HISTORY
-      // =====================================================
-      if (status == 'paid') {
-        final booking = await _supabase
-            .from('bookings')
-            .select()
-            .eq('id', bookingId)
-            .single();
+    // =====================================================
+    // UPDATE BOOKINGS STATUS
+    // =====================================================
+    await _supabase.from('bookings').update({
+      'booking_status': status,
+    }).eq('id', bookingId);
 
-        await _supabase.from('booking_histories').insert({
-          'booking_id': bookingId,
-          'client_id': booking['client_id'],
-          'mentor_id': booking['mentor_id'],
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      }
+    print('================ UPSERT SUCCESS =================');
 
-      return status;
-    } catch (e) {
-      errorMessage = e.toString();
-      notifyListeners();
+    notifyListeners();
 
-      return 'failed';
-    }
+    return status;
+  } catch (e) {
+    errorMessage = e.toString();
+    notifyListeners();
+
+    print('================ VERIFY ERROR =================');
+    print(e);
+    print('===============================================');
+
+    return 'failed';
   }
+}
 
   // =========================================================
   // RESET

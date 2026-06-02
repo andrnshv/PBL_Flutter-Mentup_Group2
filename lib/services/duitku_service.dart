@@ -3,42 +3,22 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
 // ================================================================
-//  DUITKU SERVICE — MentUp
-//  File: lib/services/duitku_service.dart
-//
-//  Sesuai spesifikasi resmi Duitku POP API:
-//  - Timestamp: milliseconds since epoch (string)
-//  - Signature: SHA256(merchantCode + timestamp + apiKey) hex lowercase
-//  - Headers: x-duitku-signature, x-duitku-timestamp, x-duitku-merchantcode
-//
-//  Dependency:
-//    http: ^1.2.0
-//    crypto: ^3.0.3
+//  DUITKU SERVICE — FIXED + DEBUG VERSION
 // ================================================================
 
-// ----------------------------------------------------------------
-//  KONFIGURASI — isi dengan credential dari dashboard Duitku
-// ----------------------------------------------------------------
 class DuitkuConfig {
-  /// Merchant Code dari dashboard Duitku (contoh: D12345)
   static const String merchantCode = 'DS30773';
-
-  /// API Key dari dashboard Duitku
   static const String apiKey = '4f5ad6b58c27a72ca001ea67828e9692';
 
-  /// true  → Sandbox (testing)
-  /// false → Production (live)
   static const bool isSandbox = true;
 
-  /// Base URL otomatis
-  static String get baseUrl => isSandbox
-      ? 'https://api-sandbox.duitku.com'
-      : 'https://api-prod.duitku.com';
+  static String get baseUrl =>
+      isSandbox ? 'https://api-sandbox.duitku.com' : 'https://api-prod.duitku.com';
 }
 
-// ----------------------------------------------------------------
-//  RESPONSE MODELS
-// ----------------------------------------------------------------
+// ================================================================
+// MODELS
+// ================================================================
 class DuitkuInvoiceResponse {
   final String merchantCode;
   final String reference;
@@ -84,7 +64,7 @@ class DuitkuTransactionStatus {
     return DuitkuTransactionStatus(
       merchantOrderId: json['merchantOrderId'] ?? '',
       reference: json['reference'] ?? '',
-      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      amount: int.tryParse(json['amount'].toString()) ?? 0,
       statusCode: json['statusCode'] ?? '',
       statusMessage: json['statusMessage'] ?? '',
     );
@@ -100,47 +80,65 @@ class DuitkuTransactionStatus {
         return 'failed';
     }
   }
-
-  bool get isSuccess => statusCode == '00';
-  bool get isPending => statusCode == '01';
-  bool get isFailed => statusCode == '02';
 }
 
-// ----------------------------------------------------------------
-//  DUITKU SERVICE
-// ----------------------------------------------------------------
+// ================================================================
+// SERVICE
+// ================================================================
 class DuitkuService {
-  /// Timestamp dalam milliseconds sejak epoch (sesuai spesifikasi Duitku)
+
+  // ================================================================
+  // TIMESTAMP
+  // ================================================================
   static String _getTimestamp() {
     return DateTime.now().millisecondsSinceEpoch.toString();
   }
 
-  /// Signature: SHA256(merchantCode + timestamp + apiKey)
-  /// HASIL: hex lowercase, BUKAN HMAC, BUKAN base64
-  static String _generateSignature({
+  // ================================================================
+  // SHA256 (CREATE INVOICE HEADER SIGNATURE)
+  // ================================================================
+  static String _generateCreateSignature({
     required String merchantCode,
     required String timestamp,
     required String apiKey,
   }) {
-    final stringToSign = '$merchantCode$timestamp$apiKey';
-    final bytes = utf8.encode(stringToSign);
-    final digest = sha256.convert(bytes);
+    final raw = '$merchantCode$timestamp$apiKey';
+
+    print('\n===== CREATE SIGNATURE DEBUG =====');
+    print('RAW: $raw');
+
+    final digest = sha256.convert(utf8.encode(raw));
+
+    print('SHA256: ${digest.toString()}');
+    print('=================================\n');
+
     return digest.toString();
   }
 
-  /// Headers standar untuk Duitku POP API
-  static Map<String, String> _buildHeaders(String timestamp, String signature) {
-    return {
-      'Content-Type': 'application/json',
-      'x-duitku-signature': signature,
-      'x-duitku-timestamp': timestamp,
-      'x-duitku-merchantcode': DuitkuConfig.merchantCode,
-    };
+  // ================================================================
+  // MD5 (TRANSACTION STATUS SIGNATURE - FIX)
+  // ================================================================
+  static String _generateStatusSignature({
+    required String merchantCode,
+    required String merchantOrderId,
+    required String apiKey,
+  }) {
+    final raw = '$merchantCode$merchantOrderId$apiKey';
+
+    print('\n===== STATUS SIGNATURE DEBUG =====');
+    print('RAW: $raw');
+
+    final digest = md5.convert(utf8.encode(raw));
+
+    print('MD5: ${digest.toString()}');
+    print('=================================\n');
+
+    return digest.toString();
   }
 
-  // ==============================================================
-  //  CREATE INVOICE
-  // ==============================================================
+  // ================================================================
+  // CREATE INVOICE
+  // ================================================================
   static Future<DuitkuInvoiceResponse> createInvoice({
     required String merchantOrderId,
     required int paymentAmount,
@@ -152,25 +150,26 @@ class DuitkuService {
     String? callbackUrl,
     int expiryPeriod = 60,
   }) async {
+
     final timestamp = _getTimestamp();
-    final signature = _generateSignature(
+
+    final signature = _generateCreateSignature(
       merchantCode: DuitkuConfig.merchantCode,
       timestamp: timestamp,
       apiKey: DuitkuConfig.apiKey,
     );
-    final headers = _buildHeaders(timestamp, signature);
 
-    // Split nama jadi firstName + lastName
-    final nameParts = customerName.trim().split(' ');
-    final firstName = nameParts.first;
-    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+    final headers = {
+      'Content-Type': 'application/json',
+      'x-duitku-signature': signature,
+      'x-duitku-timestamp': timestamp,
+      'x-duitku-merchantcode': DuitkuConfig.merchantCode,
+    };
 
-    final body = <String, dynamic>{
+    final body = {
       'paymentAmount': paymentAmount,
       'merchantOrderId': merchantOrderId,
       'productDetails': productDetails,
-      'additionalParam': '',
-      'merchantUserInfo': '',
       'customerVaName': customerName,
       'email': email,
       'phoneNumber': phoneNumber,
@@ -182,8 +181,8 @@ class DuitkuService {
         }
       ],
       'customerDetail': {
-        'firstName': firstName,
-        'lastName': lastName,
+        'firstName': customerName.split(' ').first,
+        'lastName': '',
         'email': email,
         'phoneNumber': phoneNumber,
       },
@@ -192,76 +191,84 @@ class DuitkuService {
       'expiryPeriod': expiryPeriod,
     };
 
+    print('\n===== CREATE INVOICE REQUEST =====');
+    print('URL: ${DuitkuConfig.baseUrl}/api/merchant/createInvoice');
+    print('HEADERS: $headers');
+    print('BODY: ${jsonEncode(body)}');
+    print('=================================\n');
+
     final response = await http.post(
       Uri.parse('${DuitkuConfig.baseUrl}/api/merchant/createInvoice'),
       headers: headers,
       body: jsonEncode(body),
     );
 
+    print('\n===== CREATE INVOICE RESPONSE =====');
+    print('STATUS: ${response.statusCode}');
+    print('BODY: ${response.body}');
+    print('==================================\n');
+
     if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(response.body);
       return DuitkuInvoiceResponse.fromJson(decoded);
-    } else {
-      throw DuitkuException(
-        code: response.statusCode,
-        message:
-            'createInvoice gagal: ${response.statusCode} — ${response.body}',
-        raw: response.body,
-      );
     }
+
+    throw Exception('CREATE ERROR ${response.statusCode}: ${response.body}');
   }
 
-  // ==============================================================
-  //  CHECK TRANSACTION STATUS
-  // ==============================================================
+  // ================================================================
+  // CHECK TRANSACTION STATUS (FIXED)
+  // ================================================================
   static Future<DuitkuTransactionStatus> checkTransactionStatus({
     required String merchantOrderId,
   }) async {
-    final timestamp = _getTimestamp();
-    final signature = _generateSignature(
+
+    final signature = _generateStatusSignature(
       merchantCode: DuitkuConfig.merchantCode,
-      timestamp: timestamp,
+      merchantOrderId: merchantOrderId,
       apiKey: DuitkuConfig.apiKey,
     );
-    final headers = _buildHeaders(timestamp, signature);
 
     final body = {
       'merchantCode': DuitkuConfig.merchantCode,
       'merchantOrderId': merchantOrderId,
+      'signature': signature,
     };
+
+    print('\n===== STATUS REQUEST =====');
+    print('BODY: ${jsonEncode(body)}');
+    print('=========================\n');
 
     final response = await http.post(
       Uri.parse('${DuitkuConfig.baseUrl}/api/merchant/transactionStatus'),
-      headers: headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: jsonEncode(body),
     );
 
+    print('\n===== STATUS RESPONSE =====');
+    print('STATUS: ${response.statusCode}');
+    print('BODY: ${response.body}');
+    print('==========================\n');
+
     if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(response.body);
       return DuitkuTransactionStatus.fromJson(decoded);
-    } else {
-      throw DuitkuException(
-        code: response.statusCode,
-        message: 'checkStatus gagal: ${response.statusCode} — ${response.body}',
-        raw: response.body,
-      );
     }
+
+    throw Exception('STATUS ERROR ${response.statusCode}: ${response.body}');
   }
 }
 
-// ----------------------------------------------------------------
-//  CUSTOM EXCEPTION
-// ----------------------------------------------------------------
+// ================================================================
+// EXCEPTION
+// ================================================================
 class DuitkuException implements Exception {
   final int code;
   final String message;
-  final String raw;
 
-  DuitkuException({
-    required this.code,
-    required this.message,
-    this.raw = '',
-  });
+  DuitkuException({required this.code, required this.message});
 
   @override
   String toString() => 'DuitkuException($code): $message';
