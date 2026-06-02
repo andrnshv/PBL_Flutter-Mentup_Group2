@@ -1,7 +1,37 @@
 import 'package:flutter/material.dart';
+import '../../../controller/client/notification_controller.dart';
 
-class NotificationPage extends StatelessWidget {
+// ================================================================
+//  NOTIFICATION PAGE — MentUp
+//  File: lib/views/client/notification/notification_page.dart
+//
+//  Tampilan sama dengan desain awal. Data dari Supabase:
+//   - Upcoming Session   : booking dibayar, jadwal mendatang
+//   - New Mentor Available: mentor punya slot hari ini
+//   - Booking Confirmed  : booking sudah dibayar & dikonfirmasi
+// ================================================================
+
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
+
+  @override
+  State<NotificationPage> createState() => _NotificationPageState();
+}
+
+class _NotificationPageState extends State<NotificationPage> {
+  final NotificationController _controller = NotificationController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await _controller.fetchNotifications();
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,34 +46,76 @@ class NotificationPage extends StatelessWidget {
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : (_controller.errorMessage != null)
+              ? _buildError()
+              : (_controller.notifications.isEmpty
+                  ? _emptyState()
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        setState(() => _isLoading = true);
+                        await _load();
+                      },
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: _controller.notifications.map((n) {
+                          return _notifItem(
+                            icon: n.icon,
+                            title: n.title,
+                            subtitle: n.subtitle,
+                            time: n.time,
+                          );
+                        }).toList(),
+                      ),
+                    )),
+    );
+  }
 
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-
-          /// ================= NOTIFICATION ITEM =================
-          _notifItem(
-            icon: Icons.calendar_today,
-            title: "Upcoming Session",
-            subtitle: "You have a session with Albert at 11:00 AM",
-            time: "10 min ago",
-          ),
-
-          _notifItem(
-            icon: Icons.star,
-            title: "New Mentor Available",
-            subtitle: "Check out new mentors in Technology",
-            time: "1 hour ago",
-          ),
-
-          _notifItem(
-            icon: Icons.check_circle,
-            title: "Booking Confirmed",
-            subtitle: "Your booking has been confirmed",
-            time: "Yesterday",
-          ),
-        ],
+  Widget _buildError() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.wifi_off_rounded, size: 56, color: Colors.grey),
+            const SizedBox(height: 12),
+            Text(
+              _controller.errorMessage ?? 'Terjadi kesalahan',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() => _isLoading = true);
+                _load();
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba lagi'),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _emptyState() {
+    return ListView(
+      // pakai ListView agar tetap bisa pull-to-refresh saat kosong
+      children: [
+        const SizedBox(height: 120),
+        Icon(Icons.notifications_off_outlined,
+            size: 56, color: Colors.grey[400]),
+        const SizedBox(height: 12),
+        const Center(
+          child: Text(
+            "Belum ada notifikasi",
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      ],
     );
   }
 
@@ -62,18 +134,15 @@ class NotificationPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.deepPurple.withValues(alpha:0.1),
+              color: Colors.deepPurple.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: Colors.deepPurple),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +159,6 @@ class NotificationPage extends StatelessWidget {
               ],
             ),
           ),
-
           Text(
             time,
             style: const TextStyle(fontSize: 11, color: Colors.grey),

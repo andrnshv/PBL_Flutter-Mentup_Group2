@@ -21,6 +21,7 @@ dependencies:
   url_launcher: ^6.2.5
   shared_preferences: ^2.5.5
   geocoding: ^4.0.0
+  geolocator: ^14.0.2
   http: ^1.6.0
   crypto: ^3.0.7
   webview_flutter: ^4.13.1
