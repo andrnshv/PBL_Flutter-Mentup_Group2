@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../../../controller/client/calendar_controller.dart';
+
+// ================================================================
+//  CALENDAR PAGE — MentUp
+//  File: lib/views/client/calendar/calendar_page.dart
+//
+//  Tampilan sama dengan desain awal. Data sesi dari Supabase
+//  (booking yang sudah dibayar). Klik tanggal → list sesi ikut
+//  berubah sesuai tanggal yang dipilih.
+// ================================================================
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -9,22 +19,36 @@ class CalendarPage extends StatefulWidget {
 }
 
 class _CalendarPageState extends State<CalendarPage> {
-
   final Color primary = const Color(0xFF6C63FF);
+  final CalendarController _controller = CalendarController();
+
   DateTime today = DateTime.now();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await _controller.fetchSessions();
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Sesi untuk tanggal yang sedang dipilih
+    final daySessions = _controller.sessionsForDay(today);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               /// ================= BACK + TITLE =================
               Row(
                 children: [
@@ -60,6 +84,27 @@ class _CalendarPageState extends State<CalendarPage> {
                     today = selectedDay;
                   });
                 },
+                calendarBuilders: CalendarBuilders(
+                  // Marker titik untuk tanggal yang ada sesi
+                  markerBuilder: (context, day, _) {
+                    final hasSession = _controller.daysWithSession
+                        .any((d) => isSameDay(d, day));
+                    if (hasSession) {
+                      return Positioned(
+                        bottom: 4,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                ),
                 calendarStyle: CalendarStyle(
                   todayDecoration: BoxDecoration(
                     color: primary,
@@ -69,6 +114,10 @@ class _CalendarPageState extends State<CalendarPage> {
                     color: primary,
                     shape: BoxShape.circle,
                   ),
+                ),
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false, // sembunyikan tombol "2 weeks"
+                  titleCentered: true,
                 ),
               ),
 
@@ -93,32 +142,39 @@ class _CalendarPageState extends State<CalendarPage> {
 
               /// ================= SESSION LIST =================
               Expanded(
-                child: ListView(
-                  children: const [
-
-                    _SessionItem(
-                      name: "Albert",
-                      date: "12 May 2026",
-                      time: "11:00 - 10:30 am",
-                    ),
-
-                    _SessionItem(
-                      name: "Mirnaty",
-                      date: "12 May 2026",
-                      time: "13:00 - 13:40 am",
-                    ),
-
-                    _SessionItem(
-                      name: "Helda",
-                      date: "12 May 2026",
-                      time: "15:00 - 16:00 am",
-                    ),
-                  ],
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : (daySessions.isEmpty
+                        ? _emptyState()
+                        : ListView(
+                            children: daySessions.map((s) {
+                              return _SessionItem(
+                                name: s.mentorName,
+                                date: s.dateLabel,
+                                time: s.timeLabel,
+                              );
+                            }).toList(),
+                          )),
               )
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.event_busy, size: 48, color: Colors.grey[400]),
+          const SizedBox(height: 10),
+          Text(
+            "Tidak ada sesi di tanggal ini",
+            style: TextStyle(color: Colors.grey[500]),
+          ),
+        ],
       ),
     );
   }
@@ -148,14 +204,11 @@ class _SessionItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Text(
             "Sesion with $name",
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-
           const SizedBox(height: 6),
-
           Row(
             children: [
               const Icon(Icons.calendar_today, size: 16),
@@ -163,9 +216,7 @@ class _SessionItem extends StatelessWidget {
               Text(date),
             ],
           ),
-
           const SizedBox(height: 4),
-
           Row(
             children: [
               const Icon(Icons.access_time, size: 16),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mentup/models/mentor_model.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../../controller/client/verify_session_controller.dart';
+import 'client_verification_page.dart';
+import '../../../controller/client/profile_controller.dart';
+import '../../../models/client/profile_model.dart';
 
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
@@ -26,7 +30,12 @@ class HomePage extends StatefulWidget {
 class _LandingPageState extends State<HomePage> {
   int _selectedIndex = 0;
   String _namaUser = '';
+  String? _fotoUrl; // ← foto profil dari bio_profil
   bool _loadingUser = true;
+  final ProfileController _profileController = ProfileController();
+
+  final _verifyCtrl = VerifySessionController(); // ← TAMBAH INI
+  bool _loadingVerify = true;
 
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
@@ -37,6 +46,7 @@ class _LandingPageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadUserData();
+    _loadVerifications();
     _pages = [
       _homeContent(),
       const SearchPage(),
@@ -45,22 +55,26 @@ class _LandingPageState extends State<HomePage> {
     ];
   }
 
+  Future<void> _loadVerifications() async {
+    await _verifyCtrl.fetchPendingVerifications();
+    if (mounted) {
+      setState(() {
+        _loadingVerify = false;
+        _pages[0] = _homeContent(); // refresh tampilan home
+      });
+    }
+  }
+
   Future<void> _loadUserData() async {
     try {
-      final user = SupabaseService.currentUser;
-      if (user == null) return;
-
-      final data = await SupabaseService.db
-          .from('appuser')
-          .select('nama_lengkap')
-          .eq('id', user.id)
-          .single();
+      final ProfileModel? profile = await _profileController.getProfile();
 
       if (mounted) {
         setState(() {
-          _namaUser = data['nama_lengkap'] ?? '';
+          _namaUser = profile?.namaLengkap ?? '';
+          _fotoUrl = profile?.fotoUrl;
           _loadingUser = false;
-          _pages[0] = _homeContent();
+          _pages[0] = _homeContent(); // refresh home
         });
       }
     } catch (_) {
@@ -112,9 +126,24 @@ class _LandingPageState extends State<HomePage> {
               /// HEADER
               Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 22,
-                    backgroundImage: AssetImage("assets/profile.jpg"),
+                    backgroundColor: primary.withOpacity(0.15),
+                    backgroundImage: (_fotoUrl != null && _fotoUrl!.isNotEmpty)
+                        ? NetworkImage(_fotoUrl!)
+                        : null,
+                    child: (_fotoUrl == null || _fotoUrl!.isEmpty)
+                        ? Text(
+                            _namaUser.isNotEmpty
+                                ? _namaUser[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -161,94 +190,96 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 20),
 
-              /// SESSION CARD
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [primary, primary.withOpacity(0.75)],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withOpacity(0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 55,
-                      height: 55,
+              /// SESSION CARD (dinamis dari Supabase)
+              if (!_loadingVerify && _verifyCtrl.pendingSessions.isNotEmpty)
+                ..._verifyCtrl.pendingSessions.map((session) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Icon(Icons.verified_rounded,
-                          color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Session Finished 🎉",
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [primary, primary.withOpacity(0.75)],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: primary.withOpacity(0.25),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
                           ),
-                          SizedBox(height: 6),
-                          Text(
-                            "Please verify your mentoring session with the mentor.",
-                            style: TextStyle(
-                                color: Colors.white70,
-                                height: 1.4,
-                                fontSize: 13),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 55,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: const Icon(Icons.verified_rounded,
+                                color: Colors.white, size: 30),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Session Finished 🎉",
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "Verifikasi sesi dengan ${session.mentorName}.",
+                                  style: const TextStyle(
+                                      color: Colors.white70,
+                                      height: 1.4,
+                                      fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: primary,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18)),
+                            ),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ClientVerificationPage(
+                                    session: session,
+                                  ),
+                                ),
+                              );
+                              if (result == true) {
+                                setState(() => _loadingVerify = true);
+                                _loadVerifications();
+                              }
+                            },
+                            child: const Text("Verify",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: primary,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18)),
-                      ),
-                      onPressed: () {
-                        final mentor = DummyData.mentors[0];
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.clientVerification,
-                          arguments: {
-                            "mentorName": mentor.name,
-                            "category": mentor.category,
-                            "date": "12 April 2026",
-                            "time": "13:00",
-                            "summary":
-                                "Today we learned algebra basics and solved several practice problems together.",
-                            "image": mentor.image,
-                          },
-                        );
-                      },
-                      child: const Text("Verify",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
+                  );
+                }),
 
               /// MOTIVATION CARD
               Container(
