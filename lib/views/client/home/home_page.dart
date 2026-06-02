@@ -5,6 +5,9 @@ import '../../../controller/client/verify_session_controller.dart';
 import 'client_verification_page.dart';
 import '../../../controller/client/profile_controller.dart';
 import '../../../models/client/profile_model.dart';
+import '../../../controller/client/calendar_controller.dart';
+import '../../../controller/client/nearby_mentors_controller.dart';
+import '../profile/mentor_profile_page.dart';
 
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
@@ -37,6 +40,13 @@ class _LandingPageState extends State<HomePage> {
   final _verifyCtrl = VerifySessionController(); // ← TAMBAH INI
   bool _loadingVerify = true;
 
+  final _calendarCtrl = CalendarController();
+  SessionItemModel? _nextSession; // sesi terdekat
+  bool _loadingSession = true;
+
+  final _nearbyCtrl = NearbyMentorsController();
+  bool _loadingNearby = true;
+
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
 
@@ -47,12 +57,107 @@ class _LandingPageState extends State<HomePage> {
     super.initState();
     _loadUserData();
     _loadVerifications();
+    _loadNextSession();
+    _loadNearbyMentors();
     _pages = [
       _homeContent(),
       const SearchPage(),
       const HistoryPage(),
       const ProfilePage(),
     ];
+  }
+
+  void _focusToMentor(GoogleMapController controller) {
+    final mentors = _nearbyCtrl.nearbyMentors;
+
+    if (mentors.isEmpty) {
+      // Tidak ada mentor → fokus ke lokasi client
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(_nearbyCtrl.cameraCenter, 13),
+      );
+      return;
+    }
+
+    if (mentors.length == 1) {
+      // 1 mentor → langsung fokus ke markernya
+      controller.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(mentors.first.latitude, mentors.first.longitude),
+          14,
+        ),
+      );
+      return;
+    }
+
+    // Banyak mentor → atur kamera agar semua marker terlihat
+    double minLat = mentors.first.latitude;
+    double maxLat = mentors.first.latitude;
+    double minLng = mentors.first.longitude;
+    double maxLng = mentors.first.longitude;
+
+    for (final m in mentors) {
+      if (m.latitude < minLat) minLat = m.latitude;
+      if (m.latitude > maxLat) maxLat = m.latitude;
+      if (m.longitude < minLng) minLng = m.longitude;
+      if (m.longitude > maxLng) maxLng = m.longitude;
+    }
+
+    controller.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        60, // padding (px)
+      ),
+    );
+  }
+
+  Future<void> _loadNearbyMentors() async {
+    debugPrint('[NEARBY] _loadNearbyMentors dipanggil!');
+    await _nearbyCtrl.fetchNearbyMentors(
+      onMarkerTap: (mentorId) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MentorProfilePage(mentorId: mentorId),
+          ),
+        );
+      },
+    );
+    if (mounted) {
+      setState(() {
+        _loadingNearby = false;
+        _pages[0] = _homeContent();
+      });
+    }
+  }
+
+  Future<void> _loadNextSession() async {
+    await _calendarCtrl.fetchSessions();
+
+    // Cari sesi terdekat: tanggal >= hari ini, diurutkan paling awal
+    final now = DateTime.now();
+    final todayMidnight = DateTime(now.year, now.month, now.day);
+
+    final upcoming = _calendarCtrl.allSessions.where((s) {
+      final d = DateTime(s.date.year, s.date.month, s.date.day);
+      return !d.isBefore(todayMidnight); // hari ini atau ke depan
+    }).toList()
+      ..sort((a, b) {
+        // urutkan berdasarkan tanggal, lalu jam mulai
+        final dateCmp = a.date.compareTo(b.date);
+        if (dateCmp != 0) return dateCmp;
+        return a.timeLabel.compareTo(b.timeLabel);
+      });
+
+    if (mounted) {
+      setState(() {
+        _nextSession = upcoming.isNotEmpty ? upcoming.first : null;
+        _loadingSession = false;
+        _pages[0] = _homeContent(); // refresh home
+      });
+    }
   }
 
   Future<void> _loadVerifications() async {
@@ -324,47 +429,53 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
-              /// TODAY SESSION
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05), blurRadius: 10),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 45,
-                      height: 45,
-                      decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
+              /// TODAY SESSION (dinamis - sesi terdekat dari Supabase)
+              if (!_loadingSession && _nextSession != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 45,
+                        height: 45,
+                        decoration: BoxDecoration(
+                          color: primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.schedule, color: primary),
                       ),
-                      child: Icon(Icons.schedule, color: primary),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Today Session",
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Text("Session with Albert"),
-                          Text("11:00 - 12:30",
-                              style: TextStyle(color: Colors.grey)),
-                        ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Today Session",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text("Session with ${_nextSession!.mentorName}"),
+                            Text(
+                              "${_nextSession!.dateLabel} • ${_nextSession!.timeLabel}",
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 25),
+              // Jarak setelah kartu (hanya jika kartu muncul)
+              if (!_loadingSession && _nextSession != null)
+                const SizedBox(height: 25),
 
               /// MAP
               const Text("Nearby Mentors",
@@ -376,11 +487,32 @@ class _LandingPageState extends State<HomePage> {
                   children: [
                     SizedBox(
                       height: 180,
-                      child: GoogleMap(
-                        initialCameraPosition:
-                            const CameraPosition(target: _center, zoom: 14),
-                        zoomControlsEnabled: false,
-                      ),
+                      child: _loadingNearby
+                          ? Container(
+                              color: Colors.grey[200],
+                              child: const Center(
+                                  child: CircularProgressIndicator()),
+                            )
+                          : GoogleMap(
+                              initialCameraPosition: CameraPosition(
+                                target: _nearbyCtrl.cameraCenter,
+                                zoom: 13,
+                              ),
+                              markers: _nearbyCtrl.markers,
+                              zoomControlsEnabled: false,
+                              myLocationEnabled: false,
+                              myLocationButtonEnabled: false,
+
+                              // ── Matikan semua gesture (map statis) ──
+                              scrollGesturesEnabled: false,
+                              zoomGesturesEnabled: false,
+                              rotateGesturesEnabled: false,
+                              tiltGesturesEnabled: false,
+
+                              onMapCreated: (controller) {
+                                _focusToMentor(controller);
+                              },
+                            ),
                     ),
                     Positioned(
                       bottom: 10,
@@ -392,9 +524,13 @@ class _LandingPageState extends State<HomePage> {
                           color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Text("2 Mentors Nearby",
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 12)),
+                        child: Text(
+                          _loadingNearby
+                              ? "Mencari mentor..."
+                              : "${_nearbyCtrl.nearbyCount} Mentors Nearby",
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 12),
+                        ),
                       ),
                     ),
                   ],
