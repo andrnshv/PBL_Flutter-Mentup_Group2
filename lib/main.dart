@@ -11,7 +11,6 @@ import 'views/auth/cv_upload.dart';
 
 // CLIENT
 import 'views/client/home/home_page.dart';
-import 'views/client/home/client_verification_page.dart';
 import 'views/client/map/map_page.dart';
 import 'views/client/search/search_page.dart';
 import 'views/client/History/History_page.dart';
@@ -60,14 +59,11 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'MentUp',
       debugShowCheckedModeBanner: false,
-
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: const Color(0xFFD4B2F7),
       ),
-
       home: const AuthGate(),
-
       routes: {
         // AUTH
         AppRoutes.login: (_) => const LoginPage(),
@@ -79,7 +75,6 @@ class MyApp extends StatelessWidget {
         AppRoutes.search: (_) => const SearchPage(),
         AppRoutes.network: (_) => const HistoryPage(),
         AppRoutes.profile: (_) => const ProfilePage(),
-        AppRoutes.clientVerification: (_) => const ClientVerificationPage(),
 
         // MENTOR
         AppRoutes.mentorCV: (_) => const MentorCvUploadPage(),
@@ -116,7 +111,6 @@ class MyApp extends StatelessWidget {
 
         AppRoutes.changeEmail: (_) => const ChangeEmailPage(),
       },
-
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (_) => const WelcomePage());
       },
@@ -182,11 +176,8 @@ class _AuthGateState extends State<AuthGate> {
       // ================= QUERY DATABASE =================
       debugPrint("QUERY ROLE FROM DATABASE...");
 
-      final response = await supabase
-          .from('appuser')
-          .select()
-          .eq('id', uid)
-          .maybeSingle();
+      final response =
+          await supabase.from('appuser').select().eq('id', uid).maybeSingle();
 
       debugPrint("DATABASE RESPONSE = $response");
 
