@@ -1,14 +1,24 @@
 class BookingFormModel {
   final String scheduleId;
-  final String availableDate; // "YYYY-MM-DD"
-  final String startTime; // "HH:mm"
-  final String? endTime; // "HH:mm"
+
+  /// Tanggal mentor tersedia
+  final String availableDate; // YYYY-MM-DD
+
+  /// Jam mulai availability mentor
+  final String startTime; // HH:mm
+
+  /// Jam selesai availability mentor
+  final String? endTime; // HH:mm
+
+  /// Alamat client (diambil dari bio_profil)
+  final String? clientAddress;
 
   const BookingFormModel({
     required this.scheduleId,
     required this.availableDate,
     required this.startTime,
     this.endTime,
+    this.clientAddress,
   });
 
   factory BookingFormModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +28,7 @@ class BookingFormModel {
       startTime: _fmt(json['start_time'] as String? ?? ''),
       endTime:
           json['end_time'] != null ? _fmt(json['end_time'] as String) : null,
+      clientAddress: json['client_address'] as String?,
     );
   }
 
@@ -27,10 +38,11 @@ class BookingFormModel {
     return '${p[0].padLeft(2, '0')}:${p[1].padLeft(2, '0')}';
   }
 
-  /// Convert "YYYY-MM-DD" jadi DateTime (untuk dipakai di kalender)
+  /// Convert YYYY-MM-DD menjadi DateTime
   DateTime get dateTime {
     final p = availableDate.split('-');
     if (p.length < 3) return DateTime.now();
+
     return DateTime(
       int.parse(p[0]),
       int.parse(p[1]),
@@ -38,10 +50,20 @@ class BookingFormModel {
     );
   }
 
-  /// "Sen, 21 Apr 2026 • 09:00 - 11:00"
+  /// Label untuk UI
   String get displayLabel {
     final dt = dateTime;
-    const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    const days = [
+      'Sen',
+      'Sel',
+      'Rab',
+      'Kam',
+      'Jum',
+      'Sab',
+      'Min',
+    ];
+
     const months = [
       'Jan',
       'Feb',
@@ -54,9 +76,13 @@ class BookingFormModel {
       'Sep',
       'Okt',
       'Nov',
-      'Des'
+      'Des',
     ];
-    final time = endTime != null ? '$startTime - $endTime' : startTime;
-    return '${days[dt.weekday - 1]}, ${dt.day} ${months[dt.month - 1]} ${dt.year} • $time';
+
+    final time =
+        endTime != null ? '$startTime - $endTime' : startTime;
+
+    return '${days[dt.weekday - 1]}, '
+        '${dt.day} ${months[dt.month - 1]} ${dt.year} • $time';
   }
 }
