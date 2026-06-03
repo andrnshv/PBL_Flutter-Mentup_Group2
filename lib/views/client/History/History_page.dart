@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-// import '../profile/mentor_profile_page.dart'; // TODO: aktifkan setelah HistoryPage migrasi ke Supabase
-// import '../../../models/mentor_model.dart';   // tidak dipakai lagi (dummy)
-// import '../profile/booking_page.dart';        // TODO: aktifkan setelah BookingPage siap
-import '../../../models/mentor_model.dart';
-import '../data/dummy_data.dart';
+import '../../../controller/client/history_controller.dart';
+
+// ================================================================
+//  HISTORY PAGE — MentUp
+//  File: lib/views/client/History/History_page.dart
+//
+//  Tampilan sama dengan desain awal. Data dari Supabase.
+//  Klien bisa beri rating + komentar → tersimpan ke tabel `reviews`
+//  → otomatis muncul di Top Mentors & What They Say (home page).
+// ================================================================
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -13,10 +18,25 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  final HistoryController _controller = HistoryController();
+
   int selectedTab = 0;
   int selectedRating = 5;
+  bool _isLoading = true;
+  bool _submitting = false;
 
   final TextEditingController reviewController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await _controller.fetchHistory();
+    if (mounted) setState(() => _isLoading = false);
+  }
 
   @override
   void dispose() {
@@ -37,7 +57,8 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  void _showReviewSheet(Map<String, dynamic> data) {
+  // ── Lihat detail review yang sudah dibuat ──
+  void _showReviewSheet(HistoryItemModel data) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -59,19 +80,15 @@ class _HistoryPageState extends State<HistoryPage> {
               ),
             ),
             const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 35,
-              backgroundImage: AssetImage(data["image"]),
-            ),
+            _avatar(data, 35),
             const SizedBox(height: 12),
-            Text(
-              data["name"],
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            Text(data.name,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
-            Text(data["role"], style: TextStyle(color: Colors.grey[600])),
+            Text(data.role, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 15),
-            _buildStars(data["rating"] ?? 0),
+            _buildStars(data.rating ?? 0),
             const SizedBox(height: 18),
             Container(
               width: double.infinity,
@@ -81,7 +98,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
-                data["review"],
+                data.review ?? '-',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: Colors.grey[800], fontSize: 14, height: 1.5),
@@ -94,7 +111,8 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  void _showGiveReviewSheet(Map<String, dynamic> data) {
+  // ── Form beri review (rating + komentar) ──
+  void _showGiveReviewSheet(HistoryItemModel data) {
     reviewController.clear();
     selectedRating = 5;
 
@@ -127,21 +145,14 @@ class _HistoryPageState extends State<HistoryPage> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    CircleAvatar(
-                      radius: 35,
-                      backgroundImage: AssetImage(data["image"]),
-                    ),
+                    _avatar(data, 35),
                     const SizedBox(height: 12),
-                    Text(
-                      data["name"],
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    Text(data.name,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 5),
-                    Text(
-                      "How was your mentoring session?",
-                      style: TextStyle(color: Colors.grey[600]),
-                    ),
+                    Text("How was your mentoring session?",
+                        style: TextStyle(color: Colors.grey[600])),
                     const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -178,27 +189,51 @@ class _HistoryPageState extends State<HistoryPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          if (reviewController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Please write your review first"),
-                              ),
-                            );
-                            return;
-                          }
-                          setState(() {
-                            data["rating"] = selectedRating;
-                            data["review"] = reviewController.text;
-                            data["isReviewed"] = true;
-                          });
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Review submitted successfully!"),
-                            ),
-                          );
-                        },
+                        onPressed: _submitting
+                            ? null
+                            : () async {
+                                if (reviewController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          "Please write your review first"),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                setModalState(() => _submitting = true);
+
+                                final ok = await _controller.submitReview(
+                                  mentorId: data.mentorId,
+                                  rating: selectedRating,
+                                  reviewText: reviewController.text.trim(),
+                                );
+
+                                setModalState(() => _submitting = false);
+
+                                if (!mounted) return;
+                                Navigator.pop(context);
+
+                                if (ok) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          "Review submitted successfully!"),
+                                    ),
+                                  );
+                                  // refresh list supaya status berubah
+                                  setState(() => _isLoading = true);
+                                  _load();
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(_controller.errorMessage ??
+                                          "Gagal mengirim review"),
+                                    ),
+                                  );
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6C63FF),
                           foregroundColor: Colors.white,
@@ -207,7 +242,14 @@ class _HistoryPageState extends State<HistoryPage> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text("Submit Review"),
+                        child: _submitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text("Submit Review"),
                       ),
                     ),
                   ],
@@ -222,14 +264,8 @@ class _HistoryPageState extends State<HistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final historyMentors = DummyData.historyMentors;
-
-    List done = historyMentors.where((e) => e["status"] == "Done").toList();
-    List cancelled = historyMentors
-        .where(
-            (e) => e["status"] == "Cancelled" || e["status"] == "Rescheduled")
-        .toList();
-    List currentList = selectedTab == 0 ? done : cancelled;
+    final currentList =
+        selectedTab == 0 ? _controller.doneList : _controller.cancelledList;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
@@ -271,16 +307,44 @@ class _HistoryPageState extends State<HistoryPage> {
 
             /// LIST
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: currentList.length,
-                itemBuilder: (context, index) {
-                  return _historyCard(currentList[index]);
-                },
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : (currentList.isEmpty
+                      ? _emptyState()
+                      : RefreshIndicator(
+                          onRefresh: () async {
+                            setState(() => _isLoading = true);
+                            await _load();
+                          },
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: currentList.length,
+                            itemBuilder: (context, index) {
+                              return _historyCard(currentList[index]);
+                            },
+                          ),
+                        )),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history, size: 56, color: Colors.grey[400]),
+          const SizedBox(height: 12),
+          Text(
+            selectedTab == 0
+                ? "Belum ada sesi yang selesai"
+                : "Belum ada sesi yang dibatalkan",
+            style: const TextStyle(color: Colors.grey),
+          ),
+        ],
       ),
     );
   }
@@ -311,194 +375,162 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _historyCard(Map<String, dynamic> data) {
-    bool isDone = data["status"] == "Done";
-    bool isReviewed = data["isReviewed"] == true;
+  Widget _avatar(HistoryItemModel data, double radius) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: const Color(0xFF6C63FF).withOpacity(0.1),
+      backgroundImage: (data.fotoUrl != null && data.fotoUrl!.isNotEmpty)
+          ? NetworkImage(data.fotoUrl!)
+          : null,
+      child: (data.fotoUrl == null || data.fotoUrl!.isEmpty)
+          ? Text(
+              data.name.isNotEmpty ? data.name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                  color: Color(0xFF6C63FF), fontWeight: FontWeight.bold),
+            )
+          : null,
+    );
+  }
 
-    return GestureDetector(
-      onTap: () {
-        // TODO: aktifkan setelah HistoryPage migrasi ke Supabase dan
-        //       data history menyimpan mentor_id dari database.
-        // Contoh saat sudah siap:
-        // Navigator.push(context, MaterialPageRoute(
-        //   builder: (_) => MentorProfilePage(mentorId: data["mentor_id"]),
-        // ));
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            /// TOP CONTENT
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundImage: AssetImage(data["image"]),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data["name"],
+  Widget _historyCard(HistoryItemModel data) {
+    final bool isDone = data.status == "Done";
+    final bool isReviewed = data.isReviewed;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          /// TOP CONTENT
+          Row(
+            children: [
+              _avatar(data, 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(data.name,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        data["role"],
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        data["date"],
-                        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                      ),
-                    ],
-                  ),
+                            fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 3),
+                    Text(data.role, style: TextStyle(color: Colors.grey[600])),
+                    const SizedBox(height: 5),
+                    Text(data.dateLabel,
+                        style:
+                            TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  ],
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    data["status"],
-                    style: TextStyle(
-                      color: isDone ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            /// REVIEW SECTION
-            if (isDone) ...[
-              const SizedBox(height: 18),
+              ),
               Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FD),
-                  borderRadius: BorderRadius.circular(18),
+                  color: isDone
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: isReviewed
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: const [
-                              Icon(Icons.reviews_rounded,
-                                  color: Colors.purple, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                "Your Review",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildStars(data["rating"] ?? 0),
-                          const SizedBox(height: 12),
-                          Text(
-                            data["review"],
-                            style:
-                                TextStyle(color: Colors.grey[700], height: 1.5),
-                          ),
-                          const SizedBox(height: 15),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () => _showReviewSheet(data),
-                              child: const Text("See Detail"),
-                            ),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.rate_review_rounded,
-                                  color: Colors.orange),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  "You haven't reviewed this mentoring session yet.",
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () => _showGiveReviewSheet(data),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6C63FF),
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                              ),
-                              child: const Text("Give Review"),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
-
-            /// RESCHEDULE
-            if (!isDone) ...[
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  // TODO: aktifkan setelah BookingPage siap menerima mentorId
-                  // onPressed: () => Navigator.push(context,
-                  //   MaterialPageRoute(builder: (_) =>
-                  //     BookingPage(mentorId: data["mentor_id"]))),
-                  onPressed: null, // sementara dinonaktifkan
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C63FF),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey[300],
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                child: Text(
+                  data.status,
+                  style: TextStyle(
+                    color: isDone ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
                   ),
-                  child: const Text("Reschedule Session"),
                 ),
               ),
             ],
+          ),
+
+          /// REVIEW SECTION (hanya untuk Done)
+          if (isDone) ...[
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FD),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: isReviewed
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.reviews_rounded,
+                                color: Colors.purple, size: 20),
+                            SizedBox(width: 8),
+                            Text("Your Review",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 14)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _buildStars(data.rating ?? 0),
+                        const SizedBox(height: 12),
+                        Text(data.review ?? '',
+                            style: TextStyle(
+                                color: Colors.grey[700], height: 1.5)),
+                        const SizedBox(height: 15),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () => _showReviewSheet(data),
+                            child: const Text("See Detail"),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.rate_review_rounded,
+                                color: Colors.orange),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "You haven't reviewed this mentoring session yet.",
+                                style: TextStyle(
+                                    color: Colors.grey[700], fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () => _showGiveReviewSheet(data),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6C63FF),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text("Give Review"),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
