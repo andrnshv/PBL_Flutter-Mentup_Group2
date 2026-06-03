@@ -8,6 +8,7 @@ import '../../../models/client/profile_model.dart';
 import '../../../controller/client/calendar_controller.dart';
 import '../../../controller/client/nearby_mentors_controller.dart';
 import '../profile/mentor_profile_page.dart';
+import '../../../controller/client/top_mentors_controller.dart';
 
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
@@ -47,6 +48,9 @@ class _LandingPageState extends State<HomePage> {
   final _nearbyCtrl = NearbyMentorsController();
   bool _loadingNearby = true;
 
+  final _topMentorsCtrl = TopMentorsController();
+  bool _loadingTop = true;
+
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
 
@@ -59,12 +63,23 @@ class _LandingPageState extends State<HomePage> {
     _loadVerifications();
     _loadNextSession();
     _loadNearbyMentors();
+    _loadTopMentors();
     _pages = [
       _homeContent(),
       const SearchPage(),
       const HistoryPage(),
       const ProfilePage(),
     ];
+  }
+
+  Future<void> _loadTopMentors() async {
+    await _topMentorsCtrl.fetchTopMentors();
+    if (mounted) {
+      setState(() {
+        _loadingTop = false;
+        _pages[0] = _homeContent();
+      });
+    }
   }
 
   void _focusToMentor(GoogleMapController controller) {
@@ -218,6 +233,69 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
+  // Kartu loading (saat data sedang diambil)
+  Widget _loadingCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      height: 90,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+
+  // Kartu "belum ada sesi untuk diverifikasi"
+  Widget _emptyVerifyCard() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.verified_outlined, color: primary),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("No Session to Verify",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text(
+                  "Belum ada sesi yang perlu diverifikasi.",
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _homeContent() {
     final mentors = DummyData.mentors;
 
@@ -296,7 +374,13 @@ class _LandingPageState extends State<HomePage> {
               const SizedBox(height: 20),
 
               /// SESSION CARD (dinamis dari Supabase)
-              if (!_loadingVerify && _verifyCtrl.pendingSessions.isNotEmpty)
+              /// SESSION CARD (Verify) — selalu tampil
+              if (_loadingVerify)
+                _loadingCard()
+              else if (_verifyCtrl.pendingSessions.isEmpty)
+                // Belum ada sesi yang perlu diverifikasi
+                _emptyVerifyCard()
+              else
                 ..._verifyCtrl.pendingSessions.map((session) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -386,6 +470,8 @@ class _LandingPageState extends State<HomePage> {
                   );
                 }),
 
+              const SizedBox(height: 16),
+
               /// MOTIVATION CARD
               Container(
                 padding: const EdgeInsets.all(18),
@@ -430,7 +516,10 @@ class _LandingPageState extends State<HomePage> {
               const SizedBox(height: 25),
 
               /// TODAY SESSION (dinamis - sesi terdekat dari Supabase)
-              if (!_loadingSession && _nextSession != null)
+              /// TODAY SESSION — selalu tampil
+              if (_loadingSession)
+                _loadingCard()
+              else
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -451,27 +540,50 @@ class _LandingPageState extends State<HomePage> {
                           color: primary.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.schedule, color: primary),
+                        child: Icon(
+                          _nextSession != null
+                              ? Icons.schedule
+                              : Icons.event_busy,
+                          color: primary,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text("Today Session",
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text("Session with ${_nextSession!.mentorName}"),
-                            Text(
-                              "${_nextSession!.dateLabel} • ${_nextSession!.timeLabel}",
-                              style: const TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                        child: _nextSession != null
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Today Session",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                      "Session with ${_nextSession!.mentorName}"),
+                                  Text(
+                                    "${_nextSession!.dateLabel} • ${_nextSession!.timeLabel}",
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              )
+                            : const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("Today Session",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    "Belum ada sesi terjadwal",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                       ),
                     ],
                   ),
                 ),
+
+              const SizedBox(height: 25),
 
               // Jarak setelah kartu (hanya jika kartu muncul)
               if (!_loadingSession && _nextSession != null)
@@ -541,82 +653,155 @@ class _LandingPageState extends State<HomePage> {
 
               const Text("Top Mentors",
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-              SizedBox(
-                height: 250,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: mentors.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        // TODO: aktifkan setelah HomePage migrasi ke Supabase
-                        // dan DummyData diganti dengan data real yang punya userId.
-                        // Navigator.push(context, MaterialPageRoute(
-                        //   builder: (_) => MentorProfilePage(
-                        //     mentorId: mentors[index].userId,
-                        //   ),
-                        // ));
-                      },
-                      child: Container(
-                        width: 200,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          image: DecorationImage(
-                            image: AssetImage(mentors[index].image),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        child: Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20),
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.transparent,
-                                    Colors.black.withOpacity(0.7),
-                                  ],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 10,
-                              left: 10,
-                              child: _ratingBox(mentors[index].rating),
-                            ),
-                            Positioned(
-                              bottom: 12,
-                              left: 12,
-                              right: 12,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    mentors[index].name,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    mentors[index].category,
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+              if (_loadingTop)
+                const SizedBox(
+                  height: 220,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_topMentorsCtrl.topMentors.isEmpty)
+                // Belum ada mentor yang dirating
+                Container(
+                  height: 220,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.emoji_events_outlined,
+                          size: 48, color: Colors.grey),
+                      SizedBox(height: 12),
+                      Text("Belum ada Top Mentor",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.grey)),
+                      SizedBox(height: 4),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 30),
+                        child: Text(
+                          "Top mentor muncul setelah ada sesi yang selesai & diberi rating.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _topMentorsCtrl.topMentors.length,
+                    itemBuilder: (context, index) {
+                      final mentor = _topMentorsCtrl.topMentors[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MentorProfilePage(
+                                mentorId: mentor.mentorId,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 160,
+                          margin: const EdgeInsets.only(right: 14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: Colors.grey[300],
+                            image: (mentor.fotoUrl != null &&
+                                    mentor.fotoUrl!.isNotEmpty)
+                                ? DecorationImage(
+                                    image: NetworkImage(mentor.fotoUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: Stack(
+                            children: [
+                              // Gradient gelap di bawah supaya teks terbaca
+                              Positioned.fill(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Rating badge (kiri atas)
+                              Positioned(
+                                top: 10,
+                                left: 10,
+                                child: _ratingBox(mentor.avgRating),
+                              ),
+
+                              // Inisial kalau tidak ada foto
+                              if (mentor.fotoUrl == null ||
+                                  mentor.fotoUrl!.isEmpty)
+                                Center(
+                                  child: Text(
+                                    mentor.name.isNotEmpty
+                                        ? mentor.name[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      fontSize: 48,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ),
+
+                              // Nama + kategori (kiri bawah)
+                              Positioned(
+                                left: 12,
+                                bottom: 12,
+                                right: 12,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      mentor.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      mentor.category,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 25),
 
@@ -679,7 +864,7 @@ class _LandingPageState extends State<HomePage> {
         children: [
           const Icon(Icons.star, color: Colors.amber, size: 14),
           const SizedBox(width: 4),
-          Text(rating.toString(),
+          Text(rating.toStringAsFixed(1),
               style: const TextStyle(color: Colors.white, fontSize: 12)),
         ],
       ),
