@@ -196,17 +196,11 @@ class _PaymentPageState extends State<PaymentPage> {
       clientPhone: bioRow?['nomor_hp'] as String? ?? '081234567890',
     );
 
-    // Simpan merchantOrderId dari payments row (dibutuhkan saat verify)
-    if (_activeBookingIds.isNotEmpty) {
-      final row = await _supabase
-          .from('payments')
-          .select('merchant_order_id')
-          .eq('booking_id', _activeBookingIds.first)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-      _merchantOrderId = row?['merchant_order_id'] as String?;
-    }
+    // Ambil merchantOrderId langsung dari controller (lebih reliable)
+    _merchantOrderId = _ctrl.lastMerchantOrderId;
+
+    debugPrint('_startPayment: merchantOrderId=$_merchantOrderId');
+    debugPrint('_startPayment: activeBookingIds=$_activeBookingIds');
 
     if (url != null && mounted) {
       _openWebView(url);
