@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/client/booking_model.dart';
-import '../../services/duitku_service.dart';
 
 // ================================================================
 //  BOOKING FORM CONTROLLER — MentUp
@@ -11,9 +10,12 @@ import '../../services/duitku_service.dart';
 //  Layer Controller (MVC). Menangani:
 //  - Ambil slot jadwal mentor yang tersedia
 //  - Submit multiple booking ke Supabase
-//  - Orchestration pembayaran Duitku (buat invoice + verifikasi)
 //
-//  View TIDAK melakukan query Supabase sama sekali — semua di sini.
+//  Semua logika pembayaran Duitku sudah dipindah sepenuhnya ke
+//  PaymentController & PaymentPage.
+//
+//  Slot mentor dikunci (is_booked = true) oleh PaymentPage
+//  setelah verifyPayment() mengembalikan status 'paid'.
 // ================================================================
 
 class BookingFormController {
@@ -22,12 +24,6 @@ class BookingFormController {
   List<BookingFormModel> availableSlots = [];
   bool isLoading = false;
   String? errorMessage;
-
-  // ── State pembayaran (dipakai antara submit → verify) ──
-  List<String> currentBookingIds = [];
-  String? currentMerchantOrderId;
-  String? currentMasterBookingId;
-  String? currentPaymentUrl;
 
   // ─────────────────────────────────────────────────────
   // FETCH semua slot tersedia milik mentor
@@ -89,11 +85,17 @@ class BookingFormController {
   // ─────────────────────────────────────────────────────
   // SUBMIT MULTIPLE BOOKING SEKALIGUS
   // Untuk setiap tanggal terpilih → insert 1 booking
+  //
+  // CATATAN PENTING — slot locking:
+  // Slot TIDAK langsung dikunci di sini karena pembayaran
+  // belum tentu jadi. Slot dikunci oleh PaymentController
+  // saat verifyPayment() mengembalikan 'paid'.
   // ─────────────────────────────────────────────────────
   Future<BookingSubmitResult> submitMultipleBookings({
     required String mentorId,
     required List<DateTime> selectedDates,
     required TimeOfDay selectedTime,
+    required TimeOfDay selectedEndTime,
     required String locationText,
     String? notes,
   }) async {
@@ -114,6 +116,10 @@ class BookingFormController {
     final List<DateTime> failedDates = [];
     String? lastError;
 
+    // Format jam selesai untuk disimpan ke DB
+    final endTimeStr =
+        '${selectedEndTime.hour.toString().padLeft(2, '0')}:${selectedEndTime.minute.toString().padLeft(2, '0')}';
+
     for (final date in selectedDates) {
       final slot = findClosestSlot(date, selectedTime);
       if (slot == null) {
@@ -123,23 +129,19 @@ class BookingFormController {
 
       try {
         final result = await _supabase
-            .from('bookings')
-            .insert({
-              'client_id': clientId,
-              'mentor_id': mentorId,
-              'schedule_id': slot.scheduleId,
-              'booking_status': 'pending',
-              'session_type': 'Offline',
-              'session_link': locationText,
-              'notes': notes,
-            })
-            .select('id')
-            .single();
-
-        // NOTE: slot BELUM ditandai booked di sini.
-        // Slot ditandai booked nanti SETELAH pembayaran sukses
-        // (lihat verifyCurrentPayment). Ini mencegah slot terkunci
-        // padahal pembayaran belum tentu jadi.
+    .from('bookings')
+    .insert({
+      'client_id': clientId,
+      'mentor_id': mentorId,
+      'schedule_id': slot.scheduleId,
+      'booking_status': 'pending',
+      'session_type': 'Offline',
+      'session_link': locationText,
+      'notes': notes,
+      // TIDAK ada session_end_time di sini
+    })
+    .select('id')
+    .single();
 
         successIds.add(result['id'] as String);
       } on PostgrestException catch (e) {
@@ -159,146 +161,11 @@ class BookingFormController {
           : null,
     );
   }
-
-  // ─────────────────────────────────────────────────────
-  // BUAT INVOICE DUITKU untuk booking yang berhasil
-  // Dipanggil View setelah submitMultipleBookings sukses
-  // ─────────────────────────────────────────────────────
-  Future<PaymentInitResult> createPaymentForBookings({
-    required List<String> bookingIds,
-    required int amountPerBooking,
-    required String mentorName,
-  }) async {
-    try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        return const PaymentInitResult(errorMessage: 'User belum login');
-      }
-
-      // Ambil data klien (di controller, bukan view)
-      final userRow = await _supabase
-          .from('appuser')
-          .select('nama_lengkap, email')
-          .eq('id', user.id)
-          .single();
-
-      final bioRow = await _supabase
-          .from('bio_profil')
-          .select('nomor_hp')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-      final clientName = userRow['nama_lengkap'] as String? ?? 'Klien';
-      final clientEmail = userRow['email'] as String? ?? '';
-      final clientPhone = bioRow?['nomor_hp'] as String? ?? '08100000000';
-
-      final totalAmount = amountPerBooking * bookingIds.length;
-      final masterBookingId = bookingIds.first;
-      final merchantOrderId =
-          masterBookingId.replaceAll('-', '').substring(0, 20);
-
-      // Panggil Duitku
-      final invoice = await DuitkuService.createInvoice(
-        merchantOrderId: merchantOrderId,
-        paymentAmount: totalAmount,
-        productDetails:
-            'Mentoring bersama $mentorName (${bookingIds.length} sesi)',
-        email: clientEmail,
-        phoneNumber: clientPhone,
-        customerName: clientName,
-        returnUrl: 'mentup://payment/return',
-        // Ganti dengan URL Edge Function Supabase kamu:
-        callbackUrl:
-            'https://YOUR_PROJECT.supabase.co/functions/v1/duitku-callback',
-        expiryPeriod: 60,
-      );
-
-      if (invoice.statusCode != '00') {
-        return PaymentInitResult(errorMessage: invoice.statusMessage);
-      }
-
-      // Insert 1 row payment per booking (sharing transaction_id sama)
-      for (final bid in bookingIds) {
-        await _supabase.from('payments').insert({
-          'booking_id': bid,
-          'payment_method': 'duitku',
-          'transaction_id': invoice.reference,
-          'amount': amountPerBooking,
-          'payment_status': 'pending',
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      }
-
-      // Simpan state untuk verifikasi nanti
-      currentBookingIds = bookingIds;
-      currentMerchantOrderId = merchantOrderId;
-      currentMasterBookingId = masterBookingId;
-      currentPaymentUrl = invoice.paymentUrl;
-
-      return PaymentInitResult(
-        paymentUrl: invoice.paymentUrl,
-        merchantOrderId: merchantOrderId,
-        masterBookingId: masterBookingId,
-      );
-    } catch (e) {
-      return PaymentInitResult(
-        errorMessage: e.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
-
-  // ─────────────────────────────────────────────────────
-  // VERIFIKASI status pembayaran setelah kembali dari Duitku
-  // Update payments + bookings + tandai slot booked jika lunas
-  // Return: 'paid' | 'pending' | 'failed' | 'error'
-  // ─────────────────────────────────────────────────────
-  Future<String> verifyCurrentPayment() async {
-    if (currentMerchantOrderId == null || currentBookingIds.isEmpty) {
-      return 'error';
-    }
-
-    try {
-      final status = await DuitkuService.checkTransactionStatus(
-        merchantOrderId: currentMerchantOrderId!,
-      );
-
-      final ps = status.paymentStatus; // 'paid' | 'pending' | 'failed'
-
-      for (final bid in currentBookingIds) {
-        // Update payment
-        await _supabase.from('payments').update({
-          'payment_status': ps,
-          'paid_at': ps == 'paid' ? DateTime.now().toIso8601String() : null,
-        }).eq('booking_id', bid);
-
-        if (ps == 'paid') {
-          // Konfirmasi booking
-          await _supabase
-              .from('bookings')
-              .update({'booking_status': 'confirmed'}).eq('id', bid);
-
-          // Tandai slot mentor jadi booked
-          final bookingRow = await _supabase
-              .from('bookings')
-              .select('schedule_id')
-              .eq('id', bid)
-              .maybeSingle();
-
-          if (bookingRow?['schedule_id'] != null) {
-            await _supabase.from('mentor_schedules').update(
-                {'is_booked': true}).eq('id', bookingRow!['schedule_id']);
-          }
-        }
-      }
-
-      return ps;
-    } catch (e) {
-      return 'error';
-    }
-  }
 }
 
+// ─────────────────────────────────────────────────────
 /// Hasil submit multiple booking
+// ─────────────────────────────────────────────────────
 class BookingSubmitResult {
   final List<String> successIds;
   final List<DateTime> failedDates;
@@ -313,21 +180,4 @@ class BookingSubmitResult {
   bool get isFullSuccess => successIds.isNotEmpty && failedDates.isEmpty;
   bool get isPartialSuccess => successIds.isNotEmpty && failedDates.isNotEmpty;
   bool get isFullFail => successIds.isEmpty;
-}
-
-/// Hasil inisiasi pembayaran Duitku
-class PaymentInitResult {
-  final String? paymentUrl;
-  final String? merchantOrderId;
-  final String? masterBookingId;
-  final String? errorMessage;
-
-  const PaymentInitResult({
-    this.paymentUrl,
-    this.merchantOrderId,
-    this.masterBookingId,
-    this.errorMessage,
-  });
-
-  bool get isSuccess => paymentUrl != null && paymentUrl!.isNotEmpty;
 }
