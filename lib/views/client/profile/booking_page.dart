@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../controller/client/booking_controller.dart';
 import '../../../models/client/mentor_profile_model.dart';
-import '../map/map_picker_page.dart';
 import 'payment_page.dart';
 
 // ================================================================
@@ -43,9 +41,11 @@ class _BookingPageState extends State<BookingPage> {
 
   List<DateTime> selectedDates = [];
   DateTime focusedDay = DateTime.now();
-  LatLng? selectedLocation;
-  TimeOfDay? selectedTime;
+
+  TimeOfDay? selectedStartTime;
   TimeOfDay? selectedEndTime;
+
+  String? clientAddress;
 
   final TextEditingController noteController = TextEditingController();
 
@@ -59,8 +59,8 @@ class _BookingPageState extends State<BookingPage> {
 
   /// Durasi 1 sesi dalam jam (dari selisih jam mulai & selesai).
   double get sessionHours {
-    if (selectedTime == null || selectedEndTime == null) return 0;
-    final startMin = selectedTime!.hour * 60 + selectedTime!.minute;
+    if (selectedStartTime == null || selectedEndTime == null) return 0;
+    final startMin = selectedStartTime!.hour * 60 + selectedStartTime!.minute;
     final endMin = selectedEndTime!.hour * 60 + selectedEndTime!.minute;
     final diff = endMin - startMin;
     return diff <= 0 ? 0 : diff / 60.0;
@@ -89,6 +89,7 @@ class _BookingPageState extends State<BookingPage> {
   void initState() {
     super.initState();
     _loadSlots();
+    _loadClientAddress();
 
     if (widget.isReschedule && widget.oldData != null) {
       final data = widget.oldData!;
@@ -101,6 +102,28 @@ class _BookingPageState extends State<BookingPage> {
     await _controller.fetchAvailableSlots(widget.mentorId);
     if (mounted) setState(() {});
   }
+
+  Future<void> _loadClientAddress() async {
+  final userId =
+      Supabase.instance.client.auth.currentUser?.id;
+
+  if (userId == null) return;
+
+  try {
+    final data = await Supabase.instance.client
+        .from('bio_profil')
+        .select('alamat')
+        .eq('user_id', userId)
+        .single();
+
+    if (mounted) {
+      setState(() {
+        clientAddress =
+            data['alamat']?.toString() ?? '-';
+      });
+    }
+  } catch (_) {}
+}
 
   @override
   void dispose() {
@@ -160,13 +183,17 @@ class _BookingPageState extends State<BookingPage> {
                               ? widget.mentor.namaLengkap[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                              color: primary, fontWeight: FontWeight.bold),
+                            color: primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         )
                       : null,
                 ),
                 title: Text(
                   widget.mentor.namaLengkap,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 subtitle: widget.mentor.categoryName != null
                     ? Text(widget.mentor.categoryName!)
@@ -174,7 +201,26 @@ class _BookingPageState extends State<BookingPage> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            _card(
+              child: ListTile(
+                leading: const Icon(Icons.location_on),
+                title: const Text(
+                  'Mentor Address',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  widget.mentor.alamat?.isNotEmpty == true
+                      ? widget.mentor.alamat!
+                      : '-',
+                ),
+              ),
+            ),
+
+        const SizedBox(height: 20),
 
             // ── Calendar ─────────────────────────────
             const Text(
@@ -290,16 +336,16 @@ class _BookingPageState extends State<BookingPage> {
               child: ListTile(
                 leading: const Icon(Icons.access_time),
                 title: Text(
-                  selectedTime == null
+                  selectedStartTime == null
                       ? 'Select Session Time'
                       : (selectedEndTime == null
-                          ? 'Time: ${selectedTime!.format(context)}'
-                          : 'Time: ${selectedTime!.format(context)} - ${selectedEndTime!.format(context)}'),
+                          ? 'Time: ${selectedStartTime!.format(context)}'
+                          : 'Time: ${selectedStartTime!.format(context)} - ${selectedEndTime!.format(context)}'),
                 ),
                 onTap: () async {
                   final start = await showTimePicker(
                     context: context,
-                    initialTime: selectedTime ?? TimeOfDay.now(),
+                    initialTime: selectedStartTime ?? TimeOfDay.now(),
                     helpText: 'Pilih Jam Mulai',
                   );
                   if (start == null) return;
@@ -317,13 +363,21 @@ class _BookingPageState extends State<BookingPage> {
                   final startMin = start.hour * 60 + start.minute;
                   final endMin = end.hour * 60 + end.minute;
                   if (endMin <= startMin) {
-                    _snack('Jam selesai harus setelah jam mulai',
-                        Colors.redAccent);
-                    return;
+                                        final durationHours =
+                          (endMin - startMin) / 60;
+
+                      if (durationHours < 1 ||
+                          durationHours > 4) {
+                        _snack(
+                          'Durasi mentoring minimal 1 jam dan maksimal 4 jam',
+                          Colors.redAccent,
+                        );
+                        return;
+                      }
                   }
 
                   setState(() {
-                    selectedTime = start;
+                    selectedStartTime = start;
                     selectedEndTime = end;
                   });
                 },
@@ -331,28 +385,6 @@ class _BookingPageState extends State<BookingPage> {
             ),
 
             const SizedBox(height: 20),
-
-            // ── Location picker ──────────────────────
-            _card(
-              child: ListTile(
-                leading: const Icon(Icons.location_on),
-                title: Text(
-                  selectedLocation == null
-                      ? 'Select Location'
-                      : 'Location selected ✓',
-                ),
-                onTap: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const MapPickerPage()),
-                  );
-                  if (result != null) {
-                    setState(() => selectedLocation = result);
-                  }
-                },
-              ),
-            ),
 
             const SizedBox(height: 10),
 
@@ -410,10 +442,9 @@ class _BookingPageState extends State<BookingPage> {
                     borderRadius: BorderRadius.circular(15)),
               ),
               onPressed: () {
-                if (selectedDates.isNotEmpty &&
-                    selectedTime != null &&
-                    selectedEndTime != null &&
-                    selectedLocation != null) {
+              if (selectedDates.isNotEmpty &&
+                  selectedStartTime != null &&
+                  selectedEndTime != null) {
                   setState(() => _step = 'review');
                 } else {
                   _snack('Please complete all data', Colors.orange);
@@ -524,8 +555,8 @@ class _BookingPageState extends State<BookingPage> {
                   _summaryItem(
                     Icons.schedule,
                     'Time',
-                    (selectedTime != null && selectedEndTime != null)
-                        ? '${selectedTime!.format(context)} - ${selectedEndTime!.format(context)}'
+                    (selectedStartTime != null && selectedEndTime != null)
+                        ? '${selectedStartTime!.format(context)} - ${selectedEndTime!.format(context)}'
                         : '-',
                   ),
                   _summaryItem(
@@ -535,8 +566,8 @@ class _BookingPageState extends State<BookingPage> {
                   ),
                   _summaryItem(
                     Icons.location_on,
-                    'Location',
-                    selectedLocation == null ? '-' : 'Selected ✓',
+                    'Mentor Address',
+                    widget.mentor.alamat ?? '-',
                   ),
                   if (noteController.text.isNotEmpty)
                     _summaryItem(
@@ -649,17 +680,13 @@ class _BookingPageState extends State<BookingPage> {
   Future<void> _handleSubmit() async {
     setState(() => _isSubmitting = true);
 
-    final locationText = selectedLocation != null
-        ? '${selectedLocation!.latitude},${selectedLocation!.longitude}'
-        : '';
-
     // 1. Simpan semua booking ke Supabase
-    final result = await _controller.submitMultipleBookings(
+    final result =
+    await _controller.submitMultipleBookings(
       mentorId: widget.mentorId,
       selectedDates: selectedDates,
-      selectedTime: selectedTime!,
+      selectedStartTime: selectedStartTime!,
       selectedEndTime: selectedEndTime!,
-      locationText: locationText,
       notes: noteController.text.trim().isEmpty
           ? null
           : noteController.text.trim(),
