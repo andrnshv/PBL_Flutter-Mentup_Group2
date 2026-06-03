@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../controller/client/security_controller.dart';
 import '../../../models/client/security_model.dart';
@@ -19,6 +20,9 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
   final Color primaryPurple = const Color(0xFF7E7BB9);
   final Color primaryBlue = const Color(0xFF6D92CB);
   final Color textDark = const Color(0xFF2D3436);
+
+  // Nomor WhatsApp admin (format internasional tanpa + dan tanpa spasi)
+  final String _adminWa = '6285108636167'; // ← ganti dengan nomor admin asli
 
   final SecurityController _controller = SecurityController();
 
@@ -52,11 +56,9 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
           : Stack(
               children: [
                 _buildFullGradientBackground(),
-
                 Column(
                   children: [
                     _buildCustomAppBar(context),
-
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Image.asset(
@@ -65,7 +67,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
-
                     Expanded(
                       child: Container(
                         margin: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -91,7 +92,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                             child: Column(
                               children: [
                                 _buildSectionTitle("SECURITY"),
-
                                 _buildMenuCard([
                                   _buildMenuTile(
                                     icon: Icons.lock_person_outlined,
@@ -108,9 +108,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                                       );
                                     },
                                   ),
-
                                   _buildDivider(),
-
                                   _buildMenuTile(
                                     icon: Icons.alternate_email_rounded,
                                     iconColor: primaryBlue,
@@ -127,23 +125,17 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                                     },
                                   ),
                                 ]),
-
                                 const SizedBox(height: 25),
-
                                 _buildSectionTitle("PREFERENCES"),
-
                                 _buildMenuCard([
                                   _buildMenuTile(
                                     icon: Icons.support_agent_rounded,
                                     iconColor: const Color(0xFF1ABC9C),
                                     title: "Help Center",
                                     desc: "Contact support & info",
-                                    onTap: () =>
-                                        _showHelpCenterPopOut(context),
+                                    onTap: () => _showHelpCenterPopOut(context),
                                   ),
-
                                   _buildDivider(),
-
                                   _buildMenuTile(
                                     icon: Icons.help_outline_rounded,
                                     iconColor: const Color(0xFFF39C12),
@@ -153,18 +145,14 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) =>
-                                              const FaqSupPage(),
+                                          builder: (_) => const FaqSupPage(),
                                         ),
                                       );
                                     },
                                   ),
                                 ]),
-
                                 const SizedBox(height: 25),
-
                                 _buildSectionTitle("ACCOUNT"),
-
                                 _buildMenuCard([
                                   _buildMenuTile(
                                     icon: Icons.logout_rounded,
@@ -172,12 +160,9 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                                     title: "Sign Out",
                                     titleColor: Colors.redAccent,
                                     desc: "Log Out from your account",
-                                    onTap: () =>
-                                        _showLogoutDialog(context),
+                                    onTap: () => _showLogoutDialog(context),
                                   ),
-
                                   _buildDivider(),
-
                                   _buildMenuTile(
                                     icon: Icons.delete_outline_rounded,
                                     iconColor: Colors.redAccent,
@@ -249,7 +234,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
-
             const Text(
               "Settings",
               style: TextStyle(
@@ -259,7 +243,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 fontSize: 20,
               ),
             ),
-
             const SizedBox(width: 48),
           ],
         ),
@@ -381,7 +364,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
             onPressed: () => Navigator.pop(context),
             child: const Text("Cancel"),
           ),
-
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -415,6 +397,20 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
   }
 
   void _showHelpCenterPopOut(BuildContext context) {
+    Future<void> _hubungiAdmin(String pesan) async {
+      final url = Uri.parse(
+          'https://wa.me/$_adminWa?text=${Uri.encodeComponent(pesan)}');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak bisa membuka WhatsApp')),
+          );
+        }
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -437,9 +433,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-
             const SizedBox(height: 20),
-
             const Text(
               "Help Center",
               style: TextStyle(
@@ -448,9 +442,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
               "Need help with MentUp? Contact our team:",
               style: TextStyle(
@@ -459,15 +451,34 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 color: Colors.grey,
               ),
             ),
-
             const SizedBox(height: 20),
-
             _buildSupportTile(
               Icons.chat_rounded,
               "WhatsApp Support",
-              "+62 812-3456-7890",
+              "+62 851-0863-6167",
+              onTap: () {
+                Navigator.pop(context);
+                _hubungiAdmin(
+                  "Halo admin MentUp, saya butuh bantuan terkait aplikasi.",
+                );
+              },
             ),
-
+            _buildSupportTile(
+              Icons.account_balance_wallet_rounded,
+              "Ajukan Refund",
+              "Hubungi admin untuk proses refund",
+              onTap: () {
+                Navigator.pop(context);
+                _hubungiAdmin(
+                  "Halo admin MentUp, saya ingin mengajukan refund untuk "
+                  "booking saya. Berikut detailnya:\n"
+                  "- Nama: \n"
+                  "- Tanggal sesi: \n"
+                  "- Mentor: \n"
+                  "- Alasan: ",
+                );
+              },
+            ),
             const SizedBox(height: 10),
           ],
         ),
@@ -478,9 +489,11 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
   Widget _buildSupportTile(
     IconData icon,
     String title,
-    String val,
-  ) {
+    String val, {
+    VoidCallback? onTap,
+  }) {
     return ListTile(
+      onTap: onTap,
       leading: Icon(
         icon,
         color: primaryPurple,
@@ -498,6 +511,9 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
         val,
         style: const TextStyle(fontSize: 12),
       ),
+      trailing: onTap != null
+          ? const Icon(Icons.open_in_new_rounded, size: 18, color: Colors.grey)
+          : null,
     );
   }
 
@@ -528,9 +544,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 10),
-
             Text(
               msg,
               textAlign: TextAlign.center,
@@ -539,9 +553,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                 color: Colors.grey[600],
               ),
             ),
-
             const SizedBox(height: 30),
-
             Row(
               children: [
                 Expanded(
@@ -556,9 +568,7 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 15),
-
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(

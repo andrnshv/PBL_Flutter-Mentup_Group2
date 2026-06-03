@@ -9,17 +9,13 @@ import '../../../controller/client/calendar_controller.dart';
 import '../../../controller/client/nearby_mentors_controller.dart';
 import '../profile/mentor_profile_page.dart';
 import '../../../controller/client/top_mentors_controller.dart';
+import '../../../controller/client/comment_controller.dart';
 
 import '../calendar/calendar_page.dart';
 import '../search/search_page.dart';
 import '../History/History_page.dart';
 import '../profile/profile_page.dart';
 import '../notification/notification_page.dart';
-// MentorProfilePage sekarang butuh mentorId (String), bukan MentorModel.
-// Top Mentors di HomePage masih pakai DummyData yang tidak punya userId Supabase.
-// TODO: setelah HomePage migrasi ke Supabase, ganti dengan:
-//   MentorProfilePage(mentorId: mentor.userId)
-// import '../profile/mentor_profile_page.dart';
 import '../data/dummy_data.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/supabase_service.dart';
@@ -51,6 +47,9 @@ class _LandingPageState extends State<HomePage> {
   final _topMentorsCtrl = TopMentorsController();
   bool _loadingTop = true;
 
+  final _testimonialCtrl = WhatTheySayController();
+  bool _loadingTestimonial = true;
+
   static const LatLng _center = LatLng(-7.9425, 112.6131);
   final Color primary = const Color(0xFF6C63FF);
 
@@ -64,12 +63,23 @@ class _LandingPageState extends State<HomePage> {
     _loadNextSession();
     _loadNearbyMentors();
     _loadTopMentors();
+    _loadTestimonials();
     _pages = [
       _homeContent(),
       const SearchPage(),
       const HistoryPage(),
       const ProfilePage(),
     ];
+  }
+
+  Future<void> _loadTestimonials() async {
+    await _testimonialCtrl.fetchTestimonials();
+    if (mounted) {
+      setState(() {
+        _loadingTestimonial = false;
+        _pages[0] = _homeContent();
+      });
+    }
   }
 
   Future<void> _loadTopMentors() async {
@@ -805,38 +815,49 @@ class _LandingPageState extends State<HomePage> {
 
               const SizedBox(height: 25),
 
+              /// WHAT THEY SAY (dinamis dari Supabase - tabel reviews)
               const Text("What They Say 💬",
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
 
-              SizedBox(
-                height: 140,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _testimonialCard(
-                      name: "Alya",
-                      review:
-                          "Mentornya sabar banget! Aku jadi lebih paham matematika 😭✨",
-                      rating: 5.0,
-                      image: "assets/profile.jpg",
-                    ),
-                    _testimonialCard(
-                      name: "Raka",
-                      review:
-                          "Belajar coding jadi lebih fun, langsung praktek!",
-                      rating: 4.8,
-                      image: "assets/mentor1.jpg",
-                    ),
-                    _testimonialCard(
-                      name: "Mira",
-                      review: "Mentor datang tepat waktu & ngajarnya enak 👍",
-                      rating: 4.9,
-                      image: "assets/mentor2.jpg",
-                    ),
-                  ],
+              if (_loadingTestimonial)
+                const SizedBox(
+                  height: 140,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_testimonialCtrl.testimonials.isEmpty)
+                // Belum ada komentar
+                Container(
+                  height: 140,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.chat_bubble_outline,
+                          size: 40, color: Colors.grey),
+                      SizedBox(height: 10),
+                      Text("Belum ada komentar",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.grey)),
+                    ],
+                  ),
+                )
+              else
+                SizedBox(
+                  height: 140,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _testimonialCtrl.testimonials.length,
+                    itemBuilder: (context, index) {
+                      final t = _testimonialCtrl.testimonials[index];
+                      return _testimonialCard(t);
+                    },
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -891,12 +912,8 @@ class _LandingPageState extends State<HomePage> {
     );
   }
 
-  Widget _testimonialCard({
-    required String name,
-    required String review,
-    required double rating,
-    required String image,
-  }) {
+  // ── Kartu testimoni (What They Say) — data dari tabel reviews ──
+  Widget _testimonialCard(TestimonialModel t) {
     return Container(
       width: 260,
       margin: const EdgeInsets.only(right: 12),
@@ -913,27 +930,50 @@ class _LandingPageState extends State<HomePage> {
         children: [
           Row(
             children: [
-              CircleAvatar(radius: 18, backgroundImage: AssetImage(image)),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: primary.withOpacity(0.1),
+                backgroundImage:
+                    (t.reviewerFoto != null && t.reviewerFoto!.isNotEmpty)
+                        ? NetworkImage(t.reviewerFoto!)
+                        : null,
+                child: (t.reviewerFoto == null || t.reviewerFoto!.isEmpty)
+                    ? Text(
+                        t.reviewerName.isNotEmpty
+                            ? t.reviewerName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                            color: primary, fontWeight: FontWeight.bold),
+                      )
+                    : null,
+              ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  t.reviewerName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               Row(
                 children: [
                   const Icon(Icons.star, size: 14, color: Colors.amber),
                   const SizedBox(width: 2),
-                  Text(rating.toString(), style: const TextStyle(fontSize: 12)),
+                  Text(t.rating.toStringAsFixed(1),
+                      style: const TextStyle(fontSize: 12)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(
-            review,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.grey),
+          Expanded(
+            child: Text(
+              t.comment,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.grey),
+            ),
           ),
         ],
       ),
