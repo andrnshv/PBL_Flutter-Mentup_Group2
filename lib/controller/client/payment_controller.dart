@@ -24,6 +24,9 @@ class PaymentController extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
+  /// merchantOrderId terakhir yang dibuat — dipakai PaymentPage untuk verifikasi
+  String? lastMerchantOrderId;
+
   // ─────────────────────────────────────────────────────
   // CREATE PAYMENT — buat 1 invoice Duitku untuk
   // satu atau banyak bookingIds sekaligus.
@@ -52,6 +55,7 @@ class PaymentController extends ChangeNotifier {
       // Duitku membatasi max 50 karakter
       final raw = 'MT-${base.substring(0, 8)}-$ts';
       final merchantOrderId = raw.length > 50 ? raw.substring(0, 50) : raw;
+      lastMerchantOrderId = merchantOrderId;
 
       final invoice = await DuitkuService.createInvoice(
         merchantOrderId: merchantOrderId,
