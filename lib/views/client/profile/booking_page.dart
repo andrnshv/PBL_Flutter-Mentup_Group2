@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../../controller/client/booking_controller.dart';
 import '../../../models/client/mentor_profile_model.dart';
 import '../map/map_picker_page.dart';
+import 'payment_page.dart';
 
 // ================================================================
 //  BOOKING PAGE (VIEW) — MentUp
 //  File: lib/views/client/profile/booking_page.dart
 //
-//  View murni: hanya UI + state tampilan. Semua logika booking &
-//  pembayaran ada di BookingFormController (MVC).
+//  View murni: hanya UI + state tampilan. Semua logika booking ada
+//  di BookingFormController. Semua logika pembayaran ada di
+//  PaymentController & PaymentPage.
+//
+//  Alur:
+//    form → review → [submit] → PaymentPage (dengan bookingIds)
 // ================================================================
 
 class BookingPage extends StatefulWidget {
@@ -40,28 +44,26 @@ class _BookingPageState extends State<BookingPage> {
   List<DateTime> selectedDates = [];
   DateTime focusedDay = DateTime.now();
   LatLng? selectedLocation;
-  TimeOfDay? selectedTime; // jam mulai
-  TimeOfDay? selectedEndTime; // jam selesai
+  TimeOfDay? selectedTime;
+  TimeOfDay? selectedEndTime;
 
   final TextEditingController noteController = TextEditingController();
 
-  /// _step: 'form' | 'review' | 'webview' | 'pending'
+  /// _step: 'form' | 'review'
   String _step = 'form';
   bool _isSubmitting = false;
 
-  // ── WebView Duitku ──
-  WebViewController? _webCtrl;
-  bool _webLoading = false;
+  // ──────────────────────────────────────────────
+  //  KALKULASI HARGA
+  // ──────────────────────────────────────────────
 
   /// Durasi 1 sesi dalam jam (dari selisih jam mulai & selesai).
-  /// Mengembalikan 0 jika jam belum dipilih.
   double get sessionHours {
     if (selectedTime == null || selectedEndTime == null) return 0;
     final startMin = selectedTime!.hour * 60 + selectedTime!.minute;
     final endMin = selectedEndTime!.hour * 60 + selectedEndTime!.minute;
     final diff = endMin - startMin;
-    if (diff <= 0) return 0;
-    return diff / 60.0;
+    return diff <= 0 ? 0 : diff / 60.0;
   }
 
   /// Harga per jam (field pricePerSession di-treat sebagai harga per jam).
@@ -73,13 +75,15 @@ class _BookingPageState extends State<BookingPage> {
   /// Total = harga per sesi × jumlah hari yang dipesan.
   int get totalPrice => pricePerBooking * selectedDates.length;
 
-  /// Format jam: 4.0 → "4", 1.5 → "1.5"
+  /// Label durasi: 4.0 → "4", 1.5 → "1.5"
   String get sessionHoursLabel {
     if (sessionHours == sessionHours.roundToDouble()) {
       return sessionHours.toInt().toString();
     }
     return sessionHours.toString();
   }
+
+  // ──────────────────────────────────────────────
 
   @override
   void initState() {
@@ -104,6 +108,10 @@ class _BookingPageState extends State<BookingPage> {
     super.dispose();
   }
 
+  // ──────────────────────────────────────────────
+  //  BUILD
+  // ──────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,9 +120,7 @@ class _BookingPageState extends State<BookingPage> {
         title: Text(
           widget.isReschedule
               ? 'Reschedule Session'
-              : (_step == 'review'
-                  ? 'Review Booking'
-                  : (_step == 'webview' ? 'Pembayaran' : 'Booking Mentor')),
+              : (_step == 'review' ? 'Review Booking' : 'Booking Mentor'),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -125,26 +131,8 @@ class _BookingPageState extends State<BookingPage> {
                 onPressed: () => setState(() => _step = 'form'),
               )
             : null,
-        actions: [
-          if (_step == 'webview' && _webCtrl != null)
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () => _webCtrl!.reload(),
-            ),
-        ],
       ),
-      body: () {
-        switch (_step) {
-          case 'review':
-            return _buildReview();
-          case 'pending':
-            return _buildWaiting();
-          case 'webview':
-            return _buildWebView();
-          default:
-            return _buildForm();
-        }
-      }(),
+      body: _step == 'review' ? _buildReview() : _buildForm(),
     );
   }
 
@@ -213,26 +201,23 @@ class _BookingPageState extends State<BookingPage> {
                       lastDay: DateTime(2030),
                       focusedDay: focusedDay,
 
-                      // Hanya tanggal yang punya slot bisa dipilih
+                      // Hanya tanggal yang punya slot tersedia bisa diklik
                       enabledDayPredicate: (day) => _controller.availableDays
                           .any((d) => isSameDay(d, day)),
 
                       selectedDayPredicate: (day) {
-                        return selectedDates.any(
-                          (selectedDay) => isSameDay(selectedDay, day),
-                        );
+                        return selectedDates
+                            .any((selected) => isSameDay(selected, day));
                       },
 
                       onDaySelected: (selectedDay, focused) {
                         setState(() {
                           focusedDay = focused;
-                          final exists = selectedDates.any(
-                            (d) => isSameDay(d, selectedDay),
-                          );
+                          final exists = selectedDates
+                              .any((d) => isSameDay(d, selectedDay));
                           if (exists) {
                             selectedDates.removeWhere(
-                              (d) => isSameDay(d, selectedDay),
-                            );
+                                (d) => isSameDay(d, selectedDay));
                           } else {
                             selectedDates.add(selectedDay);
                           }
@@ -240,7 +225,7 @@ class _BookingPageState extends State<BookingPage> {
                       },
 
                       calendarBuilders: CalendarBuilders(
-                        // Dot hijau untuk tanggal yang ada slot
+                        // Dot hijau = tanggal ada slot
                         markerBuilder: (context, day, _) {
                           if (_controller.availableDays
                               .any((d) => isSameDay(d, day))) {
@@ -292,9 +277,8 @@ class _BookingPageState extends State<BookingPage> {
                     backgroundColor: primary.withOpacity(0.1),
                     label: Text('${date.day}/${date.month}/${date.year}'),
                     deleteIcon: const Icon(Icons.close, size: 18),
-                    onDeleted: () {
-                      setState(() => selectedDates.remove(date));
-                    },
+                    onDeleted: () =>
+                        setState(() => selectedDates.remove(date)),
                   );
                 }).toList(),
               ),
@@ -313,7 +297,6 @@ class _BookingPageState extends State<BookingPage> {
                           : 'Time: ${selectedTime!.format(context)} - ${selectedEndTime!.format(context)}'),
                 ),
                 onTap: () async {
-                  // 1. Pilih jam mulai
                   final start = await showTimePicker(
                     context: context,
                     initialTime: selectedTime ?? TimeOfDay.now(),
@@ -321,17 +304,16 @@ class _BookingPageState extends State<BookingPage> {
                   );
                   if (start == null) return;
 
-                  // 2. Pilih jam selesai
                   final end = await showTimePicker(
                     context: context,
                     initialTime: selectedEndTime ??
                         TimeOfDay(
-                            hour: (start.hour + 1) % 24, minute: start.minute),
+                            hour: (start.hour + 1) % 24,
+                            minute: start.minute),
                     helpText: 'Pilih Jam Selesai',
                   );
                   if (end == null) return;
 
-                  // Validasi: jam selesai harus setelah jam mulai
                   final startMin = start.hour * 60 + start.minute;
                   final endMin = end.hour * 60 + end.minute;
                   if (endMin <= startMin) {
@@ -363,8 +345,7 @@ class _BookingPageState extends State<BookingPage> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const MapPickerPage(),
-                    ),
+                        builder: (_) => const MapPickerPage()),
                   );
                   if (result != null) {
                     setState(() => selectedLocation = result);
@@ -380,7 +361,7 @@ class _BookingPageState extends State<BookingPage> {
 
             const SizedBox(height: 15),
 
-            // ── Price ─────────────────────────────────
+            // ── Price detail ─────────────────────────
             _card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -435,19 +416,13 @@ class _BookingPageState extends State<BookingPage> {
                     selectedLocation != null) {
                   setState(() => _step = 'review');
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please complete all data'),
-                    ),
-                  );
+                  _snack('Please complete all data', Colors.orange);
                 }
               },
               child: Text(
-                widget.isReschedule ? 'Update Schedule' : 'Review Booking',
+                widget.isReschedule ? 'Review Schedule' : 'Review Booking',
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -481,14 +456,13 @@ class _BookingPageState extends State<BookingPage> {
                 Text(
                   'Booking Summary',
                   style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Review your booking',
+                  'Review your booking before proceeding to payment',
                   style: TextStyle(color: Colors.white70),
                 ),
               ],
@@ -507,7 +481,7 @@ class _BookingPageState extends State<BookingPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Mentor
+                  // Mentor info
                   Row(
                     children: [
                       CircleAvatar(
@@ -552,9 +526,12 @@ class _BookingPageState extends State<BookingPage> {
                     'Time',
                     (selectedTime != null && selectedEndTime != null)
                         ? '${selectedTime!.format(context)} - ${selectedEndTime!.format(context)}'
-                        : (selectedTime != null
-                            ? selectedTime!.format(context)
-                            : '-'),
+                        : '-',
+                  ),
+                  _summaryItem(
+                    Icons.timer_outlined,
+                    'Duration',
+                    '$sessionHoursLabel jam / sesi',
                   ),
                   _summaryItem(
                     Icons.location_on,
@@ -570,7 +547,7 @@ class _BookingPageState extends State<BookingPage> {
 
                   const SizedBox(height: 15),
 
-                  // Wrap chip tanggal
+                  // Chip tanggal terpilih
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -593,7 +570,7 @@ class _BookingPageState extends State<BookingPage> {
 
                   const SizedBox(height: 20),
 
-                  // Price
+                  // Price detail
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -617,10 +594,8 @@ class _BookingPageState extends State<BookingPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Total Price',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
+                            const Text('Total Price',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                             Text(
                               'Rp ${_formatPrice(totalPrice)}',
                               style: TextStyle(
@@ -641,10 +616,13 @@ class _BookingPageState extends State<BookingPage> {
 
           const SizedBox(height: 20),
 
+          // ── Tombol Continue to Payment ────────────
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               minimumSize: const Size.fromHeight(55),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
             ),
             onPressed: _isSubmitting ? null : _handleSubmit,
             child: _isSubmitting
@@ -655,7 +633,7 @@ class _BookingPageState extends State<BookingPage> {
                         color: Colors.white, strokeWidth: 2),
                   )
                 : const Text(
-                    'Submit Booking',
+                    'Continue to Payment',
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold),
                   ),
@@ -666,56 +644,7 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   // ════════════════════════════════════════════════════════
-  // WEBVIEW DUITKU
-  // ════════════════════════════════════════════════════════
-  Widget _buildWebView() {
-    return Stack(
-      children: [
-        if (_webCtrl != null) WebViewWidget(controller: _webCtrl!),
-        if (_webLoading) const Center(child: CircularProgressIndicator()),
-      ],
-    );
-  }
-
-  // ════════════════════════════════════════════════════════
-  // WAITING / SUCCESS
-  // ════════════════════════════════════════════════════════
-  Widget _buildWaiting() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.check_circle_rounded, size: 80, color: Colors.green),
-          const SizedBox(height: 20),
-          const Text(
-            'Booking Submitted',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Your booking request has been sent. Please wait for mentor approval.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey),
-          ),
-          const SizedBox(height: 30),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              minimumSize: const Size.fromHeight(50),
-            ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Back to Home',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ════════════════════════════════════════════════════════
-  // SUBMIT HANDLER — semua logic di controller
+  // SUBMIT — simpan bookings, lalu buka PaymentPage
   // ════════════════════════════════════════════════════════
   Future<void> _handleSubmit() async {
     setState(() => _isSubmitting = true);
@@ -724,11 +653,12 @@ class _BookingPageState extends State<BookingPage> {
         ? '${selectedLocation!.latitude},${selectedLocation!.longitude}'
         : '';
 
-    // 1. Simpan booking ke Supabase (via controller)
+    // 1. Simpan semua booking ke Supabase
     final result = await _controller.submitMultipleBookings(
       mentorId: widget.mentorId,
       selectedDates: selectedDates,
       selectedTime: selectedTime!,
+      selectedEndTime: selectedEndTime!,
       locationText: locationText,
       notes: noteController.text.trim().isEmpty
           ? null
@@ -736,94 +666,40 @@ class _BookingPageState extends State<BookingPage> {
     );
 
     if (!mounted) return;
+    setState(() => _isSubmitting = false);
 
     // Gagal semua
     if (result.isFullFail) {
-      setState(() => _isSubmitting = false);
-      _snack(
-          result.errorMessage ?? 'Booking gagal. Coba lagi.', Colors.redAccent);
+      _snack(result.errorMessage ?? 'Booking gagal. Coba lagi.',
+          Colors.redAccent);
       return;
     }
 
-    // Partial → kasih tahu
+    // Partial → kasih tahu tapi tetap lanjut
     if (result.isPartialSuccess) {
       _snack(
         '${result.successIds.length} booking berhasil, '
-        '${result.failedDates.length} tanggal gagal. Lanjut bayar.',
+        '${result.failedDates.length} tanggal gagal.',
         Colors.orange,
       );
     }
 
-    // 2. Buat invoice Duitku (via controller)
-    final payment = await _controller.createPaymentForBookings(
-      bookingIds: result.successIds,
-      amountPerBooking: pricePerBooking,
-      mentorName: widget.mentor.namaLengkap,
+    // 2. Navigasi ke PaymentPage dengan data booking yang berhasil
+    //    PaymentPage yang akan handle pembuatan invoice & slot locking.
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentPage(
+          bookingIds: result.successIds,
+          amountPerBooking: pricePerBooking,
+          mentorName: widget.mentor.namaLengkap,
+        ),
+      ),
     );
 
-    if (!mounted) return;
-    setState(() => _isSubmitting = false);
-
-    if (payment.isSuccess) {
-      _openWebView(payment.paymentUrl!);
-    } else {
-      _snack(payment.errorMessage ?? 'Gagal membuat invoice Duitku',
-          Colors.redAccent);
-    }
-  }
-
-  // ════════════════════════════════════════════════════════
-  // WEBVIEW + VERIFY
-  // ════════════════════════════════════════════════════════
-  void _openWebView(String url) {
-    _webCtrl = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() => _webLoading = true),
-        onPageFinished: (_) => setState(() => _webLoading = false),
-        onNavigationRequest: (req) {
-          if (req.url.startsWith('mentup://') ||
-              req.url.contains('payment/return')) {
-            _handleReturn();
-            return NavigationDecision.prevent;
-          }
-          return NavigationDecision.navigate;
-        },
-      ))
-      ..loadRequest(Uri.parse(url));
-
-    setState(() => _step = 'webview');
-  }
-
-  Future<void> _handleReturn() async {
-    setState(() {
-      _webCtrl = null;
-      _webLoading = true;
-    });
-
-    // Verifikasi via controller
-    final paymentStatus = await _controller.verifyCurrentPayment();
-
-    if (!mounted) return;
-    setState(() => _webLoading = false);
-
-    switch (paymentStatus) {
-      case 'paid':
-        _showResultDialog(
-          icon: Icons.check_circle_outline,
-          color: Colors.green,
-          title: 'Pembayaran Berhasil!',
-          message: 'Booking kamu sudah dikonfirmasi.\nSelamat belajar! 🎉',
-          onClose: () => Navigator.popUntil(context, (r) => r.isFirst),
-        );
-        break;
-      case 'pending':
-        setState(() => _step = 'pending');
-        break;
-      default:
-        setState(() => _step = 'review');
-        _snack('Pembayaran gagal atau dibatalkan.', Colors.redAccent);
-    }
+    // 3. Setelah kembali dari PaymentPage, pop BookingPage juga
+    //    agar user tidak bisa double-booking dengan data yang sama.
+    if (mounted) Navigator.pop(context);
   }
 
   // ════════════════════════════════════════════════════════
@@ -835,50 +711,8 @@ class _BookingPageState extends State<BookingPage> {
         content: Text(msg),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _showResultDialog({
-    required IconData icon,
-    required Color color,
-    required String title,
-    required String message,
-    required VoidCallback onClose,
-  }) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Icon(icon, color: color, size: 72),
-            const SizedBox(height: 16),
-            Text(title,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: Colors.grey)),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: primary, foregroundColor: Colors.white),
-              onPressed: onClose,
-              child: const Text('OK'),
-            ),
-          ),
-        ],
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

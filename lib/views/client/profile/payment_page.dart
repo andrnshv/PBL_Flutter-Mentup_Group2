@@ -9,36 +9,37 @@ import '../../../services/duitku_service.dart';
 //  File: lib/views/client/profile/payment_page.dart
 //
 //  Halaman ini punya 2 mode:
-//  1. Mode ringkasan  → tampil daftar transaksi dari Supabase
-//  2. Mode WebView    → buka halaman bayar Duitku (muncul otomatis
-//                       saat ada bookingId yang dikirim)
 //
-//  Cara buka dari booking_page.dart (mode bayar langsung):
-//    Navigator.push(context, MaterialPageRoute(
-//      builder: (_) => PaymentPage(
-//        bookingId:   booking['id'],
-//        amount:      150000,
-//        mentorName:  'Budi Santoso',
-//      ),
-//    ));
+//  1. Mode bayar baru (dari BookingPage):
+//       PaymentPage(
+//         bookingIds: ['id1', 'id2'],
+//         amountPerBooking: 150000,
+//         mentorName: 'Budi Santoso',
+//       )
+//     → Langsung buat invoice Duitku & buka WebView.
 //
-//  Cara buka dari profile (mode riwayat saja):
-//    Navigator.push(context, MaterialPageRoute(
-//      builder: (_) => const PaymentPage(),
-//    ));
+//  2. Mode riwayat saja (dari profile/menu):
+//       const PaymentPage()
+//     → Tampilkan daftar transaksi.
+//
+//  SLOT LOCKING ditangani oleh PaymentController.verifyPayment()
+//  setelah pembayaran terkonfirmasi (status = 'paid').
 // ================================================================
 
 class PaymentPage extends StatefulWidget {
-  /// Isi parameter ini saat membuka dari halaman booking
-  /// Kosongkan jika hanya ingin lihat riwayat transaksi
-  final String? bookingId;
-  final int? amount;
+  /// Dari BookingPage: list booking ID yang baru dibuat
+  final List<String>? bookingIds;
+
+  /// Harga per sesi (bukan total) — PaymentController yang kalkulasi total
+  final int? amountPerBooking;
+
+  /// Nama mentor untuk product detail invoice
   final String? mentorName;
 
   const PaymentPage({
     super.key,
-    this.bookingId,
-    this.amount,
+    this.bookingIds,
+    this.amountPerBooking,
     this.mentorName,
   });
 
@@ -58,26 +59,31 @@ class _PaymentPageState extends State<PaymentPage> {
   WebViewController? _webCtrl;
   bool _webLoading = false;
   bool _showWebView = false;
+
+  // merchantOrderId aktif (dipakai saat verifikasi)
   String? _merchantOrderId;
 
-  // State retry / cancel
-  String? _retryBookingId; // booking yang sedang dilanjutkan bayarnya
-  String? _processingId; // booking yang sedang diproses (untuk loading kartu)
+  // bookingIds aktif — bisa dari widget params atau dari retry
+  List<String> _activeBookingIds = [];
+
+  // ID booking yang sedang diproses (loading indicator per-kartu)
+  String? _processingId;
 
   @override
   void initState() {
     super.initState();
     _loadTransactions();
 
-    // Kalau ada bookingId → langsung mulai proses bayar
-    if (widget.bookingId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _startPayment());
+    // Kalau ada bookingIds → langsung mulai proses bayar
+    if (widget.bookingIds != null && widget.bookingIds!.isNotEmpty) {
+      _activeBookingIds = widget.bookingIds!;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _startPayment());
     }
   }
 
   // ──────────────────────────────────────────────
-  //  LOAD RIWAYAT TRANSAKSI dari Supabase
-  //  Join: payments → bookings → bio_profil (mentor)
+  //  LOAD RIWAYAT TRANSAKSI
   // ──────────────────────────────────────────────
   Future<void> _loadTransactions() async {
     setState(() => _loadingHistory = true);
@@ -86,9 +92,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      // 1. Ambil payments + bookings + schedules
-      //    (TANPA join bio_profil — FK bookings.mentor_id sekarang
-      //     menunjuk ke appuser, bukan bio_profil)
+      // Ambil payments + bookings + schedules
       final data = await _supabase
           .from('payments')
           .select('''
@@ -99,6 +103,7 @@ class _PaymentPageState extends State<PaymentPage> {
             paid_at,
             created_at,
             transaction_id,
+            merchant_order_id,
             bookings!inner (
               id,
               booking_status,
@@ -117,7 +122,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
       final list = List<Map<String, dynamic>>.from(data);
 
-      // 2. Kumpulkan mentor_id unik
+      // Kumpulkan mentor_id unik untuk fetch bio sekaligus
       final mentorIds = <String>{};
       for (final item in list) {
         final b = item['bookings'] as Map<String, dynamic>?;
@@ -125,7 +130,7 @@ class _PaymentPageState extends State<PaymentPage> {
         if (mid != null) mentorIds.add(mid);
       }
 
-      // 3. Ambil data mentor dari bio_profil (user_id = mentor_id)
+      // Fetch bio mentor
       final Map<String, Map<String, dynamic>> mentorMap = {};
       if (mentorIds.isNotEmpty) {
         final bios = await _supabase
@@ -138,7 +143,7 @@ class _PaymentPageState extends State<PaymentPage> {
         }
       }
 
-      // 4. Tempelkan info mentor ke tiap transaksi (key: _mentor)
+      // Tempelkan info mentor ke tiap transaksi
       for (final item in list) {
         final b = item['bookings'] as Map<String, dynamic>?;
         final mid = b?['mentor_id'] as String?;
@@ -160,15 +165,16 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  MULAI PROSES PEMBAYARAN ke Duitku
+  //  MULAI PROSES PEMBAYARAN BARU
+  //  (dipanggil saat buka dari BookingPage)
   // ──────────────────────────────────────────────
   Future<void> _startPayment() async {
-    if (widget.bookingId == null || widget.amount == null) return;
+    if (_activeBookingIds.isEmpty || widget.amountPerBooking == null) return;
 
-    // Ambil data klien dari Supabase
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
+    // Ambil data klien
     final userRow = await _supabase
         .from('appuser')
         .select('nama_lengkap, email')
@@ -181,17 +187,26 @@ class _PaymentPageState extends State<PaymentPage> {
         .eq('user_id', userId)
         .maybeSingle();
 
-    // merchantOrderId: UUID tanpa tanda hubung, ambil 20 karakter
-    _merchantOrderId = widget.bookingId!.replaceAll('-', '').substring(0, 20);
-
-    final url = await _ctrl.createPayment(
-      bookingId: widget.bookingId!,
-      amount: widget.amount!,
+    final url = await _ctrl.createPaymentForBookings(
+      bookingIds: _activeBookingIds,
+      amountPerBooking: widget.amountPerBooking!,
       mentorName: widget.mentorName ?? 'Mentor',
-      clientEmail: userRow['email'] ?? '',
-      clientName: userRow['nama_lengkap'] ?? '',
-      clientPhone: bioRow?['nomor_hp'] ?? '081234567890',
+      clientEmail: userRow['email'] as String? ?? '',
+      clientName: userRow['nama_lengkap'] as String? ?? 'Klien',
+      clientPhone: bioRow?['nomor_hp'] as String? ?? '081234567890',
     );
+
+    // Simpan merchantOrderId dari payments row (dibutuhkan saat verify)
+    if (_activeBookingIds.isNotEmpty) {
+      final row = await _supabase
+          .from('payments')
+          .select('merchant_order_id')
+          .eq('booking_id', _activeBookingIds.first)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      _merchantOrderId = row?['merchant_order_id'] as String?;
+    }
 
     if (url != null && mounted) {
       _openWebView(url);
@@ -199,7 +214,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  BUKA WEBVIEW dengan URL dari Duitku
+  //  BUKA WEBVIEW
   // ──────────────────────────────────────────────
   void _openWebView(String url) {
     _webCtrl = WebViewController()
@@ -208,7 +223,6 @@ class _PaymentPageState extends State<PaymentPage> {
         onPageStarted: (_) => setState(() => _webLoading = true),
         onPageFinished: (_) => setState(() => _webLoading = false),
         onNavigationRequest: (req) {
-          // Tangkap deep link mentup:// atau returnUrl yang sudah selesai
           if (req.url.startsWith('mentup://') ||
               req.url.contains('payment/return')) {
             _handlePaymentReturn();
@@ -223,28 +237,22 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  HANDLE KEMBALI dari halaman bayar Duitku
-  //  → verifikasi status → update DB → tampil dialog
+  //  HANDLE KEMBALI DARI DUITKU
+  //  → verifikasi → lock slot jika paid → dialog
   // ──────────────────────────────────────────────
   Future<void> _handlePaymentReturn() async {
-    // bookingId bisa dari mode bayar awal (widget.bookingId)
-    // atau dari mode retry (_retryBookingId)
-    final activeBookingId = _retryBookingId ?? widget.bookingId;
-    if (_merchantOrderId == null || activeBookingId == null) return;
+    if (_merchantOrderId == null || _activeBookingIds.isEmpty) return;
 
     setState(() => _showWebView = false);
 
+    // verifyPayment juga handle slot locking di PaymentController
     final status = await _ctrl.verifyPayment(
-      bookingId: activeBookingId,
+      bookingIds: _activeBookingIds,
       merchantOrderId: _merchantOrderId!,
     );
 
     if (!mounted) return;
 
-    // Reset retry tracking
-    _retryBookingId = null;
-
-    // Reload riwayat setelah verifikasi
     await _loadTransactions();
 
     switch (status) {
@@ -279,8 +287,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  BAYAR SEKARANG (retry) — lanjutkan pembayaran
-  //  untuk booking yang masih pending
+  //  RETRY — lanjutkan pembayaran pending
   // ──────────────────────────────────────────────
   Future<void> _retryPayment(Map<String, dynamic> item) async {
     final booking = item['bookings'] as Map<String, dynamic>?;
@@ -315,11 +322,9 @@ class _PaymentPageState extends State<PaymentPage> {
       // merchantOrderId BARU & unik (Duitku tolak orderId duplikat)
       final base = bookingId.replaceAll('-', '');
       final suffix = DateTime.now().millisecondsSinceEpoch.toString();
-      final orderId = '${base.substring(0, 8)}$suffix'; // < 50 char
-      _merchantOrderId = orderId;
-      _retryBookingId = bookingId;
+      final rawOrderId = 'RT-${base.substring(0, 8)}-$suffix';
+      final orderId = rawOrderId.length > 50 ? rawOrderId.substring(0, 50) : rawOrderId;
 
-      // Buat invoice baru langsung via DuitkuService
       final invoice = await DuitkuService.createInvoice(
         merchantOrderId: orderId,
         paymentAmount: amount,
@@ -328,7 +333,6 @@ class _PaymentPageState extends State<PaymentPage> {
         phoneNumber: clientPhone,
         customerName: clientName,
         returnUrl: 'mentup://payment/return',
-        // Ganti dengan URL Edge Function Supabase kamu:
         callbackUrl:
             'https://YOUR_PROJECT.supabase.co/functions/v1/duitku-callback',
       );
@@ -337,9 +341,16 @@ class _PaymentPageState extends State<PaymentPage> {
         throw Exception(invoice.statusMessage);
       }
 
-      // Update transaction_id di row payment yang SUDAH ada (tidak buat baru)
-      await _supabase.from('payments').update(
-          {'transaction_id': invoice.reference}).eq('booking_id', bookingId);
+      // Update merchantOrderId & transaction_id yang baru di row payment
+      await _supabase.from('payments').update({
+        'transaction_id': invoice.reference,
+        'merchant_order_id': orderId,
+        'payment_url': invoice.paymentUrl,
+      }).eq('booking_id', bookingId);
+
+      // Set state aktif untuk verifikasi nanti
+      _activeBookingIds = [bookingId];
+      _merchantOrderId = orderId;
 
       if (!mounted) return;
       setState(() => _processingId = null);
@@ -354,19 +365,18 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  BATALKAN — hapus booking + payment yang pending
-  //  dan bebaskan slot mentor (jika sempat terkunci)
+  //  BATALKAN BOOKING
   // ──────────────────────────────────────────────
   Future<void> _cancelBooking(Map<String, dynamic> item) async {
     final booking = item['bookings'] as Map<String, dynamic>?;
     final bookingId = booking?['id'] as String?;
     if (bookingId == null) return;
 
-    // Konfirmasi dulu
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Batalkan Booking?'),
         content: const Text(
             'Booking dan tagihan ini akan dihapus. Tindakan ini tidak bisa dibatalkan.'),
@@ -391,10 +401,13 @@ class _PaymentPageState extends State<PaymentPage> {
     setState(() => _processingId = bookingId);
 
     try {
-      // 1. Hapus row payment milik booking ini
-      await _supabase.from('payments').delete().eq('booking_id', bookingId);
+      // 1. Hapus payment
+      await _supabase
+          .from('payments')
+          .delete()
+          .eq('booking_id', bookingId);
 
-      // 2. Bebaskan slot mentor (kalau sempat ditandai booked)
+      // 2. Bebaskan slot (kalau sempat terkunci)
       final b = await _supabase
           .from('bookings')
           .select('schedule_id')
@@ -425,6 +438,9 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
+  // ──────────────────────────────────────────────
+  //  DIALOG HASIL PEMBAYARAN
+  // ──────────────────────────────────────────────
   void _showResultDialog({
     required IconData icon,
     required Color color,
@@ -436,7 +452,8 @@ class _PaymentPageState extends State<PaymentPage> {
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -445,12 +462,13 @@ class _PaymentPageState extends State<PaymentPage> {
             const SizedBox(height: 16),
             Text(title,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                style:
+                    const TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 8),
           ],
         ),
@@ -468,7 +486,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  HELPER: format Rupiah
+  //  HELPERS
   // ──────────────────────────────────────────────
   String _formatRupiah(dynamic amount) {
     if (amount == null) return 'Rp -';
@@ -480,9 +498,6 @@ class _PaymentPageState extends State<PaymentPage> {
     return 'Rp $formatted';
   }
 
-  // ──────────────────────────────────────────────
-  //  HELPER: format tanggal
-  // ──────────────────────────────────────────────
   String _formatDate(dynamic raw) {
     if (raw == null) return '-';
     try {
@@ -496,26 +511,12 @@ class _PaymentPageState extends State<PaymentPage> {
 
   String _monthName(int m) {
     const months = [
-      '',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'Mei',
-      'Jun',
-      'Jul',
-      'Agu',
-      'Sep',
-      'Okt',
-      'Nov',
-      'Des',
+      '', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des',
     ];
     return months[m];
   }
 
-  // ──────────────────────────────────────────────
-  //  HELPER: status chip
-  // ──────────────────────────────────────────────
   Widget _statusChip(String? status) {
     Color bg;
     Color fg;
@@ -539,17 +540,15 @@ class _PaymentPageState extends State<PaymentPage> {
       default:
         bg = const Color(0xFFF5F5F5);
         fg = Colors.grey;
-        label = 'Refunded';
+        label = status ?? 'Unknown';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Text(label,
-          style:
-              TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
+          style: TextStyle(
+              color: fg, fontSize: 12, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -560,7 +559,8 @@ class _PaymentPageState extends State<PaymentPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_showWebView ? 'Pembayaran' : 'Payment & Billing'),
+        title:
+            Text(_showWebView ? 'Pembayaran' : 'Payment & Billing'),
         centerTitle: true,
         actions: [
           if (_showWebView && _webCtrl != null)
@@ -574,7 +574,7 @@ class _PaymentPageState extends State<PaymentPage> {
       body: AnimatedBuilder(
         animation: _ctrl,
         builder: (_, __) {
-          // ── Mode 1: Loading buat invoice ──────
+          // Mode: membuat invoice (loading)
           if (_ctrl.isLoading && !_showWebView) {
             return const Center(
               child: Column(
@@ -589,7 +589,7 @@ class _PaymentPageState extends State<PaymentPage> {
             );
           }
 
-          // ── Mode 2: Error dari Duitku ─────────
+          // Mode: error dari Duitku
           if (_ctrl.errorMessage != null && !_showWebView) {
             return Center(
               child: Padding(
@@ -618,7 +618,7 @@ class _PaymentPageState extends State<PaymentPage> {
             );
           }
 
-          // ── Mode 3: WebView Duitku ────────────
+          // Mode: WebView Duitku
           if (_showWebView && _webCtrl != null) {
             return Stack(
               children: [
@@ -629,11 +629,11 @@ class _PaymentPageState extends State<PaymentPage> {
             );
           }
 
-          // ── Mode 4: Halaman ringkasan (default) ──
+          // Mode: halaman ringkasan / riwayat
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // ── Payment Method card ───────────
+              // Payment method card
               const Text('Payment Method',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
@@ -661,7 +661,8 @@ class _PaymentPageState extends State<PaymentPage> {
                         Text('Duitku Payment Gateway',
                             style: TextStyle(fontWeight: FontWeight.w600)),
                         Text('Virtual Account, QRIS, E-Wallet',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ],
@@ -670,7 +671,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
               const SizedBox(height: 24),
 
-              // ── Transactions ──────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -680,7 +680,8 @@ class _PaymentPageState extends State<PaymentPage> {
                     const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child:
+                          CircularProgressIndicator(strokeWidth: 2),
                     )
                   else
                     GestureDetector(
@@ -692,7 +693,6 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
               const SizedBox(height: 10),
 
-              // ── Empty state ───────────────────
               if (!_loadingHistory && _transactions.isEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 40),
@@ -708,7 +708,6 @@ class _PaymentPageState extends State<PaymentPage> {
                   ),
                 ),
 
-              // ── List transaksi dikelompokkan per status ──
               ..._buildGroupedTransactions(),
 
               const SizedBox(height: 16),
@@ -720,20 +719,21 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   // ──────────────────────────────────────────────
-  //  Kelompokkan transaksi per status pembayaran
-  //  Urutan: paid → pending → failed
+  //  Kelompokkan transaksi per status
   // ──────────────────────────────────────────────
   List<Widget> _buildGroupedTransactions() {
     if (_transactions.isEmpty) return [];
 
-    // Pisahkan per status
-    final paid =
-        _transactions.where((t) => t['payment_status'] == 'paid').toList();
-    final pending =
-        _transactions.where((t) => t['payment_status'] == 'pending').toList();
+    final paid = _transactions
+        .where((t) => t['payment_status'] == 'paid')
+        .toList();
+    final pending = _transactions
+        .where((t) => t['payment_status'] == 'pending')
+        .toList();
     final failed = _transactions
         .where((t) =>
-            t['payment_status'] != 'paid' && t['payment_status'] != 'pending')
+            t['payment_status'] != 'paid' &&
+            t['payment_status'] != 'pending')
         .toList();
 
     final widgets = <Widget>[];
@@ -753,7 +753,6 @@ class _PaymentPageState extends State<PaymentPage> {
     return widgets;
   }
 
-  // Judul section per status
   Widget _sectionHeader(String title, Color color, int count) {
     return Padding(
       padding: const EdgeInsets.only(top: 6, bottom: 10),
@@ -762,35 +761,35 @@ class _PaymentPageState extends State<PaymentPage> {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration:
+                BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 13)),
           const SizedBox(width: 6),
-          Text(
-            '($count)',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          Text('($count)',
+              style:
+                  const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
   }
 
-  // Kartu satu transaksi (dipindah dari .map() agar bisa dipakai grup)
   Widget _transactionCard(Map<String, dynamic> item) {
     final booking = item['bookings'] as Map<String, dynamic>?;
     final bio = item['_mentor'] as Map<String, dynamic>?;
-    final schedule = booking?['mentor_schedules'] as Map<String, dynamic>?;
+    final schedule =
+        booking?['mentor_schedules'] as Map<String, dynamic>?;
 
     final mentorName = bio?['nama_lengkap'] ?? 'Mentor';
     final tanggal =
         _formatDate(schedule?['available_date'] ?? item['created_at']);
     final amount = _formatRupiah(item['amount']);
     final status = item['payment_status'] as String?;
-    final method = (item['payment_method'] as String? ?? '').toUpperCase();
+    final method =
+        (item['payment_method'] as String? ?? '').toUpperCase();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -810,7 +809,6 @@ class _PaymentPageState extends State<PaymentPage> {
         children: [
           Row(
             children: [
-              // Avatar / icon
               Container(
                 width: 44,
                 height: 44,
@@ -818,22 +816,22 @@ class _PaymentPageState extends State<PaymentPage> {
                   color: const Color(0xFFEBF5FB),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.receipt_long, color: Color(0xFF2E86C1)),
+                child: const Icon(Icons.receipt_long,
+                    color: Color(0xFF2E86C1)),
               ),
               const SizedBox(width: 12),
-
-              // Info transaksi
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(mentorName,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14)),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14)),
                     const SizedBox(height: 2),
                     Text(tanggal,
-                        style:
-                            const TextStyle(fontSize: 12, color: Colors.grey)),
+                        style: const TextStyle(
+                            fontSize: 12, color: Colors.grey)),
                     if (method.isNotEmpty)
                       Text(method,
                           style: const TextStyle(
@@ -841,14 +839,13 @@ class _PaymentPageState extends State<PaymentPage> {
                   ],
                 ),
               ),
-
-              // Amount + status
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(amount,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
                   const SizedBox(height: 4),
                   _statusChip(status),
                 ],
@@ -856,12 +853,12 @@ class _PaymentPageState extends State<PaymentPage> {
             ],
           ),
 
-          // ── Tombol aksi (hanya untuk status pending) ──
+          // Tombol aksi untuk status pending
           if (status == 'pending') ...[
             const SizedBox(height: 12),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            (_processingId == item['bookings']?['id'])
+            (_processingId == booking?['id'])
                 ? const Center(
                     child: SizedBox(
                       width: 22,
@@ -871,34 +868,40 @@ class _PaymentPageState extends State<PaymentPage> {
                   )
                 : Row(
                     children: [
-                      // Batalkan
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => _cancelBooking(item),
                           icon: const Icon(Icons.close, size: 16),
                           label: const Text('Batalkan'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFFE74C3C),
-                            side: const BorderSide(color: Color(0xFFE74C3C)),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            foregroundColor:
+                                const Color(0xFFE74C3C),
+                            side: const BorderSide(
+                                color: Color(0xFFE74C3C)),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                                borderRadius:
+                                    BorderRadius.circular(10)),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Bayar Sekarang
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () => _retryPayment(item),
-                          icon: const Icon(Icons.payment, size: 16),
+                          icon:
+                              const Icon(Icons.payment, size: 16),
                           label: const Text('Bayar Sekarang'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF6C63FF),
+                            backgroundColor:
+                                const Color(0xFF6C63FF),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 8),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
+                                borderRadius:
+                                    BorderRadius.circular(10)),
                           ),
                         ),
                       ),
