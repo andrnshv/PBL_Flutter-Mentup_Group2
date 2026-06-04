@@ -27,7 +27,8 @@ class _MySchedulePageState extends State<MySchedulePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadForDate(_selectedDay);
+      _loadAll(); // isi marker kalender (semua tanggal)
+      _loadForDate(_selectedDay); // isi list untuk tanggal terpilih
     });
   }
 
@@ -132,15 +133,45 @@ class _MySchedulePageState extends State<MySchedulePage> {
         onFormatChanged: (format) => setState(() => _calendarFormat = format),
 
         calendarBuilders: CalendarBuilders(
+          // Highlight background untuk tanggal yang ADA booking
+          defaultBuilder: (context, day, focusedDay) {
+            final normalized = DateTime(day.year, day.month, day.day);
+            final hasBooking = _controller.bookedDates.contains(normalized);
+            if (hasBooking) {
+              return Container(
+                margin: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.orange.withOpacity(0.5), width: 1.2),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${day.day}',
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontWeight: FontWeight.w800,
+                    color: Colors.deepOrange,
+                  ),
+                ),
+              );
+            }
+            return null; // pakai tampilan default
+          },
+
+          // Dot di bawah tanggal: oranye = ada booking, ungu = ada slot saja
           markerBuilder: (context, day, events) {
             if (events.isEmpty) return const SizedBox();
+            final normalized = DateTime(day.year, day.month, day.day);
+            final hasBooking = _controller.bookedDates.contains(normalized);
             return Positioned(
               bottom: 4,
               child: Container(
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
-                  color: _primary,
+                decoration: BoxDecoration(
+                  color: hasBooking ? Colors.deepOrange : _primary,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -514,6 +545,7 @@ class _MySchedulePageState extends State<MySchedulePage> {
           },
         ).then((_) {
           _loadForDate(_selectedDay);
+          _loadAll(); // refresh highlight kalender
         });
       },
       child: Container(
