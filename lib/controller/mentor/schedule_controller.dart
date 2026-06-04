@@ -6,19 +6,40 @@ class MyScheduleController {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // ── State publik ──────────────────────────────────────
-  List<MyScheduleModel> allSchedules      = [];
+  List<MyScheduleModel> allSchedules = [];
   List<MyScheduleModel> filteredSchedules = [];
 
-  bool    isLoading    = false;
+  bool isLoading = false;
   String? errorMessage;
 
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
-  bool   isAscending = true;
+  bool isAscending = true;
+
+  // Query bookings: kolom sesuai schema terbaru
+  // (session_type & session_link sudah DIHAPUS, diganti
+  //  session_start_time, session_end_time, client_address)
+  static const String _selectQuery = '''
+    id,
+    available_date,
+    start_time,
+    end_time,
+    is_booked,
+    bookings(
+      id,
+      booking_status,
+      session_start_time,
+      session_end_time,
+      client_address,
+      appuser:client_id(
+        id,
+        nama_lengkap
+      )
+    )
+  ''';
 
   // ─────────────────────────────────────────────────────
   // FETCH: semua jadwal mentor (untuk dot marker kalender)
-  // JOIN lengkap: mentor_schedules + bookings + appuser
   // ─────────────────────────────────────────────────────
   Future<void> fetchSchedules() async {
     final userId = _supabase.auth.currentUser?.id;
@@ -27,32 +48,16 @@ class MyScheduleController {
       return;
     }
 
-    isLoading    = true;
+    isLoading = true;
     errorMessage = null;
 
     try {
       final response = await _supabase
           .from('mentor_schedules')
-          .select('''
-            id,
-            available_date,
-            start_time,
-            end_time,
-            is_booked,
-            bookings(
-              id,
-              booking_status,
-              session_type,
-              session_link,
-              appuser:client_id(
-                id,
-                nama_lengkap
-              )
-            )
-          ''')
+          .select(_selectQuery)
           .eq('mentor_id', userId)
           .order('available_date', ascending: true)
-          .order('start_time',     ascending: true);
+          .order('start_time', ascending: true);
 
       allSchedules = (response as List)
           .map((e) => MyScheduleModel.fromJson(e as Map<String, dynamic>))
@@ -60,10 +65,10 @@ class MyScheduleController {
 
       applyFilter();
     } on PostgrestException catch (e) {
-      errorMessage      = e.message;
+      errorMessage = e.message;
       filteredSchedules = [];
     } catch (e) {
-      errorMessage      = 'Failed to load schedules: $e';
+      errorMessage = 'Failed to load schedules: $e';
       filteredSchedules = [];
     } finally {
       isLoading = false;
@@ -80,34 +85,17 @@ class MyScheduleController {
       return;
     }
 
-    isLoading    = true;
+    isLoading = true;
     errorMessage = null;
 
-    final dateStr =
-        '${date.year}-'
+    final dateStr = '${date.year}-'
         '${date.month.toString().padLeft(2, '0')}-'
         '${date.day.toString().padLeft(2, '0')}';
 
     try {
       final response = await _supabase
           .from('mentor_schedules')
-          .select('''
-            id,
-            available_date,
-            start_time,
-            end_time,
-            is_booked,
-            bookings(
-              id,
-              booking_status,
-              session_type,
-              session_link,
-              appuser:client_id(
-                id,
-                nama_lengkap
-              )
-            )
-          ''')
+          .select(_selectQuery)
           .eq('mentor_id', userId)
           .eq('available_date', dateStr)
           .order('start_time', ascending: true);
@@ -118,10 +106,10 @@ class MyScheduleController {
 
       applyFilter();
     } on PostgrestException catch (e) {
-      errorMessage      = e.message;
+      errorMessage = e.message;
       filteredSchedules = [];
     } catch (e) {
-      errorMessage      = 'Failed to load schedules: $e';
+      errorMessage = 'Failed to load schedules: $e';
       filteredSchedules = [];
     } finally {
       isLoading = false;
@@ -153,8 +141,7 @@ class MyScheduleController {
     }).toList();
 
     result.sort((a, b) {
-      final cmp = (a.clientName ?? '')
-          .compareTo(b.clientName ?? '');
+      final cmp = (a.clientName ?? '').compareTo(b.clientName ?? '');
       return isAscending ? cmp : -cmp;
     });
 

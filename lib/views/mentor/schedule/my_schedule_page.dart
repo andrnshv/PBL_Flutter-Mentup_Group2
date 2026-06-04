@@ -15,18 +15,17 @@ class _MySchedulePageState extends State<MySchedulePage> {
   final MyScheduleController _controller = MyScheduleController();
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
-  DateTime _focusedDay  = DateTime.now();
+  DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now();
 
   bool _isPageLoading = true;
 
-  static const Color _primary    = Color(0xFF5B62CC);
-  static const Color _bgColor    = Color(0xFFF4F6FA);
+  static const Color _primary = Color(0xFF5B62CC);
+  static const Color _bgColor = Color(0xFFF4F6FA);
 
   @override
   void initState() {
     super.initState();
-    // Tunggu frame pertama selesai sebelum setState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadForDate(_selectedDay);
     });
@@ -69,10 +68,7 @@ class _MySchedulePageState extends State<MySchedulePage> {
       ),
       body: Column(
         children: [
-          // ── KALENDER ──────────────────────────────────────
           _buildCalendar(),
-
-          // ── DAFTAR SESI ───────────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -128,16 +124,14 @@ class _MySchedulePageState extends State<MySchedulePage> {
         onDaySelected: (selectedDay, focusedDay) {
           setState(() {
             _selectedDay = selectedDay;
-            _focusedDay  = focusedDay;
+            _focusedDay = focusedDay;
           });
           _loadForDate(selectedDay);
         },
 
-        onFormatChanged: (format) =>
-            setState(() => _calendarFormat = format),
+        onFormatChanged: (format) => setState(() => _calendarFormat = format),
 
         calendarBuilders: CalendarBuilders(
-          // Dot di bawah tanggal yang ada jadwal
           markerBuilder: (context, day, events) {
             if (events.isEmpty) return const SizedBox();
             return Positioned(
@@ -156,11 +150,13 @@ class _MySchedulePageState extends State<MySchedulePage> {
 
         daysOfWeekStyle: DaysOfWeekStyle(
           weekdayStyle: const TextStyle(
-            fontFamily: 'Nunito', fontWeight: FontWeight.bold,
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.bold,
             color: Colors.black54,
           ),
           weekendStyle: TextStyle(
-            fontFamily: 'Nunito', fontWeight: FontWeight.bold,
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.bold,
             color: Colors.red[300],
           ),
         ),
@@ -185,14 +181,17 @@ class _MySchedulePageState extends State<MySchedulePage> {
             shape: BoxShape.circle,
           ),
           todayTextStyle: const TextStyle(
-            color: _primary, fontWeight: FontWeight.bold,
+            color: _primary,
+            fontWeight: FontWeight.bold,
           ),
         ),
         headerStyle: const HeaderStyle(
           formatButtonVisible: false,
           titleCentered: true,
           titleTextStyle: TextStyle(
-            fontFamily: 'Nunito', fontWeight: FontWeight.w900, fontSize: 18,
+            fontFamily: 'Nunito',
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
           ),
           leftChevronIcon:
               Icon(Icons.chevron_left_rounded, color: Colors.black87),
@@ -207,11 +206,30 @@ class _MySchedulePageState extends State<MySchedulePage> {
   // LIST HEADER
   // ─────────────────────────────────────────────────────────
   Widget _buildListHeader() {
-    // Format tanggal yang dipilih: "Monday, 20 April 2026"
-    final weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-    final months   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    final label =
-        '${weekdays[_selectedDay.weekday - 1]}, '
+    final weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+    final label = '${weekdays[_selectedDay.weekday - 1]}, '
         '${_selectedDay.day} ${months[_selectedDay.month - 1]} '
         '${_selectedDay.year}';
 
@@ -224,13 +242,17 @@ class _MySchedulePageState extends State<MySchedulePage> {
             const Text(
               "Schedule Details",
               style: TextStyle(
-                fontFamily: 'Nunito', fontSize: 18, fontWeight: FontWeight.w900,
+                fontFamily: 'Nunito',
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
               ),
             ),
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[500],
+                fontFamily: 'Nunito',
+                fontSize: 12,
+                color: Colors.grey[500],
               ),
             ),
           ],
@@ -238,7 +260,11 @@ class _MySchedulePageState extends State<MySchedulePage> {
 
         // Tombol Manage Slot
         InkWell(
-          onTap: () => Navigator.pushNamed(context, AppRoutes.manageSlot),
+          onTap: () =>
+              Navigator.pushNamed(context, AppRoutes.manageSlot).then((_) {
+            _loadForDate(_selectedDay);
+            _loadAll();
+          }),
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -253,8 +279,10 @@ class _MySchedulePageState extends State<MySchedulePage> {
                 const Text(
                   "Manage Slot",
                   style: TextStyle(
-                    fontFamily: 'Nunito', color: _primary,
-                    fontWeight: FontWeight.bold, fontSize: 13,
+                    fontFamily: 'Nunito',
+                    color: _primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
                   ),
                 ),
               ],
@@ -279,7 +307,8 @@ class _MySchedulePageState extends State<MySchedulePage> {
               borderRadius: BorderRadius.circular(15),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03), blurRadius: 10,
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
                 ),
               ],
             ),
@@ -294,11 +323,15 @@ class _MySchedulePageState extends State<MySchedulePage> {
               decoration: InputDecoration(
                 hintText: "Search client name...",
                 hintStyle: TextStyle(
-                  fontFamily: 'Nunito', fontSize: 14, color: Colors.grey[400],
+                  fontFamily: 'Nunito',
+                  fontSize: 14,
+                  color: Colors.grey[400],
                 ),
                 border: InputBorder.none,
                 prefixIcon: Icon(
-                  Icons.search_rounded, size: 22, color: Colors.grey[400],
+                  Icons.search_rounded,
+                  size: 22,
+                  color: Colors.grey[400],
                 ),
                 suffixIcon: _controller.searchQuery.isNotEmpty
                     ? IconButton(
@@ -325,7 +358,8 @@ class _MySchedulePageState extends State<MySchedulePage> {
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03), blurRadius: 10,
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
               ),
             ],
           ),
@@ -334,7 +368,8 @@ class _MySchedulePageState extends State<MySchedulePage> {
               _controller.isAscending
                   ? Icons.sort_by_alpha_rounded
                   : Icons.sort_rounded,
-              color: _primary, size: 22,
+              color: _primary,
+              size: 22,
             ),
             onPressed: () {
               setState(() {
@@ -352,14 +387,10 @@ class _MySchedulePageState extends State<MySchedulePage> {
   // SESSION LIST
   // ─────────────────────────────────────────────────────────
   Widget _buildSessionList() {
-    // Loading spinner
     if (_isPageLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _primary),
-      );
+      return const Center(child: CircularProgressIndicator(color: _primary));
     }
 
-    // Error state
     if (_controller.errorMessage != null) {
       return Center(
         child: Column(
@@ -389,7 +420,6 @@ class _MySchedulePageState extends State<MySchedulePage> {
       );
     }
 
-    // Empty state
     if (_controller.filteredSchedules.isEmpty) {
       return Center(
         child: Column(
@@ -402,12 +432,15 @@ class _MySchedulePageState extends State<MySchedulePage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05), blurRadius: 20,
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
                   ),
                 ],
               ),
               child: Icon(
-                Icons.event_busy_rounded, size: 40, color: Colors.grey[300],
+                Icons.event_busy_rounded,
+                size: 40,
+                color: Colors.grey[300],
               ),
             ),
             const SizedBox(height: 15),
@@ -416,7 +449,8 @@ class _MySchedulePageState extends State<MySchedulePage> {
                   ? "No sessions found"
                   : "No sessions on this day",
               style: TextStyle(
-                fontFamily: 'Nunito', color: Colors.grey[500],
+                fontFamily: 'Nunito',
+                color: Colors.grey[500],
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -424,7 +458,9 @@ class _MySchedulePageState extends State<MySchedulePage> {
               Text(
                 "Tap 'Manage Slot' to add a schedule",
                 style: TextStyle(
-                  fontFamily: 'Nunito', fontSize: 12, color: Colors.grey[400],
+                  fontFamily: 'Nunito',
+                  fontSize: 12,
+                  color: Colors.grey[400],
                 ),
               ),
           ],
@@ -436,7 +472,7 @@ class _MySchedulePageState extends State<MySchedulePage> {
       physics: const BouncingScrollPhysics(),
       itemCount: _controller.filteredSchedules.length,
       itemBuilder: (context, index) {
-        final session     = _controller.filteredSchedules[index];
+        final session = _controller.filteredSchedules[index];
         final accentColor = _controller.accentColorFor(index);
         return _buildSessionCard(session, accentColor);
       },
@@ -447,32 +483,36 @@ class _MySchedulePageState extends State<MySchedulePage> {
   // SESSION CARD
   // ─────────────────────────────────────────────────────────
   Widget _buildSessionCard(MyScheduleModel session, Color accentColor) {
-    final isDone = session.bookingStatus == 'Done';
+    final status = (session.bookingStatus ?? '').toLowerCase();
+    final isDone = status == 'done' || status == 'completed';
 
-    // Tentukan icon berdasarkan session type
-    IconData typeIcon;
-    if (isDone) {
-      typeIcon = Icons.check_circle_rounded;
-    } else if (session.sessionType == 'Online') {
-      typeIcon = Icons.videocam_rounded;
-    } else {
-      typeIcon = Icons.location_on_rounded;
-    }
+    // Sesi selalu offline → ikon lokasi (atau centang kalau selesai)
+    final IconData typeIcon =
+        isDone ? Icons.check_circle_rounded : Icons.location_on_rounded;
+
+    // Jam yang DITAMPILKAN besar di kolom kiri:
+    //  - kalau ada jam booking client → pakai itu (data booking)
+    //  - kalau tidak ada → pakai jam slot available mentor
+    final bool hasBookingTime = session.sessionStartTime != null;
+
+    final String displayStart =
+        hasBookingTime ? session.sessionStartTime! : session.startTime;
+    final String? displayEnd =
+        hasBookingTime ? session.sessionEndTime : session.endTime;
 
     return GestureDetector(
       onTap: () {
         // Slot belum di-booking → tidak ada detail yang bisa dibuka
-        if (!session.isBooked || session.bookingId == null) return;
+        if (session.bookingId == null) return;
 
         Navigator.pushNamed(
           context,
           AppRoutes.bookingDetail,
           arguments: {
             'bookingId': session.bookingId,
-            'color':     accentColor,
+            'color': accentColor,
           },
         ).then((_) {
-          // Refresh list setelah kembali (status mungkin sudah berubah)
           _loadForDate(_selectedDay);
         });
       },
@@ -510,27 +550,27 @@ class _MySchedulePageState extends State<MySchedulePage> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      // Waktu
+                      // Waktu sesi (jam booking client; fallback slot mentor)
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            session.startTime,
+                            displayStart,
                             style: const TextStyle(
                               fontFamily: 'Nunito',
                               fontWeight: FontWeight.w900,
                               fontSize: 15,
                             ),
                           ),
-                          if (session.endTime != null) ...[
+                          if (displayEnd != null) ...[
                             Container(
-                              height: 15, width: 2,
+                              height: 15,
+                              width: 2,
                               color: Colors.grey[200],
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 4),
+                              margin: const EdgeInsets.symmetric(vertical: 4),
                             ),
                             Text(
-                              session.endTime!,
+                              displayEnd,
                               style: TextStyle(
                                 fontFamily: 'Nunito',
                                 color: Colors.grey[500],
@@ -551,7 +591,7 @@ class _MySchedulePageState extends State<MySchedulePage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              session.isBooked
+                              (session.bookingId != null)
                                   ? (session.clientName ?? 'Unknown Client')
                                   : 'Available Slot',
                               style: const TextStyle(
@@ -561,10 +601,10 @@ class _MySchedulePageState extends State<MySchedulePage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            if (session.isBooked &&
+                            if (session.bookingId != null &&
                                 session.bookingStatus != null)
                               _statusBadge(session.bookingStatus!, accentColor),
-                            if (!session.isBooked)
+                            if (session.bookingId == null)
                               Text(
                                 'No booking yet',
                                 style: TextStyle(
@@ -573,26 +613,42 @@ class _MySchedulePageState extends State<MySchedulePage> {
                                   color: Colors.grey[400],
                                 ),
                               ),
-                            // Type: online/offline
-                            if (session.isBooked &&
-                                session.sessionType != null)
+
+                            // Range slot available mentor (info sekunder)
+                            if (hasBookingTime)
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      session.sessionType == 'Online'
-                                          ? Icons.videocam_outlined
-                                          : Icons.location_on_outlined,
-                                      size: 12,
-                                      color: Colors.grey[400],
+                                    Icon(Icons.event_available,
+                                        size: 12, color: Colors.grey[400]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Slot: ${session.timeRange}',
+                                      style: TextStyle(
+                                        fontFamily: 'Nunito',
+                                        fontSize: 11,
+                                        color: Colors.grey[400],
+                                      ),
                                     ),
+                                  ],
+                                ),
+                              ),
+
+                            // Alamat sesi (offline)
+                            if (session.bookingId != null &&
+                                session.clientAddress != null &&
+                                session.clientAddress!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.location_on_outlined,
+                                        size: 12, color: Colors.grey[400]),
                                     const SizedBox(width: 4),
                                     Flexible(
                                       child: Text(
-                                        session.sessionType == 'Online'
-                                            ? (session.sessionLink ?? 'Online')
-                                            : (session.sessionLink ?? 'Offline'),
+                                        session.clientAddress!,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontFamily: 'Nunito',
@@ -638,13 +694,42 @@ class _MySchedulePageState extends State<MySchedulePage> {
   // HELPERS
   // ─────────────────────────────────────────────────────────
   Widget _statusBadge(String status, Color accentColor) {
+    final s = status.toLowerCase();
     Color color;
-    switch (status) {
-      case 'Accepted': color = Colors.green;   break;
-      case 'Pending':  color = Colors.orange;  break;
-      case 'Rejected': color = Colors.red;     break;
-      case 'Done':     color = Colors.blue;    break;
-      default:         color = accentColor;
+    String label;
+
+    switch (s) {
+      case 'paid':
+        color = Colors.green;
+        label = 'Paid';
+        break;
+      case 'confirmed':
+        color = Colors.green;
+        label = 'Confirmed';
+        break;
+      case 'pending':
+        color = Colors.orange;
+        label = 'Pending';
+        break;
+      case 'cancelled':
+      case 'canceled':
+      case 'failed':
+      case 'rejected':
+        color = Colors.red;
+        label = 'Cancelled';
+        break;
+      case 'awaiting_verification':
+        color = Colors.purple;
+        label = 'Awaiting Verify';
+        break;
+      case 'done':
+      case 'completed':
+        color = Colors.blue;
+        label = 'Done';
+        break;
+      default:
+        color = accentColor;
+        label = status;
     }
 
     return Container(
@@ -654,25 +739,14 @@ class _MySchedulePageState extends State<MySchedulePage> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        status,
+        label,
         style: TextStyle(
-          fontFamily: 'Nunito', fontSize: 11,
-          fontWeight: FontWeight.w900, color: color,
+          fontFamily: 'Nunito',
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: color,
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    const months = [
-      'January','February','March','April','May','June',
-      'July','August','September','October','November','December',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
-  }
-
-  String _dayAbbr(int weekday) {
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    return days[weekday - 1];
   }
 }
