@@ -5,23 +5,22 @@ class ScheduleBookingDetailController {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   ScheduleBookingDetailModel? detail;
-  bool    isLoading    = false;
+  bool isLoading = false;
   String? errorMessage;
 
   Future<void> fetchDetail(String bookingId) async {
-    isLoading    = true;
+    isLoading = true;
     errorMessage = null;
-    detail       = null;
+    detail = null;
 
     try {
-      final response = await _supabase
-          .from('bookings')
-          .select('''
+      final response = await _supabase.from('bookings').select('''
             id,
             booking_status,
             notes,
-            session_type,
-            session_link,
+            session_start_time,
+            session_end_time,
+            client_address,
             mentor_schedules!schedule_id (
               id,
               available_date,
@@ -41,9 +40,7 @@ class ScheduleBookingDetailController {
                 )
               )
             )
-          ''')
-          .eq('id', bookingId)
-          .single();
+          ''').eq('id', bookingId).single();
 
       detail = ScheduleBookingDetailModel.fromJson(
         response as Map<String, dynamic>,
@@ -57,7 +54,27 @@ class ScheduleBookingDetailController {
     }
   }
 
-  Future<String?> updateBookingStatus(
+  // ─────────────────────────────────────────────────────
+  // ACCEPT booking (paid → confirmed)
+  // ─────────────────────────────────────────────────────
+  Future<String?> acceptBooking(String bookingId) async {
+    return _updateStatus(bookingId, 'confirmed');
+  }
+
+  // ─────────────────────────────────────────────────────
+  // REJECT booking (paid → rejected) + simpan alasan
+  // ─────────────────────────────────────────────────────
+  Future<String?> rejectBooking(
+    String bookingId, {
+    required String reason,
+  }) async {
+    return _updateStatus(bookingId, 'rejected', rejectionNote: reason);
+  }
+
+  // ─────────────────────────────────────────────────────
+  // Update status umum
+  // ─────────────────────────────────────────────────────
+  Future<String?> _updateStatus(
     String bookingId,
     String newStatus, {
     String? rejectionNote,
@@ -67,37 +84,36 @@ class ScheduleBookingDetailController {
         'booking_status': newStatus,
       };
 
-      if (newStatus == 'Rejected' &&
+      if (newStatus == 'rejected' &&
           rejectionNote != null &&
           rejectionNote.isNotEmpty) {
         payload['notes'] = rejectionNote;
       }
 
-      await _supabase
-          .from('bookings')
-          .update(payload)
-          .eq('id', bookingId);
+      await _supabase.from('bookings').update(payload).eq('id', bookingId);
 
+      // Update salinan lokal supaya UI langsung berubah
       if (detail != null) {
         detail = ScheduleBookingDetailModel(
-          bookingId:      detail!.bookingId,
-          bookingStatus:  newStatus,
-          notes:          newStatus == 'Rejected' && rejectionNote != null
-                              ? rejectionNote
-                              : detail!.notes,
-          sessionType:    detail!.sessionType,
-          sessionLink:    detail!.sessionLink,
-          scheduleId:     detail!.scheduleId,
-          availableDate:  detail!.availableDate,
-          startTime:      detail!.startTime,
-          endTime:        detail!.endTime,
-          clientId:       detail!.clientId,
-          clientName:     detail!.clientName,
-          clientEmail:    detail!.clientEmail,
-          clientPhone:    detail!.clientPhone,
+          bookingId: detail!.bookingId,
+          bookingStatus: newStatus,
+          notes: (newStatus == 'rejected' && rejectionNote != null)
+              ? rejectionNote
+              : detail!.notes,
+          scheduleId: detail!.scheduleId,
+          availableDate: detail!.availableDate,
+          startTime: detail!.startTime,
+          endTime: detail!.endTime,
+          sessionStartTime: detail!.sessionStartTime,
+          sessionEndTime: detail!.sessionEndTime,
+          clientId: detail!.clientId,
+          clientName: detail!.clientName,
+          clientEmail: detail!.clientEmail,
+          clientPhone: detail!.clientPhone,
           clientPhotoUrl: detail!.clientPhotoUrl,
-          clientAddress:  detail!.clientAddress,
-          categoryName:   detail!.categoryName,
+          clientBioAddress: detail!.clientBioAddress,
+          clientAddress: detail!.clientAddress,
+          categoryName: detail!.categoryName,
         );
       }
 
