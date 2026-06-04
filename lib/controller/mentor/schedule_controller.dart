@@ -9,6 +9,10 @@ class MyScheduleController {
   List<MyScheduleModel> allSchedules = [];
   List<MyScheduleModel> filteredSchedules = [];
 
+  // Tanggal untuk marker kalender (diisi oleh fetchSchedules, data lengkap)
+  Set<DateTime> calendarScheduledDates = {}; // semua tanggal yang punya slot
+  Set<DateTime> calendarBookedDates = {}; // tanggal yang ADA booking
+
   bool isLoading = false;
   String? errorMessage;
 
@@ -59,9 +63,23 @@ class MyScheduleController {
           .order('available_date', ascending: true)
           .order('start_time', ascending: true);
 
-      allSchedules = (response as List)
+      final fullList = (response as List)
           .map((e) => MyScheduleModel.fromJson(e as Map<String, dynamic>))
           .toList();
+
+      allSchedules = fullList;
+
+      // Isi set untuk marker kalender (dari DATA LENGKAP, semua tanggal)
+      calendarScheduledDates = fullList
+          .map((s) => DateTime(
+              s.availableDate.year, s.availableDate.month, s.availableDate.day))
+          .toSet();
+
+      calendarBookedDates = fullList
+          .where((s) => s.bookingId != null)
+          .map((s) => DateTime(
+              s.availableDate.year, s.availableDate.month, s.availableDate.day))
+          .toSet();
 
       applyFilter();
     } on PostgrestException catch (e) {
@@ -77,7 +95,6 @@ class MyScheduleController {
 
   // ─────────────────────────────────────────────────────
   // FETCH: jadwal untuk tanggal tertentu (dengan JOIN)
-  // ─────────────────────────────────────────────────────
   Future<void> fetchSchedulesForDate(DateTime date) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -118,16 +135,12 @@ class MyScheduleController {
 
   // ─────────────────────────────────────────────────────
   // Tanggal yang punya jadwal (untuk dot kalender)
+  // Pakai data lengkap dari fetchSchedules (bukan tanggal terpilih saja)
   // ─────────────────────────────────────────────────────
-  Set<DateTime> get scheduledDates {
-    return allSchedules
-        .map((s) => DateTime(
-              s.availableDate.year,
-              s.availableDate.month,
-              s.availableDate.day,
-            ))
-        .toSet();
-  }
+  Set<DateTime> get scheduledDates => calendarScheduledDates;
+
+  // Tanggal yang ADA booking (untuk highlight kalender)
+  Set<DateTime> get bookedDates => calendarBookedDates;
 
   // ─────────────────────────────────────────────────────
   // FILTER + SORT berdasarkan nama client
