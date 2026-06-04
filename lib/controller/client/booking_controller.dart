@@ -16,7 +16,7 @@ import '../../models/client/booking_model.dart';
 //  Revisi:
 //  - session_type dihapus
 //  - session_link dihapus
-//  - mentor_address otomatis diambil dari bio_profil
+//  - client_address otomatis diambil dari bio_profil.alamat (alamat CLIENT)
 //  - session_start_time disimpan ke bookings
 //  - session_end_time disimpan ke bookings
 // ================================================================
@@ -74,22 +74,17 @@ class BookingFormController {
     if (dailySlots.isEmpty) return null;
     if (preferredTime == null) return dailySlots.first;
 
-    final prefMinutes =
-        preferredTime.hour * 60 + preferredTime.minute;
+    final prefMinutes = preferredTime.hour * 60 + preferredTime.minute;
 
     dailySlots.sort((a, b) {
       final aParts = a.startTime.split(':');
       final bParts = b.startTime.split(':');
 
-      final aMin =
-          int.parse(aParts[0]) * 60 + int.parse(aParts[1]);
+      final aMin = int.parse(aParts[0]) * 60 + int.parse(aParts[1]);
 
-      final bMin =
-          int.parse(bParts[0]) * 60 + int.parse(bParts[1]);
+      final bMin = int.parse(bParts[0]) * 60 + int.parse(bParts[1]);
 
-      return (aMin - prefMinutes)
-          .abs()
-          .compareTo((bMin - prefMinutes).abs());
+      return (aMin - prefMinutes).abs().compareTo((bMin - prefMinutes).abs());
     });
 
     return dailySlots.first;
@@ -110,7 +105,6 @@ class BookingFormController {
     /// Jam yang dipilih client
     required TimeOfDay selectedStartTime,
     required TimeOfDay selectedEndTime,
-
     String? notes,
   }) async {
     final clientId = _supabase.auth.currentUser?.id;
@@ -127,19 +121,22 @@ class BookingFormController {
     debugPrint('MENTOR ID  : $mentorId');
     debugPrint('TOTAL DATE : ${selectedDates.length}');
 
+    // ── Ambil ALAMAT CLIENT dari bio_profil (kolom: alamat) ──
+    //    Disimpan ke bookings.client_address.
     String clientAddress = '';
-
     try {
       final profile = await _supabase
           .from('bio_profil')
-          .select('address')
-          .eq('user_id', mentorId)
-          .single();
+          .select('alamat') // FIX: kolom 'alamat' (bukan 'address')
+          .eq('user_id', clientId) // FIX: alamat CLIENT (bukan mentorId)
+          .maybeSingle();
 
-      clientAddress = profile['address'] ?? '';
+      clientAddress = profile?['alamat'] as String? ?? '';
     } catch (_) {
       clientAddress = '';
     }
+
+    debugPrint('CLIENT ADDR: $clientAddress');
 
     final sessionStartTime =
         '${selectedStartTime.hour.toString().padLeft(2, '0')}:${selectedStartTime.minute.toString().padLeft(2, '0')}';
@@ -176,7 +173,7 @@ class BookingFormController {
               // Revisi schema
               'session_start_time': sessionStartTime,
               'session_end_time': sessionEndTime,
-              'client_address': clientAddress,
+              'client_address': clientAddress, // alamat client dari bio_profil
             })
             .select('id')
             .single();
@@ -215,11 +212,9 @@ class BookingSubmitResult {
     this.errorMessage,
   });
 
-  bool get isFullSuccess =>
-      successIds.isNotEmpty && failedDates.isEmpty;
+  bool get isFullSuccess => successIds.isNotEmpty && failedDates.isEmpty;
 
-  bool get isPartialSuccess =>
-      successIds.isNotEmpty && failedDates.isNotEmpty;
+  bool get isPartialSuccess => successIds.isNotEmpty && failedDates.isNotEmpty;
 
   bool get isFullFail => successIds.isEmpty;
 }
