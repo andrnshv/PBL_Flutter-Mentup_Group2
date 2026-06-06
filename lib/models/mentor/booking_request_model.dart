@@ -135,7 +135,7 @@ class BookingRequestModel {
     return bookingStatus[0].toUpperCase() + bookingStatus.substring(1);
   }
 
-  /// Group tab: 'Pending' | 'Accepted' | 'Rejected'
+  /// Group tab: 'Paid' | 'Accepted' | 'Rejected'
   String get tabGroup {
     switch (bookingStatus.toLowerCase()) {
       case 'paid':
@@ -144,13 +144,14 @@ class BookingRequestModel {
       case 'done':
       case 'completed':
       case 'awaiting_verification':
+      case 'reschedule': //
         return 'Accepted';
       case 'rejected':
       case 'cancelled':
       case 'failed':
         return 'Rejected';
       default:
-        return 'Paid'; // fallback
+        return 'Paid';
     }
   }
 
