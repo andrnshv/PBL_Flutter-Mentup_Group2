@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../routes/app_routes.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../controller/mentor/landing_controller.dart';
+import '../../../models/mentor/landing_model.dart';
 
 class MentorLandingPage extends StatefulWidget {
   const MentorLandingPage({super.key});
@@ -10,318 +11,147 @@ class MentorLandingPage extends StatefulWidget {
 }
 
 class _MentorLandingPageState extends State<MentorLandingPage> {
+  final MentorLandingController _controller = MentorLandingController();
   int _selectedIndex = 0;
 
-//memanggil nama user dari metadata Supabase
-   String getUserName() {
-    final user =
-        Supabase.instance.client.auth.currentUser;
+  static const Color _primary = Color(0xFF5B62CC);
+  static const Color _bg = Color(0xFFF8F9FB);
 
-    if (user == null) {
-      return 'User';
-    }
+  static const List<Color> _accentColors = [
+    Color(0xFFF5B3CE),
+    Color(0xFFA7C7E7),
+    Color(0xFFCDB4DB),
+    Color(0xFFB5EAD7),
+    Color(0xFFFFDAC1),
+  ];
 
-    final nama =
-        user.userMetadata?['nama_lengkap'];
-
-    return nama ?? 'User';
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
 
+  Future<void> _load() async {
+    await _controller.fetchAll();
+    if (mounted) setState(() {});
+  }
+
+  // ─────────────────────────────────────────────────────
+  // BUILD
+  // ─────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: _bg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 30),
-
-              // --- 1. OVERVIEW STATISTIK ---
-              const Text(
-                "Overview",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildQuickStatsCard(),
-
-              const SizedBox(height: 35),
-
-              // --- 2. NEW BOOKING REQUEST ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "New Booking Request",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Row(
+        child: RefreshIndicator(
+          color: _primary,
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.all(24.0),
+            child: _controller.isLoading
+                ? const SizedBox(
+                    height: 400,
+                    child: Center(
+                        child: CircularProgressIndicator(color: _primary)),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextButton(
-                        onPressed: () =>
+                      // ── 1. HEADER ──────────────────
+                      _buildHeader(),
+                      const SizedBox(height: 30),
+
+                      // ── 2. HERO BANNER ─────────────
+                      _buildQuickStatsCard(),
+                      const SizedBox(height: 35),
+
+                      // ── 3. BOOKING REQUEST (paid) ──
+                      _buildSectionHeader(
+                        'New Booking Request',
+                        badge: '${_controller.paidBookings.length} New',
+                        onSeeAll: () =>
                             Navigator.pushNamed(context, '/booking_request'),
-                        child: const Text(
-                          "See All",
-                          style: TextStyle(
-                            color: Color(0xFF5B62CC),
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      const SizedBox(height: 15),
+                      _controller.paidBookings.isEmpty
+                          ? _buildEmptyState(
+                              'Belum ada booking baru', Icons.inbox_outlined)
+                          : Column(
+                              children: _controller.paidBookings
+                                  .asMap()
+                                  .entries
+                                  .map((e) =>
+                                      _buildBookingRequestCard(e.value, e.key))
+                                  .toList(),
+                            ),
+                      const SizedBox(height: 35),
+
+                      // ── 4. UPCOMING SESSIONS (confirmed) ──
+                      _buildSectionHeader(
+                        'Upcoming Sessions',
+                        badge: 'Top 3',
+                        badgeColor: _primary.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 15),
+                      _controller.confirmedSessions.isEmpty
+                          ? _buildEmptyState('Belum ada sesi terjadwal',
+                              Icons.event_busy_outlined)
+                          : SizedBox(
+                              height: 120,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                clipBehavior: Clip.none,
+                                itemCount: _controller.confirmedSessions.length,
+                                itemBuilder: (_, i) =>
+                                    _buildHorizontalSessionCard(
+                                  _controller.confirmedSessions[i],
+                                  i,
+                                ),
+                              ),
+                            ),
+                      const SizedBox(height: 35),
+
+                      // ── 5. RECENT REVIEWS ──────────
+                      _buildSectionHeader(
+                        'Recent Reviews',
+                        onSeeAll: () => Navigator.pushNamed(
+                            context, AppRoutes.clientReviews),
+                      ),
+                      const SizedBox(height: 15),
+                      _controller.reviews.isEmpty
+                          ? _buildEmptyState(
+                              'Belum ada ulasan', Icons.star_border_rounded)
+                          : SizedBox(
+                              height: 145,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                clipBehavior: Clip.none,
+                                itemCount: _controller.reviews.length,
+                                itemBuilder: (_, i) =>
+                                    _buildReviewCard(_controller.reviews[i], i),
+                              ),
+                            ),
+                      const SizedBox(height: 35),
+
+                      // ── 6. TIPS BANNER ─────────────
+                      const Text(
+                        "MentUp Tips",
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5B3CE).withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          "3 New",
-                          style: TextStyle(
-                            fontFamily: 'Nunito',
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
+                      const SizedBox(height: 15),
+                      _buildTipsBanner(),
+                      const SizedBox(height: 30),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              // Memanggil data dan menampilkannya satu per satu
-              ...([
-                {
-                  "name": "Aiska",
-                  "cat": "Statistics",
-                  "date": "21 Apr",
-                  "time": "09:00",
-                  "color": const Color(0xFFF5B3CE),
-                },
-                {
-                  "name": "Bima",
-                  "cat": "Web Dev",
-                  "date": "22 Apr",
-                  "time": "13:00",
-                  "color": const Color(0xFFA7C7E7),
-                },
-                {
-                  "name": "Citra",
-                  "cat": "UI/UX Design",
-                  "date": "23 Apr",
-                  "time": "15:00",
-                  "color": const Color(0xFFCDB4DB),
-                },
-              ].map((item) {
-                return _buildBookingRequestCard(
-                  clientName: item['name'] as String,
-                  category: item['cat'] as String,
-                  date: item['date'] as String,
-                  time: item['time'] as String,
-                  color: item['color'] as Color,
-                );
-              }).toList()),
-
-              const SizedBox(height: 35),
-
-              // --- 3. UPCOMING SESSIONS (Dimodifikasi Sesuai MySchedulePage) ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Upcoming Sessions",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(
-                        0xFF5B62CC,
-                      ).withOpacity(0.5), // Ungu 50%
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      "Top 3",
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF5B62CC),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              SizedBox(
-                height: 120,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  clipBehavior: Clip.none,
-                  children: [
-                    // Urutan 1: Pagi (09:00)
-                    _buildHorizontalSessionCard(
-                      time: "09:00 - 11:00 WIB",
-                      topic: "Statistics",
-                      clientName: "Aiska Rahma",
-                      duration: "120 mins",
-                      color: const Color(0xFFF5B3CE),
-                      location: "https://zoom.us/j/123456789",
-                    ),
-                    // Urutan 2: Siang (13:00)
-                    _buildHorizontalSessionCard(
-                      time: "13:00 - 15:00 WIB",
-                      topic: "Web Dev",
-                      clientName: "Budi Santoso",
-                      duration: "120 mins",
-                      color: const Color(0xFFA7C7E7),
-                      location: "Library Central Park",
-                    ),
-                    // Urutan 3: Sore (15:30)
-                    _buildHorizontalSessionCard(
-                      time: "15:30 - 17:00 WIB",
-                      topic: "UI/UX Design",
-                      clientName: "Citra Kirana",
-                      duration: "90 mins",
-                      color: const Color(0xFFCDB4DB),
-                      location: "https://meet.google.com/abc",
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 35),
-
-              // --- 4. RECENT REVIEWS ---
-              // --- HEADER RECENT REVIEWS ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Recent Reviews",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      // Navigasi ke halaman review (Menampilkan SEMUA)
-                      Navigator.pushNamed(context, AppRoutes.clientReviews);
-                    },
-                    child: const Text(
-                      "See All",
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        color: Color(0xFF5B62CC),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              SizedBox(
-                height: 145,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  clipBehavior: Clip.none,
-                  children: [
-                    _buildReviewCard(
-                      name: "Aiska Rahma",
-                      initial: "A",
-                      rating: 5,
-                      color: const Color(0xFFF5B3CE),
-                      text:
-                          "Penjelasannya sangat mudah dimengerti! Kak Lovie sabar banget ngajarin konsep hipotesis.",
-                      context: context,
-                    ),
-                    _buildReviewCard(
-                      name: "Bima Santoso",
-                      initial: "B",
-                      rating: 4,
-                      color: const Color(0xFFA7C7E7),
-                      text:
-                          "Keren banget materinya, langsung praktek bikin Flexbox. Cuman internetku agak lemot tadi.",
-                      context: context,
-                    ),
-                    _buildReviewCard(
-                      name: "Citra Kirana",
-                      initial: "C",
-                      rating: 5,
-                      color: const Color(0xFFCDB4DB),
-                      text:
-                          "Design system yang diajarin kak Lovie rapi banget. Puas bgt!",
-                      context: context,
-                    ),
-                    _buildReviewCard(
-                      name: "Chanyeol",
-                      initial: "C",
-                      rating: 4,
-                      color: const Color(0xFFCDB4DB),
-                      text:
-                          "Materi terstruktur dengan baik. Mungkin next time bisa ditambahin lebih banyak contoh.",
-                      context: context,
-                    ),
-                    _buildReviewCard(
-                      name: "Giselle",
-                      initial: "G",
-                      rating: 5,
-                      color: const Color(0xFFA7C7E7),
-                      text:
-                          "Super detail dan cara komunikasinya asyik banget. Gak kerasa waktu belajarnya cepat berlalu!",
-                      context: context,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 35),
-
-              // --- 5. MENTUP TIPS BANNER ---
-              const Text(
-                "MentUp Tips",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 15),
-              _buildTipsBanner(),
-
-              const SizedBox(height: 30),
-            ],
           ),
         ),
       ),
@@ -329,70 +159,102 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
-  // ==================== WIDGET HELPERS ====================
+  // ─────────────────────────────────────────────────────
+  // HEADER — foto profil + nama (tanpa welcome & emote)
+  // ─────────────────────────────────────────────────────
+  Widget _buildHeader() {
+    final profile = _controller.profile;
+    final nama = profile?.nama ?? 'Mentor';
+    final fotoUrl = profile?.fotoUrl;
 
-    Widget _buildHeader() {
-  final userName = getUserName();
-
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Flexible(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Foto profil + nama
+        Row(
           children: [
-            Text(
-              "Hello,",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 16,
-                color: Colors.grey[600],
+            // Avatar
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _primary.withOpacity(0.15),
+                border:
+                    Border.all(color: _primary.withOpacity(0.3), width: 1.5),
               ),
+              child: fotoUrl != null && fotoUrl.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        fotoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            _buildAvatarFallback(nama),
+                      ),
+                    )
+                  : _buildAvatarFallback(nama),
             ),
-
-            Text(
-              "Welcome $userName ✨",
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
-              ),
+            const SizedBox(width: 12),
+            // Nama
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello,',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 13,
+                    color: Colors.grey[500],
+                  ),
+                ),
+                Text(
+                  nama,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ),
 
-      const SizedBox(width: 10),
-
-      Row(
-        children: [
-          _buildIconButton(
-            Icons.calendar_today_outlined,
-            onTap: () => Navigator.pushNamed(
-              context,
-              '/my_schedule',
+        // Icon buttons
+        Row(
+          children: [
+            _buildIconButton(
+              Icons.calendar_today_outlined,
+              onTap: () => Navigator.pushNamed(context, '/my_schedule'),
             ),
-          ),
-
-          const SizedBox(width: 12),
-
-          _buildIconButton(
-            Icons.star_rate_outlined,
-            onTap: () => Navigator.pushNamed(
-              context,
-              '/client_reviews',
+            const SizedBox(width: 12),
+            _buildIconButton(
+              Icons.star_rate_outlined,
+              onTap: () => Navigator.pushNamed(context, '/client_reviews'),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
+          ],
+        ),
+      ],
+    );
+  }
 
-  // Perubahan: Menambahkan parameter onTap pada _buildIconButton
+  Widget _buildAvatarFallback(String nama) {
+    return Center(
+      child: Text(
+        nama.isNotEmpty ? nama[0].toUpperCase() : 'M',
+        style: const TextStyle(
+          fontFamily: 'Nunito',
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: _primary,
+        ),
+      ),
+    );
+  }
+
   Widget _buildIconButton(IconData icon, {VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -401,31 +263,28 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          // Border opacity 50%
           border: Border.all(
-            color: const Color(0xFF5B62CC).withOpacity(0.5),
+            color: _primary.withOpacity(0.5),
             width: 1.5,
           ),
         ),
-        child: Icon(icon, color: const Color(0xFF5B62CC), size: 20),
+        child: Icon(icon, color: _primary, size: 20),
       ),
     );
   }
 
-  // --- REVISI FINAL: THE REAL MODERN HERO BANNER (CLEAN & FLOATING LOGO) ---
+  // ─────────────────────────────────────────────────────
+  // HERO BANNER
+  // ─────────────────────────────────────────────────────
   Widget _buildQuickStatsCard() {
     return Container(
       width: double.infinity,
-      // Tetap tanpa 'height' kaku agar anti-overflow
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFCDB4DB), // Lavender
-            Color(0xFFA7C7E7), // Pastel Blue
-          ],
+          colors: [Color(0xFFCDB4DB), Color(0xFFA7C7E7)],
         ),
         boxShadow: [
           BoxShadow(
@@ -435,12 +294,10 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
           ),
         ],
       ),
-      // ClipRRect agar elemen yang melayang di pojok tidak keluar dari lengkungan radius
       child: ClipRRect(
         borderRadius: BorderRadius.circular(28),
         child: Stack(
           children: [
-            // --- 1. MOTIF BUBBLE AESTHETIC ---
             Positioned(
               top: -20,
               left: -20,
@@ -465,21 +322,16 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                 backgroundColor: Colors.white.withOpacity(0.15),
               ),
             ),
-
-            // --- 2. LOGO MENTUP MELAYANG (Tanpa Bingkai Kaku!) ---
             Positioned(
-              right:
-                  -10, // Sengaja digeser dikit ke kanan biar ada efek "bleed" estetik
+              right: -10,
               top: 0,
-              bottom:
-                  0, // Kombinasi top & bottom 0 akan membuat image otomatis rata tengah vertikal
+              bottom: 0,
               child: Center(
                 child: Image.asset(
                   'assets/logo.png',
-                  width:
-                      140, // Ukuran raksasa tapi natural karena tidak ada bingkai
+                  width: 140,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
+                  errorBuilder: (_, __, ___) => const Icon(
                     Icons.auto_awesome,
                     color: Colors.white,
                     size: 80,
@@ -487,8 +339,6 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                 ),
               ),
             ),
-
-            // --- 3. KONTEN TEKS & SAPAAN ---
             Padding(
               padding: const EdgeInsets.all(24),
               child: SizedBox(
@@ -508,7 +358,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Ready to hit the ground running today? MentUp is here to keep track of your schedule, so you can focus on delivering your best without any worries!",
+                      "Ready to hit the ground running today? MentUp is here to keep track of your schedule!",
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.95),
                         fontSize: 12,
@@ -518,18 +368,14 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Glassmorphism Badge Modern
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                        ),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.3)),
                       ),
                       child: const Text(
                         "Mentor Dashboard",
@@ -552,69 +398,76 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
-  Widget _buildStatItem(
-    String value,
-    String label,
-    IconData icon,
-    Color color,
-  ) {
-    return Column(
+  // ─────────────────────────────────────────────────────
+  // SECTION HEADER
+  // ─────────────────────────────────────────────────────
+  Widget _buildSectionHeader(
+    String title, {
+    String? badge,
+    Color? badgeColor,
+    VoidCallback? onSeeAll,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          // Background icon opacity 50%
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.5),
-            shape: BoxShape.circle,
-          ),
-          // Icon warna solid 100% (tone-on-tone)
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(height: 8),
         Text(
-          value,
+          title,
           style: const TextStyle(
             fontFamily: 'Nunito',
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
-            color: Colors.black87,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'Nunito',
-            fontSize: 12,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Colors.grey,
           ),
+        ),
+        Row(
+          children: [
+            if (onSeeAll != null)
+              TextButton(
+                onPressed: onSeeAll,
+                child: const Text(
+                  "See All",
+                  style: TextStyle(
+                    color: _primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            if (badge != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: badgeColor ?? const Color(0xFFF5B3CE).withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildBookingRequestCard({
-    required String clientName,
-    required String category,
-    required String date,
-    required String time,
-    required Color color,
-  }) {
+  // ─────────────────────────────────────────────────────
+  // BOOKING REQUEST CARD (paid)
+  // ─────────────────────────────────────────────────────
+  Widget _buildBookingRequestCard(MentorBookingRequestItem item, int index) {
+    final color = _accentColors[index % _accentColors.length];
+
     return GestureDetector(
-      onTap: () {
-        // Navigasi ke detail dengan data lengkap
-        Navigator.pushNamed(
-          context,
-          '/booking_detail',
-          arguments: {
-            'name': clientName,
-            'cat': category,
-            'date': date,
-            'time': time,
-            'color': color,
-          },
-        );
-      },
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/booking_request',
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(16),
@@ -632,44 +485,55 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         ),
         child: Row(
           children: [
-            // Avatar dengan Initial
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: color.withOpacity(0.2),
-              child: Text(
-                clientName[0],
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+            // Avatar
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(13),
               ),
+              child: item.clientFotoUrl != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child:
+                          Image.network(item.clientFotoUrl!, fit: BoxFit.cover),
+                    )
+                  : Center(
+                      child: Text(
+                        item.clientName.isNotEmpty
+                            ? item.clientName[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
             ),
-            const SizedBox(width: 15),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    clientName,
+                    item.clientName,
                     style: const TextStyle(
                       fontFamily: 'Nunito',
                       fontWeight: FontWeight.w800,
-                      fontSize: 17,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  // Baris Tanggal & Jam
+                  const SizedBox(height: 5),
                   Row(
                     children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        size: 12,
-                        color: Colors.grey[500],
-                      ),
+                      Icon(Icons.calendar_today_rounded,
+                          size: 12, color: Colors.grey[500]),
                       const SizedBox(width: 4),
                       Text(
-                        date,
+                        item.dateLabel,
                         style: TextStyle(
                           fontFamily: 'Nunito',
                           color: Colors.grey[600],
@@ -678,14 +542,11 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Icon(
-                        Icons.access_time_rounded,
-                        size: 12,
-                        color: Colors.grey[500],
-                      ),
+                      Icon(Icons.access_time_rounded,
+                          size: 12, color: Colors.grey[500]),
                       const SizedBox(width: 4),
                       Text(
-                        time,
+                        item.timeLabel,
                         style: TextStyle(
                           fontFamily: 'Nunito',
                           color: Colors.grey[600],
@@ -698,56 +559,46 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                 ],
               ),
             ),
-            // Chip Kategori di pojok kanan
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                category,
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  color: color,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+            // Badge kategori
+            if (item.categoryName != null)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  item.categoryName!,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  // Perubahan: Menambahkan logika onTap yang diarahkan ke Accepted page
-  Widget _buildHorizontalSessionCard({
-    required String time,
-    required String topic,
-    required String clientName,
-    required String duration,
-    required Color color,
-    required String location,
-  }) {
+  // ─────────────────────────────────────────────────────
+  // UPCOMING SESSION CARD (confirmed)
+  // ─────────────────────────────────────────────────────
+  Widget _buildHorizontalSessionCard(MentorUpcomingSession item, int index) {
+    final color = _accentColors[index % _accentColors.length];
+
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/booking_detail',
-          arguments: {
-            'name': clientName,
-            'cat': topic,
-            'time': time,
-            'date': "Today", // Bisa disesuaikan jadi dinamis nanti
-            'color': color,
-            'location': location,
-            'status': 'Accepted', // CRITICAL: agar masuk UI Accepted
-            'totalPrice': 'Paid',
-            'note': "This session is already accepted and scheduled.",
-          },
-        );
-      },
+      onTap: () => Navigator.pushNamed(
+        context,
+        '/booking_detail',
+        arguments: {
+          'bookingId': item.bookingId,
+          'color': color,
+        },
+      ),
       child: Container(
         width: 270,
         margin: const EdgeInsets.only(right: 15),
@@ -755,7 +606,6 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          // Border card opacity 50%
           border: Border.all(color: color.withOpacity(0.5), width: 1.5),
           boxShadow: [
             BoxShadow(
@@ -770,24 +620,19 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                // Background icon opacity 50%
                 color: color.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.videocam_outlined,
-                    color: color,
-                    size: 24,
-                  ), // Ikon solid 100%
+                  Icon(Icons.event_available_rounded, color: color, size: 24),
                   const SizedBox(height: 4),
                   Text(
-                    duration,
+                    'Confirmed',
                     style: TextStyle(
                       fontFamily: 'Nunito',
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
@@ -795,49 +640,50 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    clientName,
+                    item.clientName,
                     style: const TextStyle(
                       fontFamily: 'Nunito',
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    topic,
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[700],
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 14,
+                  const SizedBox(height: 3),
+                  if (item.categoryName != null)
+                    Text(
+                      item.categoryName!,
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
                         color: Colors.grey[600],
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontFamily: 'Nunito',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time,
+                          size: 13, color: Colors.grey[500]),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          item.timeLabel,
+                          style: TextStyle(
+                            fontFamily: 'Nunito',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey[700],
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -851,23 +697,18 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
-  Widget _buildReviewCard({
-    required String name,
-    required String initial,
-    required int rating,
-    required Color color,
-    required String text,
-    required BuildContext context, // Tambahkan parameter context
-  }) {
+  // ─────────────────────────────────────────────────────
+  // REVIEW CARD
+  // ─────────────────────────────────────────────────────
+  Widget _buildReviewCard(MentorReviewItem item, int index) {
+    final color = _accentColors[index % _accentColors.length];
+
     return GestureDetector(
-      onTap: () {
-        // NAVIGASI DENGAN FILTER NAMA
-        Navigator.pushNamed(
-          context,
-          AppRoutes.clientReviews,
-          arguments: {'studentName': name},
-        );
-      },
+      onTap: () => Navigator.pushNamed(
+        context,
+        AppRoutes.clientReviews,
+        arguments: {'studentName': item.clientName},
+      ),
       child: Container(
         width: 280,
         margin: const EdgeInsets.only(right: 16),
@@ -888,22 +729,34 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: color.withOpacity(0.2),
-                  radius: 18,
-                  child: Text(
-                    initial,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                // Avatar client
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color.withOpacity(0.2),
                   ),
+                  child: item.clientFotoUrl != null
+                      ? ClipOval(
+                          child: Image.network(item.clientFotoUrl!,
+                              fit: BoxFit.cover),
+                        )
+                      : Center(
+                          child: Text(
+                            item.initial,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    name,
+                    item.clientName,
                     style: const TextStyle(
                       fontFamily: 'Nunito',
                       fontWeight: FontWeight.bold,
@@ -912,13 +765,14 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                // Bintang rating
                 Row(
                   children: List.generate(
                     5,
-                    (index) => Icon(
+                    (i) => Icon(
                       Icons.star_rounded,
                       size: 14,
-                      color: index < rating ? Colors.amber : Colors.grey[300],
+                      color: i < item.rating ? Colors.amber : Colors.grey[300],
                     ),
                   ),
                 ),
@@ -926,7 +780,9 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             ),
             const SizedBox(height: 10),
             Text(
-              "\"$text\"",
+              item.reviewText != null && item.reviewText!.isNotEmpty
+                  ? '"${item.reviewText!}"'
+                  : '-',
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -942,6 +798,37 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
+  // ─────────────────────────────────────────────────────
+  // EMPTY STATE
+  // ─────────────────────────────────────────────────────
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: Colors.grey[300]),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(
+              fontFamily: 'Nunito',
+              color: Colors.grey[400],
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────
+  // TIPS BANNER
+  // ─────────────────────────────────────────────────────
   Widget _buildTipsBanner() {
     return Container(
       width: double.infinity,
@@ -985,15 +872,12 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
           ),
           const SizedBox(height: 15),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/mentor_tips');
-            },
+            onPressed: () => Navigator.pushNamed(context, '/mentor_tips'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF5B62CC),
+              foregroundColor: _primary,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
+                  borderRadius: BorderRadius.circular(20)),
               elevation: 0,
             ),
             child: const Text(
@@ -1010,6 +894,9 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
     );
   }
 
+  // ─────────────────────────────────────────────────────
+  // BOTTOM NAV
+  // ─────────────────────────────────────────────────────
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
@@ -1039,7 +926,7 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
             }
           },
           backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF5B62CC),
+          selectedItemColor: _primary,
           unselectedItemColor: Colors.grey[400],
           showSelectedLabels: true,
           showUnselectedLabels: true,
@@ -1056,21 +943,13 @@ class _MentorLandingPageState extends State<MentorLandingPage> {
           ),
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled),
-              label: "Home",
-            ),
+                icon: Icon(Icons.home_filled), label: "Home"),
             BottomNavigationBarItem(
-              icon: Icon(Icons.description_outlined),
-              label: "Request",
-            ),
+                icon: Icon(Icons.description_outlined), label: "Request"),
             BottomNavigationBarItem(
-              icon: Icon(Icons.history),
-              label: "History",
-            ),
+                icon: Icon(Icons.history), label: "History"),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              label: "Profile",
-            ),
+                icon: Icon(Icons.person_outline), label: "Profile"),
           ],
         ),
       ),
