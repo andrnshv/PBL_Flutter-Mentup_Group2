@@ -213,9 +213,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          (d.notes == null || d.notes!.isEmpty)
+                          (d.rescheduleReason == null ||
+                                  d.rescheduleReason!.isEmpty)
                               ? "No specific reason provided."
-                              : d.notes!,
+                              : d.rescheduleReason!,
                           style: const TextStyle(
                             fontFamily: 'Nunito',
                             color: Colors.black87,
@@ -431,6 +432,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       case 'pending':
         color = Colors.orange;
         label = 'PENDING';
+        break;
+      case 'reschedule':
+        color = Colors.orange;
+        label = 'RESCHEDULE';
         break;
       default:
         color = Colors.grey;

@@ -21,6 +21,7 @@ class ScheduleBookingDetailController {
             session_start_time,
             session_end_time,
             client_address,
+            reschedule_reason,
             mentor_schedules!schedule_id (
               id,
               available_date,
@@ -54,16 +55,10 @@ class ScheduleBookingDetailController {
     }
   }
 
-  // ─────────────────────────────────────────────────────
-  // ACCEPT booking (paid → confirmed)
-  // ─────────────────────────────────────────────────────
   Future<String?> acceptBooking(String bookingId) async {
     return _updateStatus(bookingId, 'confirmed');
   }
 
-  // ─────────────────────────────────────────────────────
-  // REJECT booking (paid → rejected) + simpan alasan
-  // ─────────────────────────────────────────────────────
   Future<String?> rejectBooking(
     String bookingId, {
     required String reason,
@@ -71,35 +66,35 @@ class ScheduleBookingDetailController {
     return _updateStatus(bookingId, 'rejected', rejectionNote: reason);
   }
 
-  // ─────────────────────────────────────────────────────
-  // Update status umum
-  // ─────────────────────────────────────────────────────
   Future<String?> _updateStatus(
     String bookingId,
     String newStatus, {
     String? rejectionNote,
   }) async {
     try {
-      final Map<String, dynamic> payload = {
-        'booking_status': newStatus,
-      };
+      final Map<String, dynamic> payload = {'booking_status': newStatus};
 
+      // ✅ Simpan reason ke reschedule_reason, bukan notes
       if (newStatus == 'rejected' &&
           rejectionNote != null &&
           rejectionNote.isNotEmpty) {
-        payload['notes'] = rejectionNote;
+        payload['reschedule_reason'] = rejectionNote;
+      }
+
+      // ✅ Bebaskan slot jika rejected
+      if (newStatus == 'rejected' && detail?.scheduleId.isNotEmpty == true) {
+        await _supabase
+            .from('mentor_schedules')
+            .update({'is_booked': false}).eq('id', detail!.scheduleId);
       }
 
       await _supabase.from('bookings').update(payload).eq('id', bookingId);
 
-      // Update salinan lokal supaya UI langsung berubah
       if (detail != null) {
         detail = ScheduleBookingDetailModel(
           bookingId: detail!.bookingId,
           bookingStatus: newStatus,
-          notes: (newStatus == 'rejected' && rejectionNote != null)
-              ? rejectionNote
-              : detail!.notes,
+          notes: detail!.notes, // ✅ notes tidak diubah
           scheduleId: detail!.scheduleId,
           availableDate: detail!.availableDate,
           startTime: detail!.startTime,
@@ -114,6 +109,9 @@ class ScheduleBookingDetailController {
           clientBioAddress: detail!.clientBioAddress,
           clientAddress: detail!.clientAddress,
           categoryName: detail!.categoryName,
+          rescheduleReason: (newStatus == 'rejected' && rejectionNote != null)
+              ? rejectionNote
+              : detail!.rescheduleReason, // ✅ update rescheduleReason lokal
         );
       }
 

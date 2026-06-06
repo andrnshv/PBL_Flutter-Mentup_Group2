@@ -29,6 +29,8 @@ class ScheduleBookingDetailModel {
   // ── Dari categories (via bio_profil)
   final String? categoryName;
 
+  final String? rescheduleReason; // alasan reschedule dari mentor
+
   const ScheduleBookingDetailModel({
     required this.bookingId,
     required this.bookingStatus,
@@ -47,6 +49,7 @@ class ScheduleBookingDetailModel {
     this.clientBioAddress,
     this.clientAddress,
     this.categoryName,
+    this.rescheduleReason,
   });
 
   factory ScheduleBookingDetailModel.fromJson(Map<String, dynamic> json) {
@@ -90,6 +93,7 @@ class ScheduleBookingDetailModel {
       clientBioAddress: bio['alamat'] as String?,
       clientAddress: json['client_address'] as String?,
       categoryName: category?['category_name'] as String?,
+      rescheduleReason: json['reschedule_reason'] as String?,
     );
   }
 
