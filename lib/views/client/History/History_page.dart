@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../controller/client/history_controller.dart';
+import '../profile/edit_security.dart';
+import 'reschedule_page.dart';
 
 // ================================================================
 //  HISTORY PAGE — MentUp
@@ -36,6 +38,94 @@ class _HistoryPageState extends State<HistoryPage> {
   Future<void> _load() async {
     await _controller.fetchHistory();
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  // ── Reschedule: buka form pilih jadwal baru ──
+  Future<void> _handleReschedule(HistoryItemModel data) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReschedulePage(booking: data),
+      ),
+    );
+    // Kalau reschedule berhasil, refresh history
+    if (result == true && mounted) {
+      setState(() => _isLoading = true);
+      _load();
+    }
+  }
+
+  // ── Cancel: konfirmasi → cancelled → Help Center refund ──
+  Future<void> _handleCancel(HistoryItemModel data) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Batalkan Booking?'),
+        content: const Text(
+          'Booking akan dibatalkan. Kamu bisa mengajukan refund '
+          'ke admin lewat Help Center.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Kembali'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Ya, Batalkan'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final err = await _controller.cancelRejected(data.bookingId);
+    if (!mounted) return;
+
+    if (err == null) {
+      // Refresh history, lalu tawarkan ke Help Center
+      setState(() => _isLoading = true);
+      await _load();
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Booking Dibatalkan'),
+          content: const Text(
+            'Ajukan refund ke admin lewat Help Center.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Nanti'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6C63FF),
+                  foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditSecurityPage()),
+                );
+              },
+              child: const Text('Ke Help Center'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -443,7 +533,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  data.status,
+                  data.statusLabel,
                   style: TextStyle(
                     color: isDone ? Colors.green : Colors.red,
                     fontWeight: FontWeight.bold,
@@ -528,6 +618,95 @@ class _HistoryPageState extends State<HistoryPage> {
                         ),
                       ],
                     ),
+            ),
+          ],
+
+          // ── SECTION REJECTED: alasan + Reschedule / Cancel ──
+          if (!isDone && data.isRejected) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.red.withOpacity(0.15)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Alasan mentor menolak
+                  if (data.cancelReason != null &&
+                      data.cancelReason!.isNotEmpty) ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info_outline_rounded,
+                            color: Colors.redAccent, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Alasan penolakan:',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: Colors.redAccent)),
+                              const SizedBox(height: 4),
+                              Text(data.cancelReason!,
+                                  style: TextStyle(
+                                      color: Colors.grey[700],
+                                      height: 1.4,
+                                      fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // 2 Tombol: Reschedule & Cancel/Refund
+                  Row(
+                    children: [
+                      // CANCEL/REFUND
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => _handleCancel(data),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: const BorderSide(color: Colors.redAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Cancel',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // RESCHEDULE
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _handleReschedule(data),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6C63FF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Reschedule',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ],

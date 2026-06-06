@@ -3,23 +3,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // ================================================================
 //  HISTORY CONTROLLER — MentUp
 //  File: lib/controller/client/history_controller.dart
-//
-//  - Ambil riwayat sesi klien (Done / Cancelled)
-//  - Simpan review (rating + komentar) ke tabel `reviews`
-//  - Review yang disimpan otomatis muncul di Top Mentors & What They Say
 // ================================================================
 
 class HistoryItemModel {
   final String bookingId;
   final String mentorId;
   final String name;
-  final String role; // kategori mentor
+  final String role;
   final String? fotoUrl;
   final String dateLabel;
   final String status; // 'Done' | 'Cancelled'
-  bool isReviewed; // sudah kasih review?
-  int? rating; // rating yang sudah diberikan
-  String? review; // komentar yang sudah diberikan
+  final String rawStatus; // nilai DB asli
+  final String? cancelReason; // alasan reject dari mentor (notes)
+  bool isReviewed;
+  int? rating;
+  String? review;
 
   HistoryItemModel({
     required this.bookingId,
@@ -28,11 +26,35 @@ class HistoryItemModel {
     required this.role,
     required this.dateLabel,
     required this.status,
+    required this.rawStatus,
+    this.cancelReason,
     this.fotoUrl,
     this.isReviewed = false,
     this.rating,
     this.review,
   });
+
+  String get statusLabel {
+    switch (rawStatus) {
+      case 'rejected':
+        return 'Rejected';
+      case 'reschedule':
+        return 'Rescheduled';
+      case 'failed':
+        return 'Failed';
+      case 'cancelled':
+      case 'canceled':
+        return 'Cancelled';
+      case 'done':
+      case 'completed':
+        return 'Done';
+      default:
+        return status;
+    }
+  }
+
+  /// Booking rejected oleh mentor → client bisa reschedule atau refund
+  bool get isRejected => rawStatus == 'rejected';
 }
 
 class HistoryController {
@@ -55,21 +77,25 @@ class HistoryController {
         return;
       }
 
-      // Ambil booking yang sudah selesai / dibatalkan
       final bookings = await _supabase
           .from('bookings')
           .select('''
-            id, mentor_id, booking_status, created_at,
+            id, mentor_id, booking_status, created_at, notes,
             mentor_schedules ( available_date, start_time )
           ''')
           .eq('client_id', userId)
-          .inFilter('booking_status',
-              ['done', 'completed', 'cancelled', 'canceled', 'failed'])
+          .inFilter('booking_status', [
+            'done',
+            'completed',
+            'cancelled',
+            'canceled',
+            'failed',
+            'rejected',
+          ])
           .order('created_at', ascending: false);
 
       final list = List<Map<String, dynamic>>.from(bookings);
 
-      // Nama + foto + kategori mentor
       final mentorIds = list
           .map((b) => b['mentor_id'] as String?)
           .whereType<String>()
@@ -88,8 +114,6 @@ class HistoryController {
         }
       }
 
-      // Review yang sudah dibuat klien ini (untuk tahu booking mana
-      // yang sudah direview). Kita pakai mentor_id + client_id.
       final reviews = await _supabase
           .from('reviews')
           .select('mentor_id, rating, review_text')
@@ -109,7 +133,7 @@ class HistoryController {
         final bio = bioMap[mentorId];
         final schedule = b['mentor_schedules'] as Map<String, dynamic>?;
         final rawStatus = (b['booking_status'] as String? ?? '').toLowerCase();
-
+        final isDone = rawStatus == 'done' || rawStatus == 'completed';
         final review = reviewMap[mentorId];
 
         final item = HistoryItemModel(
@@ -121,19 +145,16 @@ class HistoryController {
               'Mentor',
           fotoUrl: bio?['foto_url'] as String?,
           dateLabel: _fmtDate(schedule?['available_date'] as String?),
-          status: (rawStatus == 'done' || rawStatus == 'completed')
-              ? 'Done'
-              : 'Cancelled',
+          status: isDone ? 'Done' : 'Cancelled',
+          rawStatus: rawStatus,
+          // Alasan reject tersimpan di kolom notes
+          cancelReason: rawStatus == 'rejected' ? b['notes'] as String? : null,
           isReviewed: review != null,
           rating: (review?['rating'] as num?)?.toInt(),
           review: review?['review_text'] as String?,
         );
 
-        if (item.status == 'Done') {
-          done.add(item);
-        } else {
-          cancelled.add(item);
-        }
+        isDone ? done.add(item) : cancelled.add(item);
       }
 
       doneList = done;
@@ -147,11 +168,20 @@ class HistoryController {
     }
   }
 
-  // ─────────────────────────────────────────────────────
-  //  Simpan review ke tabel `reviews`
-  //  (rating 1-5 + komentar). Trigger DB akan update rating
-  //  mentor otomatis.
-  // ─────────────────────────────────────────────────────
+  /// Cancel booking rejected → status cancelled
+  Future<String?> cancelRejected(String bookingId) async {
+    try {
+      await _supabase
+          .from('bookings')
+          .update({'booking_status': 'cancelled'}).eq('id', bookingId);
+      return null;
+    } on PostgrestException catch (e) {
+      return e.message;
+    } catch (e) {
+      return '$e';
+    }
+  }
+
   Future<bool> submitReview({
     required String mentorId,
     required int rating,
@@ -163,14 +193,12 @@ class HistoryController {
         errorMessage = 'User belum login.';
         return false;
       }
-
       await _supabase.from('reviews').insert({
         'mentor_id': mentorId,
         'client_id': clientId,
         'rating': rating,
         'review_text': reviewText,
       });
-
       return true;
     } on PostgrestException catch (e) {
       errorMessage = e.message;
