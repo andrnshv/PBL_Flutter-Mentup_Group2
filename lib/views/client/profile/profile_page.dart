@@ -48,8 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 20),
-                  _buildStats(),
-                  const SizedBox(height: 20),
 
                   _buildMenuSection(
                     title: "Account",
@@ -213,32 +211,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStats() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _StatItem(title: "Sessions", value: "24"),
-            _StatItem(title: "Mentors", value: "5"),
-            _StatItem(title: "Progress", value: "80%"),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildMenuSection({
     required String title,
@@ -303,38 +275,6 @@ class _ProfilePageState extends State<ProfilePage> {
       trailing: const Icon(Icons.chevron_right),
 
       onTap: onTap,
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String title;
-  final String value;
-
-  const _StatItem({
-    required this.title,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        Text(
-          title,
-          style: const TextStyle(color: Colors.grey),
-        ),
-      ],
     );
   }
 }
