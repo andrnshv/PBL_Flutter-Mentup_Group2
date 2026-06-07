@@ -125,12 +125,12 @@ class VerifySessionController {
   }
 
   // ─────────────────────────────────────────────────────
-  //  Klien VERIFIKASI sesi → booking jadi 'done'
+  //  Klien VERIFIKASI sesi → booking jadi 'completed'
   // ─────────────────────────────────────────────────────
   Future<bool> verifySession(String bookingId) async {
     try {
       await _supabase.from('bookings').update({
-        'booking_status': 'done',
+        'booking_status': 'completed',
         'verified_at': DateTime.now().toIso8601String(),
       }).eq('id', bookingId);
       return true;
