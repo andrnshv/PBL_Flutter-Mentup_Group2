@@ -7,7 +7,6 @@ import 'booking_page.dart';
 
 class MentorProfilePage extends StatefulWidget {
   final String mentorId;
-
   const MentorProfilePage({super.key, required this.mentorId});
 
   @override
@@ -21,12 +20,11 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
   static const Color _bgColor = Color(0xFFF4F6FA);
 
   final NumberFormat _currency = NumberFormat.currency(
-    locale: 'id_ID',
-    symbol: 'Rp ',
-    decimalDigits: 0,
+    locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0,
   );
 
-  bool _isLoading = true;
+  bool _isLoading      = true;
+  bool _showAllReviews = false; // toggle see all
 
   @override
   void initState() {
@@ -41,23 +39,8 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
 
   Future<void> _openWhatsApp(String phone) async {
     final clean = phone.replaceAll(RegExp(r'\D'), '');
-    final url = Uri.parse('https://wa.me/$clean');
+    final url   = Uri.parse('https://wa.me/$clean');
     if (await canLaunchUrl(url)) await launchUrl(url);
-  }
-
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Pending':
-        return Colors.orange;
-      case 'Accepted':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      case 'Done':
-        return Colors.blue;
-      default:
-        return Colors.grey;
-    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -66,9 +49,7 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: _bgColor,
-        body: Center(
-          child: CircularProgressIndicator(color: _primary),
-        ),
+        body: Center(child: CircularProgressIndicator(color: _primary)),
       );
     }
 
@@ -107,36 +88,33 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
       );
     }
 
-    final mentor = _controller.profileData!;
-    final bool isAvailable = mentor.schedules.any((s) => !s.isBooked);
+    final mentor      = _controller.profileData!;
+    final isAvailable = mentor.schedules.any((s) => !s.isBooked);
 
     return Scaffold(
       backgroundColor: _bgColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // ── HEADER ──────────────────────────────────────
             _buildHeader(context, mentor, isAvailable),
-
             const SizedBox(height: 65),
 
-            // ── NAMA & BADGE ─────────────────────────────────
+            // Nama
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
                 mentor.namaLengkap,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
-
             const SizedBox(height: 6),
 
             if (mentor.categoryName != null)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
                   color: _primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -144,21 +122,17 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 child: Text(
                   mentor.categoryName!,
                   style: const TextStyle(
-                    fontSize: 12,
-                    color: _primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontSize: 12,
+                      color: _primary,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
-
             const SizedBox(height: 4),
 
             if (mentor.universityName != null)
-              Text(
-                mentor.universityName!,
-                style: const TextStyle(fontSize: 12, color: Colors.black54),
-              ),
-
+              Text(mentor.universityName!,
+                  style: const TextStyle(
+                      fontSize: 12, color: Colors.black54)),
             const SizedBox(height: 4),
 
             if (mentor.alamat != null)
@@ -172,15 +146,15 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                     child: Text(
                       mentor.alamat!,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey[500]),
                     ),
                   ),
                 ],
               ),
-
             const SizedBox(height: 8),
 
-            // ── RATING + STATUS ──────────────────────────────
+            // Rating + availability badge
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -189,15 +163,14 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                   const SizedBox(width: 4),
                   Text(mentor.avgRating!.toStringAsFixed(1)),
                   if (mentor.totalReviews != null)
-                    Text(
-                      ' (${mentor.totalReviews})',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                    ),
+                    Text(' (${mentor.totalReviews})',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey[500])),
                   const SizedBox(width: 10),
                 ],
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: (isAvailable ? Colors.green : Colors.grey)
                         .withOpacity(0.1),
@@ -214,10 +187,9 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
 
-            // ── BUTTONS ─────────────────────────────────────
+            // Buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -230,17 +202,16 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                       icon: const Icon(Icons.chat),
                       label: const Text('Message'),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
+                            borderRadius: BorderRadius.circular(15)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      // ✅ PERBAIKAN: kirim mentorId + mentor ke BookingPage
                       onPressed: isAvailable
                           ? () => Navigator.push(
                                 context,
@@ -253,33 +224,33 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                               )
                           : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isAvailable ? _primary : const Color(0xFFE0E0E0),
-                        foregroundColor:
-                            isAvailable ? Colors.white : Colors.grey.shade600,
-                        disabledBackgroundColor: const Color(0xFFE0E0E0),
+                        backgroundColor: isAvailable
+                            ? _primary
+                            : const Color(0xFFE0E0E0),
+                        foregroundColor: isAvailable
+                            ? Colors.white
+                            : Colors.grey.shade600,
+                        disabledBackgroundColor:
+                            const Color(0xFFE0E0E0),
                         disabledForegroundColor: Colors.grey.shade600,
                         elevation: 3,
                         shadowColor: Colors.black.withOpacity(0.2),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                            borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            isAvailable ? Icons.calendar_month : Icons.block,
-                            size: 18,
-                          ),
+                          Icon(isAvailable
+                              ? Icons.calendar_month
+                              : Icons.block, size: 18),
                           const SizedBox(width: 8),
                           Text(
                             isAvailable ? 'Book Session' : 'Not Available',
                             style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                                fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                         ],
                       ),
@@ -288,87 +259,43 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 25),
 
-            // ── QUICK INFO ───────────────────────────────────
+            // Quick info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _infoItem(
-                    'Price',
-                    mentor.pricePerSession != null
-                        ? _currency.format(mentor.pricePerSession)
-                        : '-',
-                  ),
-                  _infoItem(
-                    'Reviews',
-                    mentor.totalReviews?.toString() ?? '-',
-                  ),
-                  _infoItem(
-                    'Rating',
-                    mentor.avgRating != null
-                        ? mentor.avgRating!.toStringAsFixed(1)
-                        : '-',
-                  ),
+                  _infoItem('Price',
+                      mentor.pricePerSession != null
+                          ? _currency.format(mentor.pricePerSession)
+                          : '-'),
+                  _infoItem('Reviews',
+                      mentor.totalReviews?.toString() ?? '-'),
+                  _infoItem('Rating',
+                      mentor.avgRating != null
+                          ? mentor.avgRating!.toStringAsFixed(1)
+                          : '-'),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
 
-            // ── ABOUT ────────────────────────────────────────
+            // About
             _section(
               title: 'About',
               content: (mentor.bio != null && mentor.bio!.isNotEmpty)
                   ? mentor.bio!
                   : 'Mentor profesional di bidang '
-                      '${mentor.categoryName ?? "mentoring"}. '
-                      'Siap membantu kamu berkembang 🚀',
+                    '${mentor.categoryName ?? "mentoring"}. '
+                    'Siap membantu kamu berkembang 🚀',
             ),
 
-            // ── REVIEWS (placeholder) ────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Reviews',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        TextButton(
-                          onPressed: null, // sementara dinonaktifkan
-                          child: const Text('See All'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Center(
-                      child: Text(
-                        'Reviews coming soon',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            // ── REVIEWS ─────────────────────────────────────
+            _buildReviewsSection(mentor),
 
-            // ── JADWAL TERSEDIA ──────────────────────────────
+            // Available Schedules
             Padding(
               padding: const EdgeInsets.all(20),
               child: Container(
@@ -381,16 +308,14 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Available Schedules',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
+                    const Text('Available Schedules',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 10),
                     Builder(builder: (_) {
-                      final available =
-                          mentor.schedules.where((s) => !s.isBooked).toList();
-
+                      final available = mentor.schedules
+                          .where((s) => !s.isBooked)
+                          .toList();
                       if (available.isEmpty) {
                         return const Center(
                           child: Column(
@@ -404,7 +329,6 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                           ),
                         );
                       }
-
                       return Column(
                         children: available.map((sched) {
                           return Container(
@@ -420,33 +344,27 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
                                     color: _primary),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${sched.availableDate} • ${sched.startTime}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
+                                  child: Text(
+                                    '${sched.availableDate} • ${sched.startTime}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color:
+                                        Colors.green.withOpacity(0.1),
+                                    borderRadius:
+                                        BorderRadius.circular(20),
                                   ),
-                                  child: const Text(
-                                    'Available',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  child: const Text('Available',
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      )),
                                 ),
                               ],
                             ),
@@ -461,6 +379,218 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
           ],
         ),
       ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // REVIEWS SECTION
+  // ─────────────────────────────────────────────────────────────
+  Widget _buildReviewsSection(MentorProfileModel mentor) {
+    final reviews      = mentor.reviews;
+    // Tampilkan 3 dulu, sisanya setelah "See All" ditekan
+    final displayLimit = _showAllReviews ? reviews.length : 3;
+    final displayed    = reviews.take(displayLimit).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text('Reviews',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(width: 8),
+                    if (reviews.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: _primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${reviews.length}',
+                          style: const TextStyle(
+                            color: _primary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                // See All / Show Less
+                if (reviews.length > 3)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _showAllReviews = !_showAllReviews),
+                    child: Text(
+                      _showAllReviews ? 'Show Less' : 'See All',
+                      style: const TextStyle(color: _primary),
+                    ),
+                  ),
+              ],
+            ),
+
+            // ── Rating summary ───────────────────────────
+            if (mentor.avgRating != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    mentor.avgRating!.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: _primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _starRow(mentor.avgRating!),
+                      Text(
+                        'dari ${mentor.totalReviews ?? 0} ulasan',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+            ],
+
+            // ── Empty state ──────────────────────────────
+            if (reviews.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Column(
+                    children: [
+                      Icon(Icons.rate_review_outlined,
+                          size: 40, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text('Belum ada ulasan',
+                          style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              ),
+
+            // ── Review list ──────────────────────────────
+            ...displayed.map((review) => _buildReviewCard(review)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewCard(MentorReviewItem review) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Avatar
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: _primary.withOpacity(0.1),
+            backgroundImage: review.clientFotoUrl != null
+                ? NetworkImage(review.clientFotoUrl!)
+                : null,
+            child: review.clientFotoUrl == null
+                ? Text(
+                    review.clientName.isNotEmpty
+                        ? review.clientName[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                        color: _primary, fontWeight: FontWeight.bold),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nama + tanggal
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      review.clientName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      review.dateLabel,
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey[400]),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                // Bintang
+                _starRow(review.rating.toDouble(), size: 14),
+                const SizedBox(height: 6),
+
+                // Teks review
+                if (review.reviewText != null &&
+                    review.reviewText!.isNotEmpty)
+                  Text(
+                    review.reviewText!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      height: 1.5,
+                    ),
+                  )
+                else
+                  Text('Tidak ada komentar.',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[400],
+                          fontStyle: FontStyle.italic)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Star row ─────────────────────────────────────────
+  Widget _starRow(double rating, {double size = 16}) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (i) {
+        if (i < rating.floor()) {
+          return Icon(Icons.star_rounded, color: Colors.amber, size: size);
+        } else if (i < rating) {
+          return Icon(Icons.star_half_rounded,
+              color: Colors.amber, size: size);
+        } else {
+          return Icon(Icons.star_border_rounded,
+              color: Colors.grey[300], size: size);
+        }
+      }),
     );
   }
 
@@ -545,17 +675,16 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────
   Widget _infoItem(String title, String value) {
     return Column(
       children: [
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        ),
+        Text(value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14)),
         const SizedBox(height: 4),
-        Text(title, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+        Text(title,
+            style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ],
     );
   }
@@ -574,8 +703,8 @@ class _MentorProfilePageState extends State<MentorProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(title,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 8),
             Text(content, style: const TextStyle(height: 1.5)),
           ],
