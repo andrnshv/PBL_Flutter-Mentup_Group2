@@ -3,7 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:cherry_toast/cherry_toast.dart';
 import 'package:cherry_toast/resources/arrays.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../controller/mentor/teaching_proof_controller.dart';
+import '../../../models/mentor/teaching_proof_model.dart';
 import '../../../routes/app_routes.dart';
+
+// ================================================================
+//  TEACHING PROOF PAGE — MentUp
+//  File: lib/views/mentor/review/teaching_proof_page.dart
+//
+//  Tampilan sama dengan desain awal. Data dari Supabase.
+//
+//  Tab Required         → booking confirmed (belum upload bukti)
+//  Tab In Review        → awaiting_verification (menunggu client)
+//  Tab Verified         → done / completed (sudah di-verify client)
+//
+//  Submit proof → upload foto ke Storage → status: awaiting_verification
+// ================================================================
 
 class TeachingProofPage extends StatefulWidget {
   const TeachingProofPage({super.key});
@@ -16,13 +31,16 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // --- STATE UNTUK FITUR SEARCH, SORT, & EXPAND (Filter Kategori Dihapus) ---
-  String _searchQuery = "";
-  bool _isAscending = true;
-  String? _expandedSessionId;
+  final TeachingProofController _controller = TeachingProofController();
 
-  // --- STATE UNTUK GALERI ---
-  File? _capturedImage;
+  String _searchQuery = '';
+  bool _isAscending = true;
+  String? _expandedId; // bookingId yang sedang dibuka
+  File? _capturedImage; // foto yang dipilih untuk card yang expand
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+
+  final TextEditingController _summaryCtrl = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   final Color primaryColor = const Color(0xFF5B62CC);
@@ -30,67 +48,35 @@ class _TeachingProofPageState extends State<TeachingProofPage>
   final Color pastelBlue = const Color(0xFFA7C7E7);
   final Color pastelLavender = const Color(0xFFCDB4DB);
 
-  // DATA MASTER
-  final List<Map<String, dynamic>> _allSessions = [
-    {
-      "name": "Aiska Rahma",
-      "cat": "Statistics",
-      "date": "2026-04-21",
-      "time": "09:00",
-      "status": "Pending Proof",
-      "color": const Color(0xFFF5B3CE),
-    },
-    {
-      "name": "Bima Santoso",
-      "cat": "Web Development",
-      "date": "2026-04-22",
-      "time": "13:00",
-      "status": "Pending Verification",
-      "color": const Color(0xFFA7C7E7),
-    },
-    {
-      "name": "Citra Kirana",
-      "cat": "UI/UX Design",
-      "date": "2026-04-23",
-      "time": "15:00",
-      "status": "Completed",
-      "color": const Color(0xFFCDB4DB),
-    },
-    {
-      "name": "Deni Setiawan",
-      "cat": "Statistics",
-      "date": "2026-04-20",
-      "time": "10:00",
-      "status": "Pending Proof",
-      "color": const Color(0xFFF5B3CE),
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _load();
   }
 
-  List<Map<String, dynamic>> _getFilteredList(String status) {
-    List<Map<String, dynamic>> filtered = _allSessions.where((item) {
-      final matchesStatus = item['status'] == status;
-      final matchesSearch = item['name'].toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
-      // Filter kategori sudah dihapus di sini
-      return matchesStatus && matchesSearch;
-    }).toList();
-
-    filtered.sort((a, b) {
-      DateTime dateA = DateTime.parse(a['date']);
-      DateTime dateB = DateTime.parse(b['date']);
-      return _isAscending ? dateA.compareTo(dateB) : dateB.compareTo(dateA);
-    });
-
-    return filtered;
+  Future<void> _load() async {
+    setState(() => _isLoading = true);
+    await _controller.fetchProofs(searchQuery: _searchQuery);
+    if (mounted) setState(() => _isLoading = false);
   }
 
+  List<TeachingProofModel> _sorted(List<TeachingProofModel> list) {
+    final copy = [...list];
+    copy.sort((a, b) => _isAscending
+        ? a.dateLabel.compareTo(b.dateLabel)
+        : b.dateLabel.compareTo(a.dateLabel));
+    return copy;
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _summaryCtrl.dispose();
+    super.dispose();
+  }
+
+  // ─────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,26 +101,55 @@ class _TeachingProofPageState extends State<TeachingProofPage>
           _buildTopTools(),
           _buildTabBar(),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildListByStatus("Pending Proof"),
-                _buildListByStatus("Pending Verification"),
-                _buildListByStatus("Completed"),
-              ],
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : (_controller.errorMessage != null
+                    ? _buildError()
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildList(
+                              _sorted(_controller.requiredList), 'Required'),
+                          _buildList(
+                              _sorted(_controller.inReviewList), 'In Review'),
+                          _buildList(
+                              _sorted(_controller.verifiedList), 'Verified'),
+                        ],
+                      )),
           ),
         ],
       ),
     );
   }
 
+  Widget _buildError() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 50, color: Colors.grey[300]),
+          const SizedBox(height: 12),
+          Text(_controller.errorMessage ?? 'Error',
+              style: TextStyle(color: Colors.grey[500])),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _load,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // TOP TOOLS (sama dengan desain awal)
+  // ─────────────────────────────────────────────────────────
   Widget _buildTopTools() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
       child: Row(
         children: [
-          // Input Search
           Expanded(
             child: Container(
               height: 48,
@@ -150,14 +165,14 @@ class _TeachingProofPageState extends State<TeachingProofPage>
                 ],
               ),
               child: TextField(
-                onChanged: (val) => setState(() => _searchQuery = val),
+                onChanged: (val) {
+                  setState(() => _searchQuery = val);
+                  _load();
+                },
                 decoration: InputDecoration(
                   hintText: "Search student...",
                   hintStyle: const TextStyle(
-                    fontFamily: 'Nunito',
-                    color: Colors.grey,
-                    fontSize: 13,
-                  ),
+                      fontFamily: 'Nunito', color: Colors.grey, fontSize: 13),
                   prefixIcon: Icon(Icons.search, color: primaryColor, size: 20),
                   filled: true,
                   fillColor: Colors.white,
@@ -171,10 +186,6 @@ class _TeachingProofPageState extends State<TeachingProofPage>
             ),
           ),
           const SizedBox(width: 12),
-
-          // Tombol Filter Kategori sudah dihapus dari sini
-
-          // Tombol Sortir (Naik/Turun)
           GestureDetector(
             onTap: () => setState(() => _isAscending = !_isAscending),
             child: Container(
@@ -202,6 +213,9 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
+  // ─────────────────────────────────────────────────────────
+  // TAB BAR
+  // ─────────────────────────────────────────────────────────
   Widget _buildTabBar() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -215,15 +229,9 @@ class _TeachingProofPageState extends State<TeachingProofPage>
         labelColor: primaryColor,
         unselectedLabelColor: Colors.grey,
         labelStyle: const TextStyle(
-          fontFamily: 'Nunito',
-          fontWeight: FontWeight.w900,
-          fontSize: 14,
-        ),
+            fontFamily: 'Nunito', fontWeight: FontWeight.w900, fontSize: 14),
         unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Nunito',
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+            fontFamily: 'Nunito', fontWeight: FontWeight.w600, fontSize: 14),
         tabs: const [
           Tab(text: "Required"),
           Tab(text: "In Review"),
@@ -233,45 +241,45 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
-  Widget _buildListByStatus(String status) {
-    final list = _getFilteredList(status);
-
+  // ─────────────────────────────────────────────────────────
+  // LIST PER TAB
+  // ─────────────────────────────────────────────────────────
+  Widget _buildList(List<TeachingProofModel> list, String tab) {
     if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.assignment_turned_in_outlined,
-              size: 60,
-              color: Colors.grey[300],
-            ),
+            Icon(Icons.assignment_turned_in_outlined,
+                size: 60, color: Colors.grey[300]),
             const SizedBox(height: 15),
-            Text(
-              "No sessions found",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                color: Colors.grey[400],
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text("No sessions found",
+                style: TextStyle(
+                    fontFamily: 'Nunito',
+                    color: Colors.grey[400],
+                    fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      physics: const BouncingScrollPhysics(),
-      itemCount: list.length,
-      itemBuilder: (context, index) {
-        return _buildExpandableProofCard(list[index]);
-      },
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(20),
+        physics: const BouncingScrollPhysics(),
+        itemCount: list.length,
+        itemBuilder: (_, i) => _buildCard(list[i], tab),
+      ),
     );
   }
 
-  Widget _buildExpandableProofCard(Map<String, dynamic> session) {
-    bool isExpanded = _expandedSessionId == session['name'];
+  // ─────────────────────────────────────────────────────────
+  // CARD
+  // ─────────────────────────────────────────────────────────
+  Widget _buildCard(TeachingProofModel item, String tab) {
+    final isExpanded = _expandedId == item.bookingId;
+    final color = item.accentColor;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -280,9 +288,8 @@ class _TeachingProofPageState extends State<TeachingProofPage>
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: isExpanded
-              ? primaryColor.withOpacity(0.3)
-              : Colors.transparent,
+          color:
+              isExpanded ? primaryColor.withOpacity(0.3) : Colors.transparent,
           width: 2,
         ),
         boxShadow: [
@@ -296,75 +303,79 @@ class _TeachingProofPageState extends State<TeachingProofPage>
       child: Column(
         children: [
           ListTile(
-            onTap: () => setState(() {
-              _expandedSessionId = isExpanded ? null : session['name'];
-              _capturedImage = null; // Reset foto jika pindah card
-            }),
+            onTap: () {
+              setState(() {
+                _expandedId = isExpanded ? null : item.bookingId;
+                _capturedImage = null;
+                _summaryCtrl.text = item.sessionSummary ?? '';
+              });
+            },
             contentPadding: const EdgeInsets.all(16),
             leading: CircleAvatar(
               radius: 25,
-              backgroundColor: session['color'].withOpacity(0.2),
-              child: Text(
-                session['name'][0],
-                style: TextStyle(
-                  color: session['color'],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
+              backgroundColor: color.withOpacity(0.2),
+              backgroundImage: (item.clientPhotoUrl != null &&
+                      item.clientPhotoUrl!.isNotEmpty)
+                  ? NetworkImage(item.clientPhotoUrl!)
+                  : null,
+              child:
+                  (item.clientPhotoUrl == null || item.clientPhotoUrl!.isEmpty)
+                      ? Text(
+                          item.clientInitial,
+                          style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18),
+                        )
+                      : null,
             ),
             title: Text(
-              session['name'],
+              item.clientName,
               style: const TextStyle(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
+                  fontFamily: 'Nunito',
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text(
-                  session['cat'],
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
+                Text(item.categoryName,
+                    style: TextStyle(
+                        fontFamily: 'Nunito',
+                        color: primaryColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(
-                      Icons.calendar_month,
-                      size: 12,
-                      color: Colors.grey[400],
-                    ),
+                    Icon(Icons.calendar_month,
+                        size: 12, color: Colors.grey[400]),
                     const SizedBox(width: 4),
                     Text(
-                      "${session['date']} • ${session['time']}",
+                      '${item.dateLabel} • ${item.timeLabel}',
                       style: TextStyle(
-                        fontFamily: 'Nunito',
-                        color: Colors.grey[600],
-                        fontSize: 11,
-                      ),
+                          fontFamily: 'Nunito',
+                          color: Colors.grey[600],
+                          fontSize: 11),
                     ),
                   ],
                 ),
               ],
             ),
-            trailing: _buildStatusChip(session['status']),
+            trailing: _statusChip(item),
           ),
-          if (isExpanded) _buildExpansionContent(session),
+          if (isExpanded) _buildExpansion(item, tab),
         ],
       ),
     );
   }
 
-  Widget _buildExpansionContent(Map<String, dynamic> session) {
-    if (session['status'] == "Pending Proof") {
+  // ─────────────────────────────────────────────────────────
+  // EXPANSION CONTENT
+  // ─────────────────────────────────────────────────────────
+  Widget _buildExpansion(TeachingProofModel item, String tab) {
+    if (tab == 'Required') {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
@@ -374,25 +385,23 @@ class _TeachingProofPageState extends State<TeachingProofPage>
             const SizedBox(height: 15),
             _buildSummaryInput(),
             const SizedBox(height: 20),
-            _buildSubmitAction(),
+            _buildSubmitButton(item),
           ],
         ),
       );
     } else {
-      return _buildViewOnlyStatus(session);
+      return _buildViewOnly(item, tab);
     }
   }
 
+  // ── Upload zone ──
   Widget _buildUploadZone() {
     return GestureDetector(
       onTap: () async {
-        final XFile? photo = await _picker.pickImage(
-          source: ImageSource.gallery,
-        );
+        final XFile? photo =
+            await _picker.pickImage(source: ImageSource.gallery);
         if (photo != null) {
-          setState(() {
-            _capturedImage = File(photo.path);
-          });
+          setState(() => _capturedImage = File(photo.path));
         }
       },
       child: Container(
@@ -404,52 +413,38 @@ class _TeachingProofPageState extends State<TeachingProofPage>
           border: Border.all(color: pastelBlue.withOpacity(0.5), width: 1.5),
           image: _capturedImage != null
               ? DecorationImage(
-                  image: FileImage(_capturedImage!),
-                  fit: BoxFit.cover,
-                )
+                  image: FileImage(_capturedImage!), fit: BoxFit.cover)
               : null,
         ),
         child: _capturedImage == null
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.add_photo_alternate_rounded,
-                    color: primaryColor,
-                    size: 30,
-                  ),
+                  Icon(Icons.add_photo_alternate_rounded,
+                      color: primaryColor, size: 30),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Upload Session Photo",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    "Tap to open gallery",
-                    style: TextStyle(
-                      fontFamily: 'Nunito',
-                      fontSize: 10,
-                      color: Colors.grey[500],
-                    ),
-                  ),
+                  const Text("Upload Session Photo",
+                      style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
+                  Text("Tap to open gallery",
+                      style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontSize: 10,
+                          color: Colors.grey[500])),
                 ],
               )
             : Align(
                 alignment: Alignment.topRight,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(8),
                   child: CircleAvatar(
                     backgroundColor: Colors.white,
                     radius: 16,
                     child: IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: Colors.redAccent,
-                        size: 16,
-                      ),
+                      icon: const Icon(Icons.close_rounded,
+                          color: Colors.redAccent, size: 16),
                       onPressed: () => setState(() => _capturedImage = null),
                     ),
                   ),
@@ -459,8 +454,10 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
+  // ── Summary input ──
   Widget _buildSummaryInput() {
     return TextField(
+      controller: _summaryCtrl,
       maxLines: 2,
       style: const TextStyle(fontFamily: 'Nunito', fontSize: 13),
       decoration: InputDecoration(
@@ -476,61 +473,72 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
-  Widget _buildSubmitAction() {
+  // ── Submit button ──
+  Widget _buildSubmitButton(TeachingProofModel item) {
     return ElevatedButton(
-      onPressed: () {
-        if (_capturedImage == null) {
-          CherryToast.error(
-            title: const Text(
-              "Proof Required",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Nunito',
-              ),
-            ),
-            description: const Text(
-              "You must attach a session photo!",
-              style: TextStyle(fontFamily: 'Nunito'),
-            ),
-            animationType: AnimationType.fromTop,
-            toastPosition: Position.top,
-            autoDismiss: true,
-          ).show(context);
-          return;
-        }
-
-        CherryToast.success(
-          title: const Text(
-            "Success",
-            style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nunito'),
-          ),
-          description: const Text(
-            "Proof has been sent to client for verification.",
-            style: TextStyle(fontFamily: 'Nunito'),
-          ),
-          onToastClosed: () => setState(() {
-            _expandedSessionId = null;
-            _capturedImage = null;
-          }),
-        ).show(context);
-      },
+      onPressed: _isSubmitting ? null : () => _handleSubmit(item),
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryColor,
         minimumSize: const Size.fromHeight(50),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         elevation: 0,
       ),
-      child: const Text(
-        "Submit Teaching Proof",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
+      child: _isSubmitting
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                  color: Colors.white, strokeWidth: 2))
+          : const Text("Submit Teaching Proof",
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
     );
   }
 
-  Widget _buildViewOnlyStatus(Map<String, dynamic> session) {
-    bool isDone = session['status'] == "Completed";
+  // ── View only (In Review & Verified) ──
+  Widget _buildViewOnly(TeachingProofModel item, String tab) {
+    final isDone = tab == 'Verified';
     return Column(
       children: [
+        // Foto proof kalau ada
+        if (item.proofUrl != null && item.proofUrl!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                item.proofUrl!,
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 80,
+                  color: Colors.grey[100],
+                  child: const Center(
+                      child: Icon(Icons.broken_image, color: Colors.grey)),
+                ),
+              ),
+            ),
+          ),
+        // Catatan sesi
+        if (item.sessionSummary != null && item.sessionSummary!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text('"${item.sessionSummary!}"',
+                  style: const TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.black54)),
+            ),
+          ),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
@@ -550,45 +558,37 @@ class _TeachingProofPageState extends State<TeachingProofPage>
               Expanded(
                 child: Text(
                   isDone
-                      ? "Session verified. You've earned the fee for this session!"
+                      ? "Session verified. You've earned the fee!"
                       : "Waiting for client to verify your submission.",
                   style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
+                      fontFamily: 'Nunito',
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic),
                 ),
               ),
             ],
           ),
         ),
-
         if (isDone)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.clientReviews,
-                  arguments: {'studentName': session['name']},
-                );
-              },
-              icon: const Icon(Icons.star_rounded, color: Colors.amber),
-              label: Text(
-                "View Client Rating",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.bold,
-                  color: primaryColor,
-                ),
+              onPressed: () => Navigator.pushNamed(
+                context,
+                AppRoutes.clientReviews,
+                arguments: {'studentName': item.clientName},
               ),
+              icon: const Icon(Icons.star_rounded, color: Colors.amber),
+              label: Text("View Client Rating",
+                  style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: primaryColor.withOpacity(0.4)),
                 minimumSize: const Size.fromHeight(45),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -596,23 +596,96 @@ class _TeachingProofPageState extends State<TeachingProofPage>
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color color = status == "Completed"
-        ? Colors.green
-        : (status == "Pending Proof" ? pastelPink : Colors.orange);
+  // ─────────────────────────────────────────────────────────
+  // SUBMIT HANDLER
+  // ─────────────────────────────────────────────────────────
+  Future<void> _handleSubmit(TeachingProofModel item) async {
+    if (_capturedImage == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        CherryToast.error(
+          title: const Text("Proof Required",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nunito')),
+          description: const Text("You must attach a session photo!",
+              style: TextStyle(fontFamily: 'Nunito')),
+          animationType: AnimationType.fromTop,
+          toastPosition: Position.top,
+          autoDismiss: true,
+        ).show(context);
+      });
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final err = await _controller.submitProof(
+      bookingId: item.bookingId,
+      imageFile: _capturedImage!,
+      summary:
+          _summaryCtrl.text.trim().isEmpty ? null : _summaryCtrl.text.trim(),
+    );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (err == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        CherryToast.success(
+          title: const Text("Success",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nunito')),
+          description: const Text(
+              "Proof has been sent to client for verification.",
+              style: TextStyle(fontFamily: 'Nunito')),
+          animationType: AnimationType.fromTop,
+          toastPosition: Position.top,
+          autoDismiss: true,
+        ).show(context);
+      });
+
+      // Refresh & tutup card
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _expandedId = null;
+            _capturedImage = null;
+            _summaryCtrl.clear();
+          });
+          _load();
+        }
+      });
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        CherryToast.error(
+          title: const Text("Gagal",
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Nunito')),
+          description: Text(err, style: const TextStyle(fontFamily: 'Nunito')),
+          animationType: AnimationType.fromTop,
+          toastPosition: Position.top,
+          autoDismiss: true,
+        ).show(context);
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  Widget _statusChip(TeachingProofModel item) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: item.statusChipColor.withOpacity(0.15),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        status,
+        item.statusChipLabel,
         style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
+            color: item.statusChipColor,
+            fontSize: 10,
+            fontWeight: FontWeight.bold),
       ),
     );
   }
