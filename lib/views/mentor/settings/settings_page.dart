@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../routes/app_routes.dart';
 import '../../auth/login_page.dart';
@@ -13,8 +14,11 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final Color primaryPurple = const Color(0xFF7E7BB9);
-  final Color primaryBlue = const Color(0xFF6D92CB);
-  final Color textDark = const Color(0xFF2D3436);
+  final Color primaryBlue   = const Color(0xFF6D92CB);
+  final Color textDark      = const Color(0xFF2D3436);
+
+  // Nomor WhatsApp admin — sama seperti client
+  final String _adminWa = '6285108636167';
 
   @override
   Widget build(BuildContext context) {
@@ -52,40 +56,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 30,
-                      ),
+                          horizontal: 20, vertical: 30),
                       child: Column(
                         children: [
                           _buildSectionTitle("SECURITY"),
                           _buildMenuCard([
                             _buildMenuTile(
-                              icon: Icons.lock_person_outlined,
+                              icon:      Icons.lock_person_outlined,
                               iconColor: primaryPurple,
-                              title: "Change Password",
-                              desc: "Update your security regularly",
+                              title:     "Change Password",
+                              desc:      "Update your security regularly",
                               onTap: () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.changePassword,
-                              ),
+                                  context, AppRoutes.changePassword),
                             ),
                           ]),
                           const SizedBox(height: 25),
                           _buildSectionTitle("PREFERENCES"),
                           _buildMenuCard([
                             _buildMenuTile(
-                              icon: Icons.translate_rounded,
+                              icon:      Icons.support_agent_rounded,
                               iconColor: const Color(0xFF1ABC9C),
-                              title: "Help Center",
-                              desc: "Contact support & info",
+                              title:     "Help Center",
+                              desc:      "Contact support & info",
                               onTap: () => _showHelpCenterPopOut(context),
                             ),
                             _buildDivider(),
                             _buildMenuTile(
-                              icon: Icons.help_outline_rounded,
+                              icon:      Icons.help_outline_rounded,
                               iconColor: const Color(0xFFF39C12),
-                              title: "FAQ & Support",
-                              desc: "Find answers or contact us",
+                              title:     "FAQ & Support",
+                              desc:      "Find answers or contact us",
                               onTap: () =>
                                   Navigator.pushNamed(context, AppRoutes.faq),
                             ),
@@ -94,20 +94,20 @@ class _SettingsPageState extends State<SettingsPage> {
                           _buildSectionTitle("ACCOUNT"),
                           _buildMenuCard([
                             _buildMenuTile(
-                              icon: Icons.logout_rounded,
-                              iconColor: Colors.redAccent,
-                              title: "Sign Out",
+                              icon:       Icons.logout_rounded,
+                              iconColor:  Colors.redAccent,
+                              title:      "Sign Out",
                               titleColor: Colors.redAccent,
-                              desc: "Log Out from your account",
+                              desc:       "Log Out from your account",
                               onTap: () => _showLogoutDialog(context),
                             ),
                             _buildDivider(),
                             _buildMenuTile(
-                              icon: Icons.delete_outline_rounded,
-                              iconColor: Colors.redAccent,
-                              title: "Delete Account",
+                              icon:       Icons.delete_outline_rounded,
+                              iconColor:  Colors.redAccent,
+                              title:      "Delete Account",
                               titleColor: Colors.redAccent,
-                              desc: "Permanent action",
+                              desc:       "Permanent action",
                               onTap: () => _showConfirmPopOut(
                                 context,
                                 "Delete Account",
@@ -139,14 +139,111 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  // ── HELP CENTER ─────────────────────────────────────────────
+  // Identik dengan client, beda hanya tile ke-2:
+  //   Client : "Ajukan Refund"     → template pesan refund
+  //   Mentor : "Ajukan Tarik Dana" → template pesan penarikan
+  // ────────────────────────────────────────────────────────────
+  void _showHelpCenterPopOut(BuildContext context) {
+    Future<void> hubungiAdmin(String pesan) async {
+      final url = Uri.parse(
+          'https://wa.me/$_adminWa?text=${Uri.encodeComponent(pesan)}');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tidak bisa membuka WhatsApp')),
+          );
+        }
+      }
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(30),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Help Center",
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Need help with MentUp? Contact our team:",
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontSize: 13,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Tile 1 — sama persis dengan client
+            _buildSupportTile(
+              Icons.chat_rounded,
+              "WhatsApp Support",
+              "+62 851-0863-6167",
+              onTap: () {
+                Navigator.pop(context);
+                hubungiAdmin(
+                  "Halo admin MentUp, saya butuh bantuan terkait aplikasi.",
+                );
+              },
+            ),
+
+            // Tile 2 — khusus mentor: Ajukan Tarik Dana
+            _buildSupportTile(
+              Icons.account_balance_rounded,
+              "Ajukan Tarik Dana",
+              "Hubungi admin untuk proses penarikan dana",
+              onTap: () {
+                Navigator.pop(context);
+                hubungiAdmin(
+                  "Halo admin MentUp, saya ingin mengajukan tarik dana "
+                  "dari earnings saya. Berikut detailnya:\n"
+                  "- Nama Mentor: \n"
+                  "- Jumlah yang ditarik: \n"
+                  "- Nomor rekening / e-wallet: \n"
+                  "- Bank / platform: ",
+                );
+              },
+            ),
+
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
   Widget _buildFullGradientBackground() {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFFCDB4DB),
-            Color(0xFFA7C7E7),
-          ],
+          colors: [Color(0xFFCDB4DB), Color(0xFFA7C7E7)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -156,9 +253,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Positioned.fill(
             child: Opacity(
               opacity: 0.1,
-              child: CustomPaint(
-                painter: LinePatternPainter(),
-              ),
+              child: CustomPaint(painter: LinePatternPainter()),
             ),
           ),
         ],
@@ -174,11 +269,8 @@ class _SettingsPageState extends State<SettingsPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             const Text(
@@ -219,9 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFFDFDFD),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.05),
-        ),
+        border: Border.all(color: Colors.grey.withOpacity(0.05)),
       ),
       child: Column(children: children),
     );
@@ -237,21 +327,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }) {
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 15,
-        vertical: 5,
-      ),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: iconColor.withOpacity(0.1),
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          icon,
-          color: iconColor,
-          size: 20,
-        ),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
       title: Text(
         title,
@@ -263,19 +347,14 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
       subtitle: desc != null
-          ? Text(
-              desc,
+          ? Text(desc,
               style: TextStyle(
-                fontFamily: 'Nunito',
-                color: Colors.grey[500],
-                fontSize: 11,
-              ),
-            )
+                  fontFamily: 'Nunito',
+                  color: Colors.grey[500],
+                  fontSize: 11))
           : null,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: Colors.grey[500],
-      ),
+      trailing:
+          Icon(Icons.chevron_right_rounded, color: Colors.grey[500]),
     );
   }
 
@@ -289,23 +368,39 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _buildSupportTile(
+    IconData icon,
+    String title,
+    String val, {
+    VoidCallback? onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: primaryPurple, size: 20),
+      title: Text(title,
+          style: const TextStyle(
+              fontFamily: 'Nunito',
+              fontWeight: FontWeight.w700,
+              fontSize: 14)),
+      subtitle: Text(val, style: const TextStyle(fontSize: 12)),
+      trailing: onTap != null
+          ? const Icon(Icons.open_in_new_rounded,
+              size: 18, color: Colors.grey)
+          : null,
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
-        title: const Text(
-          "Sign Out",
-          style: TextStyle(
-            fontFamily: 'Nunito',
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: const Text(
-          "Are you sure you want to sign out?",
-        ),
+            borderRadius: BorderRadius.circular(25)),
+        title: const Text("Sign Out",
+            style: TextStyle(
+                fontFamily: 'Nunito', fontWeight: FontWeight.w900)),
+        content:
+            const Text("Are you sure you want to sign out?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
@@ -315,137 +410,31 @@ class _SettingsPageState extends State<SettingsPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+                  borderRadius: BorderRadius.circular(12)),
             ),
             onPressed: () async {
               Navigator.pop(dialogContext);
-
               try {
                 await Supabase.instance.client.auth.signOut();
-
                 if (!mounted) return;
-
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
-                    builder: (context) => const LoginPage(),
-                  ),
+                      builder: (_) => const LoginPage()),
                   (route) => false,
                 );
               } catch (e) {
                 if (!mounted) return;
-
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Logout gagal: $e'),
-                  ),
+                  SnackBar(content: Text('Logout gagal: $e')),
                 );
               }
             },
-            child: const Text(
-              "Sign Out",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text("Sign Out",
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
-    );
-  }
-
-  void _showHelpCenterPopOut(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(30),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(30),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              "Help Center",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Need help with MentUp? Contact our team:",
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                fontSize: 13,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildSupportTile(
-              Icons.chat_rounded,
-              "WhatsApp Support",
-              "+62 812-3456-7890",
-            ),
-            _buildSupportTile(
-              Icons.email_outlined,
-              "Email Support",
-              "support@mentup.app",
-            ),
-            const SizedBox(height: 20),
-            Text(
-              "Mon - Fri, 08:00 - 17:00 WITA",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSupportTile(
-    IconData icon,
-    String title,
-    String val,
-  ) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: primaryPurple,
-        size: 20,
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'Nunito',
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-      ),
-      subtitle: Text(
-        val,
-        style: const TextStyle(fontSize: 12),
-      ),
-      onTap: () {},
     );
   }
 
@@ -462,43 +451,32 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(30),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(30),
-          ),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-            ),
+            Text(title,
+                style: const TextStyle(
+                    fontFamily: 'Nunito',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18)),
             const SizedBox(height: 10),
-            Text(
-              msg,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Nunito',
-                color: Colors.grey[600],
-              ),
-            ),
+            Text(msg,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontFamily: 'Nunito', color: Colors.grey[600])),
             const SizedBox(height: 30),
             Row(
               children: [
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(
-                      "Cancel",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: Text("Cancel",
+                        style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 15),
@@ -508,17 +486,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       backgroundColor: color,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      "Confirm",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: const Text("Confirm",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -536,13 +510,9 @@ class LinePatternPainter extends CustomPainter {
     final paint = Paint()
       ..color = Colors.white
       ..strokeWidth = 1.0;
-
     for (double i = -size.height; i < size.width; i += 25) {
       canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint,
-      );
+          Offset(i, 0), Offset(i + size.height, size.height), paint);
     }
   }
 
