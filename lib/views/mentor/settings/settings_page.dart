@@ -22,11 +22,9 @@ class _SettingsPageState extends State<SettingsPage> {
       body: Stack(
         children: [
           _buildFullGradientBackground(),
-
           Column(
             children: [
               _buildCustomAppBar(context),
-
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Image.asset(
@@ -35,7 +33,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   color: Colors.white.withOpacity(0.9),
                 ),
               ),
-
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -61,7 +58,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Column(
                         children: [
                           _buildSectionTitle("SECURITY"),
-
                           _buildMenuCard([
                             _buildMenuTile(
                               icon: Icons.lock_person_outlined,
@@ -73,25 +69,9 @@ class _SettingsPageState extends State<SettingsPage> {
                                 AppRoutes.changePassword,
                               ),
                             ),
-
-                            _buildDivider(),
-
-                            _buildMenuTile(
-                              icon: Icons.alternate_email_rounded,
-                              iconColor: primaryBlue,
-                              title: "Update Email",
-                              desc: "lovie@mentup.app",
-                              onTap: () => Navigator.pushNamed(
-                                context,
-                                AppRoutes.changeEmail,
-                              ),
-                            ),
                           ]),
-
                           const SizedBox(height: 25),
-
                           _buildSectionTitle("PREFERENCES"),
-
                           _buildMenuCard([
                             _buildMenuTile(
                               icon: Icons.translate_rounded,
@@ -100,9 +80,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               desc: "Contact support & info",
                               onTap: () => _showHelpCenterPopOut(context),
                             ),
-
                             _buildDivider(),
-
                             _buildMenuTile(
                               icon: Icons.help_outline_rounded,
                               iconColor: const Color(0xFFF39C12),
@@ -112,11 +90,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                   Navigator.pushNamed(context, AppRoutes.faq),
                             ),
                           ]),
-
                           const SizedBox(height: 25),
-
                           _buildSectionTitle("ACCOUNT"),
-
                           _buildMenuCard([
                             _buildMenuTile(
                               icon: Icons.logout_rounded,
@@ -126,9 +101,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               desc: "Log Out from your account",
                               onTap: () => _showLogoutDialog(context),
                             ),
-
                             _buildDivider(),
-
                             _buildMenuTile(
                               icon: Icons.delete_outline_rounded,
                               iconColor: Colors.redAccent,
@@ -143,9 +116,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                             ),
                           ]),
-
                           const SizedBox(height: 30),
-
                           Text(
                             "MentUp v1.0.0",
                             style: TextStyle(
@@ -210,7 +181,6 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
-
             const Text(
               "Settings",
               style: TextStyle(
@@ -220,7 +190,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 fontSize: 20,
               ),
             ),
-
             const SizedBox(width: 48),
           ],
         ),
@@ -342,7 +311,6 @@ class _SettingsPageState extends State<SettingsPage> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text("Cancel"),
           ),
-
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
@@ -410,9 +378,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-
             const SizedBox(height: 20),
-
             const Text(
               "Help Center",
               style: TextStyle(
@@ -421,9 +387,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
               "Need help with MentUp? Contact our team:",
               style: TextStyle(
@@ -432,23 +396,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: Colors.grey,
               ),
             ),
-
             const SizedBox(height: 20),
-
             _buildSupportTile(
               Icons.chat_rounded,
               "WhatsApp Support",
               "+62 812-3456-7890",
             ),
-
             _buildSupportTile(
               Icons.email_outlined,
               "Email Support",
               "support@mentup.app",
             ),
-
             const SizedBox(height: 20),
-
             Text(
               "Mon - Fri, 08:00 - 17:00 WITA",
               style: TextStyle(
@@ -456,7 +415,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: Colors.grey[500],
               ),
             ),
-
             const SizedBox(height: 10),
           ],
         ),
@@ -519,9 +477,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 fontSize: 18,
               ),
             ),
-
             const SizedBox(height: 10),
-
             Text(
               msg,
               textAlign: TextAlign.center,
@@ -530,9 +486,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: Colors.grey[600],
               ),
             ),
-
             const SizedBox(height: 30),
-
             Row(
               children: [
                 Expanded(
@@ -547,9 +501,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 15),
-
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
