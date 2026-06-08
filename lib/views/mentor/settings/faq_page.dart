@@ -18,48 +18,35 @@ class _FaqPageState extends State<FaqPage> {
   final List<Map<String, String>> faqs = [
     {
       "q": "How does the platform fee work?",
-
       "a":
           "MentUp applies a 10% service fee on every booking to maintain platform operations.",
     },
-
     {
       "q": "When do I get my payment?",
-
       "a":
           "Earnings are processed by admin first, then transferred to your registered account.",
     },
-
     {
       "q": "Can I cancel a booking?",
-
       "a": "No, you cannot cancel the session if you already accept it.",
     },
-
     {
       "q": "How do I change my hourly rate?",
-
       "a":
           "You can update your teaching fee anytime from the 'Service Rates' menu. Please note that rate changes will only apply to new incoming bookings.",
     },
-
     {
       "q": "What if a client is late or doesn't show up?",
-
       "a":
           "If a client is late, you are only required to teach for the remaining scheduled time. If they don't show up, you can fill the teaching form to complaint and still receive full payment.",
     },
-
     {
       "q": "How does the rating system work?",
-
       "a":
           "After each completed session, client can leave a rating (1-5 stars) and a review. Maintaining a rating above 4.5 will boost your visibility on the search page!",
     },
-
     {
       "q": "What should I do if we experience technical issues?",
-
       "a": "We provide help center so you can contact us anytime!",
     },
   ];
@@ -133,9 +120,6 @@ class _FaqPageState extends State<FaqPage> {
                             ],
                           ),
                         ),
-
-                        // --- COMPLAINT SECTION (Bawah) ---
-                        _buildComplaintSection(context),
                       ],
                     ),
                   ),
@@ -318,135 +302,6 @@ class _FaqPageState extends State<FaqPage> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComplaintSection(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: bgGray,
-        border: Border(top: BorderSide(color: Colors.grey.withOpacity(0.1))),
-      ),
-      child: Column(
-        children: [
-          const Text(
-            "Still need help?",
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            "Our support team is ready to assist you.",
-            style: TextStyle(
-              fontFamily: 'Nunito',
-              color: Colors.grey[600],
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 15),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primaryPurple,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 0,
-              ),
-              onPressed: () => _showComplaintPopOut(context),
-              child: const Text(
-                "Submit a form",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showComplaintPopOut(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(25),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(35)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Submit Form",
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 22,
-                ),
-              ),
-              const SizedBox(height: 25),
-              _buildField("Subject (e.g., Payment Issue)"),
-              const SizedBox(height: 15),
-              _buildField("Describe your problem in detail...", maxLines: 4),
-              const SizedBox(height: 25),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          "Form submitted successfully!",
-                          style: TextStyle(fontFamily: 'Nunito'),
-                        ),
-                        backgroundColor: primaryPurple,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    "Send Form",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

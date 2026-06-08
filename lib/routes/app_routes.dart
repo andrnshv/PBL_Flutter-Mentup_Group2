@@ -25,7 +25,6 @@ class AppRoutes {
   static const settingsAccount = '/settings_account';
   static const faq = '/faq';
   static const changePassword = '/change_password';
-  static const changeEmail = '/change_email';
   static const clientReviews = '/client_reviews';
 
   // ================= CLIENT =================

@@ -24,7 +24,6 @@ import 'views/mentor/profile/edit_profile_page.dart';
 import 'views/mentor/settings/settings_page.dart';
 import 'views/mentor/settings/faq_page.dart';
 import 'views/mentor/settings/change_password_page.dart';
-import 'views/mentor/settings/change_email_page.dart';
 import 'views/mentor/profile/service_rates_page.dart';
 import 'views/mentor/schedule/my_schedule_page.dart';
 import 'views/mentor/schedule/manage_slot_page.dart';
@@ -108,8 +107,6 @@ class MyApp extends StatelessWidget {
         AppRoutes.faq: (_) => const FaqPage(),
 
         AppRoutes.changePassword: (_) => const ChangePasswordPage(),
-
-        AppRoutes.changeEmail: (_) => const ChangeEmailPage(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (_) => const WelcomePage());
