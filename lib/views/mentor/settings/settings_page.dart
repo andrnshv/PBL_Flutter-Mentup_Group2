@@ -59,17 +59,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           horizontal: 20, vertical: 30),
                       child: Column(
                         children: [
-                          _buildSectionTitle("SECURITY"),
-                          _buildMenuCard([
-                            _buildMenuTile(
-                              icon:      Icons.lock_person_outlined,
-                              iconColor: primaryPurple,
-                              title:     "Change Password",
-                              desc:      "Update your security regularly",
-                              onTap: () => Navigator.pushNamed(
-                                  context, AppRoutes.changePassword),
-                            ),
-                          ]),
                           const SizedBox(height: 25),
                           _buildSectionTitle("PREFERENCES"),
                           _buildMenuCard([
@@ -101,31 +90,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               desc:       "Log Out from your account",
                               onTap: () => _showLogoutDialog(context),
                             ),
-                            _buildDivider(),
-                            _buildMenuTile(
-                              icon:       Icons.delete_outline_rounded,
-                              iconColor:  Colors.redAccent,
-                              title:      "Delete Account",
-                              titleColor: Colors.redAccent,
-                              desc:       "Permanent action",
-                              onTap: () => _showConfirmPopOut(
-                                context,
-                                "Delete Account",
-                                "This action is permanent.",
-                                color: Colors.redAccent,
-                              ),
-                            ),
                           ]),
-                          const SizedBox(height: 30),
-                          Text(
-                            "MentUp v1.0.0",
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              color: Colors.grey[400],
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                         ],
                       ),
                     ),

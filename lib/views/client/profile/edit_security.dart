@@ -91,40 +91,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                             ),
                             child: Column(
                               children: [
-                                _buildSectionTitle("SECURITY"),
-                                _buildMenuCard([
-                                  _buildMenuTile(
-                                    icon: Icons.lock_person_outlined,
-                                    iconColor: primaryPurple,
-                                    title: "Change Password",
-                                    desc: "Update your security regularly",
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ChangePasswordPage(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  _buildDivider(),
-                                  _buildMenuTile(
-                                    icon: Icons.alternate_email_rounded,
-                                    iconColor: primaryBlue,
-                                    title: "Update Email",
-                                    desc: userData?.email ?? "-",
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const UpdateEmailPage(),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ]),
                                 const SizedBox(height: 25),
                                 _buildSectionTitle("PREFERENCES"),
                                 _buildMenuCard([
@@ -161,19 +127,6 @@ class _EditSecurityPageState extends State<EditSecurityPage> {
                                     titleColor: Colors.redAccent,
                                     desc: "Log Out from your account",
                                     onTap: () => _showLogoutDialog(context),
-                                  ),
-                                  _buildDivider(),
-                                  _buildMenuTile(
-                                    icon: Icons.delete_outline_rounded,
-                                    iconColor: Colors.redAccent,
-                                    title: "Delete Account",
-                                    titleColor: Colors.redAccent,
-                                    desc: "Permanent action",
-                                    onTap: () => _showConfirmPopOut(
-                                      context,
-                                      "Delete Account",
-                                      "This action is permanent.",
-                                    ),
                                   ),
                                 ]),
                               ],
