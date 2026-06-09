@@ -3,15 +3,6 @@ import '../../../controller/client/history_controller.dart';
 import '../profile/edit_security.dart';
 import 'reschedule_page.dart';
 
-// ================================================================
-//  HISTORY PAGE — MentUp
-//  File: lib/views/client/History/History_page.dart
-//
-//  Tampilan sama dengan desain awal. Data dari Supabase.
-//  Klien bisa beri rating + komentar → tersimpan ke tabel `reviews`
-//  → otomatis muncul di Top Mentors & What They Say (home page).
-// ================================================================
-
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
@@ -22,10 +13,10 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage> {
   final HistoryController _controller = HistoryController();
 
-  int selectedTab = 0;
-  int selectedRating = 5;
-  bool _isLoading = true;
-  bool _submitting = false;
+  int  selectedTab    = 0;
+  int  selectedRating = 5;
+  bool _isLoading     = true;
+  bool _submitting    = false;
 
   final TextEditingController reviewController = TextEditingController();
 
@@ -40,22 +31,17 @@ class _HistoryPageState extends State<HistoryPage> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  // ── Reschedule: buka form pilih jadwal baru ──
   Future<void> _handleReschedule(HistoryItemModel data) async {
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(
-        builder: (_) => ReschedulePage(booking: data),
-      ),
+      MaterialPageRoute(builder: (_) => ReschedulePage(booking: data)),
     );
-    // Kalau reschedule berhasil, refresh history
     if (result == true && mounted) {
       setState(() => _isLoading = true);
       _load();
     }
   }
 
-  // ── Cancel: konfirmasi → cancelled → Help Center refund ──
   Future<void> _handleCancel(HistoryItemModel data) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -87,19 +73,16 @@ class _HistoryPageState extends State<HistoryPage> {
     if (!mounted) return;
 
     if (err == null) {
-      // Refresh history, lalu tawarkan ke Help Center
       setState(() => _isLoading = true);
       await _load();
       if (!mounted) return;
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16)),
           title: const Text('Booking Dibatalkan'),
-          content: const Text(
-            'Ajukan refund ke admin lewat Help Center.',
-          ),
+          content: const Text('Ajukan refund ke admin lewat Help Center.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -113,7 +96,8 @@ class _HistoryPageState extends State<HistoryPage> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const EditSecurityPage()),
+                  MaterialPageRoute(
+                      builder: (_) => const EditSecurityPage()),
                 );
               },
               child: const Text('Ke Help Center'),
@@ -147,12 +131,11 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  // ── Lihat detail review yang sudah dibuat ──
   void _showReviewSheet(HistoryItemModel data) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (_) => Container(
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -162,21 +145,20 @@ class _HistoryPageState extends State<HistoryPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 4,
+              width: 40, height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(10),
-              ),
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10)),
             ),
             const SizedBox(height: 20),
             _avatar(data, 35),
             const SizedBox(height: 12),
             Text(data.name,
-                style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
-            Text(data.role, style: TextStyle(color: Colors.grey[600])),
+            Text(data.role,
+                style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 15),
             _buildStars(data.rating ?? 0),
             const SizedBox(height: 18),
@@ -201,168 +183,173 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  // ── Form beri review (rating + komentar) ──
   void _showGiveReviewSheet(HistoryItemModel data) {
     reviewController.clear();
     selectedRating = 5;
+
+    // Guard: jika bookingHistoryId null, tampilkan pesan
+    if (data.bookingHistoryId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Sesi belum memiliki riwayat. '
+            'Pastikan sesi sudah diverifikasi selesai.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius:
+                  BorderRadius.vertical(top: Radius.circular(30)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
+                const SizedBox(height: 20),
+                _avatar(data, 35),
+                const SizedBox(height: 12),
+                Text(data.name,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 5),
+                Text("How was your mentoring session?",
+                    style: TextStyle(color: Colors.grey[600])),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      onPressed: () =>
+                          setModalState(() => selectedRating = index + 1),
+                      icon: Icon(
+                        index < selectedRating
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: Colors.amber,
+                        size: 32,
                       ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: reviewController,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: "Write your review here...",
+                    filled: true,
+                    fillColor: const Color(0xFFF4F6FA),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(18),
+                      borderSide: BorderSide.none,
                     ),
-                    const SizedBox(height: 20),
-                    _avatar(data, 35),
-                    const SizedBox(height: 12),
-                    Text(data.name,
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
-                    Text("How was your mentoring session?",
-                        style: TextStyle(color: Colors.grey[600])),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        return IconButton(
-                          onPressed: () {
-                            setModalState(() => selectedRating = index + 1);
-                          },
-                          icon: Icon(
-                            index < selectedRating
-                                ? Icons.star_rounded
-                                : Icons.star_border_rounded,
-                            color: Colors.amber,
-                            size: 32,
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: reviewController,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: "Write your review here...",
-                        filled: true,
-                        fillColor: const Color(0xFFF4F6FA),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitting
-                            ? null
-                            : () async {
-                                if (reviewController.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          "Please write your review first"),
-                                    ),
-                                  );
-                                  return;
-                                }
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _submitting
+                        ? null
+                        : () async {
+                            if (reviewController.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      "Please write your review first"),
+                                ),
+                              );
+                              return;
+                            }
 
-                                setModalState(() => _submitting = true);
+                            setModalState(() => _submitting = true);
 
-                                final ok = await _controller.submitReview(
-                                  mentorId: data.mentorId,
-                                  rating: selectedRating,
-                                  reviewText: reviewController.text.trim(),
-                                );
+                            // ← pass bookingHistoryId dari field model
+                            final ok = await _controller.submitReview(
+                              mentorId:         data.mentorId,
+                              bookingHistoryId: data.bookingHistoryId,
+                              rating:           selectedRating,
+                              reviewText:       reviewController.text.trim(),
+                            );
 
-                                setModalState(() => _submitting = false);
+                            setModalState(() => _submitting = false);
+                            if (!mounted) return;
+                            Navigator.pop(context);
 
-                                if (!mounted) return;
-                                Navigator.pop(context);
-
-                                if (ok) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          "Review submitted successfully!"),
-                                    ),
-                                  );
-                                  // refresh list supaya status berubah
-                                  setState(() => _isLoading = true);
-                                  _load();
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(_controller.errorMessage ??
+                            if (ok) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content:
+                                      Text("Review submitted successfully!"),
+                                ),
+                              );
+                              setState(() => _isLoading = true);
+                              _load();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      _controller.errorMessage ??
                                           "Gagal mengirim review"),
-                                    ),
-                                  );
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6C63FF),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: _submitting
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text("Submit Review"),
-                      ),
+                                ),
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6C63FF),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                     ),
-                  ],
+                    child: _submitting
+                        ? const SizedBox(
+                            width: 20, height: 20,
+                            child: CircularProgressIndicator(
+                                color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text("Submit Review"),
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentList =
-        selectedTab == 0 ? _controller.doneList : _controller.cancelledList;
+    final currentList = selectedTab == 0
+        ? _controller.doneList
+        : _controller.cancelledList;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
       body: SafeArea(
         child: Column(
           children: [
-            /// HEADER
             Container(
               padding: const EdgeInsets.fromLTRB(18, 20, 18, 25),
               decoration: const BoxDecoration(
@@ -375,14 +362,11 @@ class _HistoryPageState extends State<HistoryPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Session History",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  const Text("Session History",
+                      style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -394,8 +378,6 @@ class _HistoryPageState extends State<HistoryPage> {
                 ],
               ),
             ),
-
-            /// LIST
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -409,9 +391,8 @@ class _HistoryPageState extends State<HistoryPage> {
                           child: ListView.builder(
                             padding: const EdgeInsets.all(16),
                             itemCount: currentList.length,
-                            itemBuilder: (context, index) {
-                              return _historyCard(currentList[index]);
-                            },
+                            itemBuilder: (_, i) =>
+                                _historyCard(currentList[i]),
                           ),
                         )),
             ),
@@ -469,9 +450,10 @@ class _HistoryPageState extends State<HistoryPage> {
     return CircleAvatar(
       radius: radius,
       backgroundColor: const Color(0xFF6C63FF).withOpacity(0.1),
-      backgroundImage: (data.fotoUrl != null && data.fotoUrl!.isNotEmpty)
-          ? NetworkImage(data.fotoUrl!)
-          : null,
+      backgroundImage:
+          (data.fotoUrl != null && data.fotoUrl!.isNotEmpty)
+              ? NetworkImage(data.fotoUrl!)
+              : null,
       child: (data.fotoUrl == null || data.fotoUrl!.isEmpty)
           ? Text(
               data.name.isNotEmpty ? data.name[0].toUpperCase() : '?',
@@ -483,8 +465,8 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _historyCard(HistoryItemModel data) {
-    final bool isDone = data.status == "Done";
-    final bool isReviewed = data.isReviewed;
+    final isDone     = data.status == "Done";
+    final isReviewed = data.isReviewed;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -494,15 +476,13 @@ class _HistoryPageState extends State<HistoryPage> {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5)),
         ],
       ),
       child: Column(
         children: [
-          /// TOP CONTENT
           Row(
             children: [
               _avatar(data, 28),
@@ -515,17 +495,18 @@ class _HistoryPageState extends State<HistoryPage> {
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 15)),
                     const SizedBox(height: 3),
-                    Text(data.role, style: TextStyle(color: Colors.grey[600])),
+                    Text(data.role,
+                        style: TextStyle(color: Colors.grey[600])),
                     const SizedBox(height: 5),
                     Text(data.dateLabel,
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.grey[500])),
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey[500])),
                   ],
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
                   color: isDone
                       ? Colors.green.withOpacity(0.1)
@@ -544,7 +525,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ],
           ),
 
-          /// REVIEW SECTION (hanya untuk Done)
+          // ── REVIEW SECTION ────────────────────────────────
           if (isDone) ...[
             const SizedBox(height: 18),
             Container(
@@ -565,7 +546,8 @@ class _HistoryPageState extends State<HistoryPage> {
                             SizedBox(width: 8),
                             Text("Your Review",
                                 style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 14)),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14)),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -608,10 +590,10 @@ class _HistoryPageState extends State<HistoryPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6C63FF),
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                                  borderRadius: BorderRadius.circular(14)),
                             ),
                             child: const Text("Give Review"),
                           ),
@@ -621,7 +603,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           ],
 
-          // ── SECTION REJECTED: alasan + Reschedule / Cancel ──
+          // ── REJECTED: alasan + Reschedule/Cancel ─────────
           if (!isDone && data.isRejected) ...[
             const SizedBox(height: 16),
             Container(
@@ -630,12 +612,12 @@ class _HistoryPageState extends State<HistoryPage> {
               decoration: BoxDecoration(
                 color: Colors.red.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.red.withOpacity(0.15)),
+                border:
+                    Border.all(color: Colors.red.withOpacity(0.15)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Alasan mentor menolak
                   if (data.cancelReason != null &&
                       data.cancelReason!.isNotEmpty) ...[
                     Row(
@@ -666,41 +648,44 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                     const SizedBox(height: 16),
                   ],
-
-                  // 2 Tombol: Reschedule & Cancel/Refund
                   Row(
                     children: [
-                      // CANCEL/REFUND
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => _handleCancel(data),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.redAccent,
-                            side: const BorderSide(color: Colors.redAccent),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(
+                                color: Colors.redAccent),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius:
+                                    BorderRadius.circular(12)),
                           ),
                           child: const Text('Cancel',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // RESCHEDULE
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () => _handleReschedule(data),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF6C63FF),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                                borderRadius:
+                                    BorderRadius.circular(12)),
                           ),
                           child: const Text('Reschedule',
                               style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13)),
                         ),
                       ),
                     ],
